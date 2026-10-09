@@ -43,14 +43,14 @@ public class AccountController : Controller
     [HttpGet]
     [Route("account/login")]
     [Route("doctor/login")]
-    public IActionResult Login(string? returnUrl = null)
+    public IActionResult Login(string? returnUrl = null, string? role = null)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
             return RedirectToAction("Index", "Home");
         }
 
-        var isDoctor = Request.Path.Value?.Contains("doctor") == true;
+        var isDoctor = Request.Path.Value?.Contains("doctor") == true || string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase);
         ViewBag.GoogleSignInEnabled = !string.IsNullOrEmpty(_configuration["Authentication:Google:ClientId"]);
         
         return View(new LoginViewModel
@@ -552,7 +552,7 @@ public class AccountController : Controller
     }
 
     // --------------------------------------------------------------------------
-    // 7. SECURE POST LOGOUT
+    // 7. SECURE POST LOGOUT & DESTRUCTIVE ACTIONS (PHASE 9)
     // --------------------------------------------------------------------------
 
     [HttpPost]
@@ -560,9 +560,51 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
+        var isDoctor = User.IsInRole("Doctor");
         await _signInManager.SignOutAsync();
-        TempData["SuccessMessage"] = "You have been signed out safely.";
-        return RedirectToAction("Index", "Home");
+        HttpContext.Session.Clear();
+
+        // Clear cart-merge flags and session cookies
+        Response.Cookies.Delete("tga_cart_id");
+
+        TempData["SuccessMessage"] = isDoctor 
+            ? "Doctor clinical session ended safely." 
+            : "You have been logged out successfully.";
+
+        if (isDoctor)
+        {
+            return RedirectToAction("Login", "Account", new { role = "Doctor" });
+        }
+
+        return RedirectToAction("Login", "Account");
+    }
+
+    [HttpGet]
+    [Route("account/logout")]
+    public IActionResult LogoutGet()
+    {
+        // Logout is strictly POST with anti-forgery token. Never allow GET logout links.
+        return RedirectToAction("Login", "Account");
+    }
+
+    [Authorize]
+    [HttpPost]
+    [Route("account/delete-address/{id:int}")]
+    [Route("account/deleteaddress/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteAddress(int id)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return RedirectToAction("Login");
+
+        var addr = await _context.Addresses.FirstOrDefaultAsync(a => a.Id == id && a.UserId == user.Id);
+        if (addr != null)
+        {
+            _context.Addresses.Remove(addr);
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Delivery address removed successfully.";
+        }
+        return RedirectToAction(nameof(Profile));
     }
 
     // Helper: Cryptographically Strong 6-digit OTP

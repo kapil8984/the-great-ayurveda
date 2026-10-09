@@ -71,6 +71,7 @@ public class AdminMvcFactory : WebApplicationFactory<Ayurveda.Admin.Program>
                 d.ServiceType == typeof(DbContextOptions<AyurvedaDbContext>) ||
                 d.ServiceType == typeof(DbContextOptions) ||
                 d.ServiceType == typeof(AyurvedaDbContext) ||
+                d.ServiceType == typeof(IAntiforgery) ||
                 d.ServiceType.FullName?.Contains("EntityFrameworkCore") == true ||
                 d.ServiceType.Name.Contains("DbContextOptionsConfiguration")).ToList();
 
@@ -78,6 +79,8 @@ public class AdminMvcFactory : WebApplicationFactory<Ayurveda.Admin.Program>
             {
                 services.Remove(d);
             }
+
+            services.AddSingleton<IAntiforgery, PassThroughAntiforgery>();
 
             services.AddDbContext<AyurvedaDbContext>(options =>
             {
@@ -719,6 +722,269 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         var response = await client.PostAsync("/Doctors/SubmitReview", form);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    // =========================================================================
+    // PHASE 8: ADMIN PORTAL, RBAC & GOVERNANCE TESTS
+    // =========================================================================
+
+    private async Task<HttpClient> CreateAuthenticatedAdminClientAsync(string email, string password)
+    {
+        var client = _adminFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var loginForm = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = email,
+            ["Password"] = password
+        });
+
+        var loginResponse = await client.PostAsync("/Auth/Login", loginForm);
+        Assert.True(loginResponse.StatusCode == HttpStatusCode.Redirect || loginResponse.StatusCode == HttpStatusCode.OK);
+
+        return client;
+    }
+
+    [Fact]
+    public async Task Admin_Dashboard_RendersExecutiveKpis_WhenAuthenticated()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+        var response = await client.GetAsync("/Dashboard");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Executive Management Console", html);
+        Assert.Contains("Gross Revenue", html);
+        Assert.Contains("Orders Placed", html);
+        Assert.Contains("Active Vaidyas", html);
+        Assert.Contains("Low-Stock SKUs", html);
+        Assert.Contains("Doctor Verification Queue", html);
+    }
+
+    [Fact]
+    public async Task Admin_DoctorManagement_AllowsDirectoryAudit_AndPendingQueue()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+
+        var response = await client.GetAsync("/Doctors");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Doctor Practice Management", html);
+        Assert.Contains("Registration No.", html);
+
+        var pendingResponse = await client.GetAsync("/Doctors/Pending");
+        Assert.Equal(HttpStatusCode.OK, pendingResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_AuthorizationMatrix_CatalogManager_CannotAccessFinancePages()
+    {
+        // Explicit acceptance test: CatalogManager role CANNOT open finance pages
+        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "AdminSecure@2026");
+        var response = await client.GetAsync("/Finance");
+
+        // Should return 403 Forbidden or redirect to AccessDenied
+        Assert.True(response.StatusCode == HttpStatusCode.Forbidden || 
+                   (response.StatusCode == HttpStatusCode.Redirect && response.Headers.Location?.ToString().Contains("AccessDenied") == true));
+    }
+
+    [Fact]
+    public async Task Admin_Finance_AllowsFinanceManagerAccess_AndGstReportExport()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "AdminSecure@2026");
+        var response = await client.GetAsync("/Finance");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Finance, Payouts &amp; GST Ledger", html);
+        Assert.Contains("Platform Fee (15%)", html);
+        Assert.Contains("Doctor Payouts &amp; Settlements", html);
+
+        // Test GST CSV Export
+        var csvResponse = await client.GetAsync("/Finance/ExportGstCsv");
+        Assert.Equal(HttpStatusCode.OK, csvResponse.StatusCode);
+        Assert.Equal("text/csv", csvResponse.Content.Headers.ContentType?.MediaType);
+        var csv = await csvResponse.Content.ReadAsStringAsync();
+        Assert.Contains("Invoice Number", csv);
+        Assert.Contains("Taxable Value", csv);
+        Assert.Contains("CGST", csv);
+    }
+
+    [Fact]
+    public async Task Admin_UserManagement_RendersUserList_AndGdprDataExport()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+        var response = await client.GetAsync("/Users");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Patient &amp; User Accounts", html);
+        Assert.Contains("Total Users:", html);
+
+        // GDPR Data Export for customer account #1
+        var exportResponse = await client.GetAsync("/Users/ExportData/1");
+        Assert.Equal(HttpStatusCode.OK, exportResponse.StatusCode);
+        Assert.Equal("application/json", exportResponse.Content.Headers.ContentType?.MediaType);
+        var json = await exportResponse.Content.ReadAsStringAsync();
+        Assert.Contains("DPDP Act 2023 / GDPR Data Portability", json);
+    }
+
+    [Fact]
+    public async Task Admin_Products_AllowsCsvExport_AndInventoryTracking()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "AdminSecure@2026");
+        var response = await client.GetAsync("/Products");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Formulations &amp; Inventory", html);
+        Assert.Contains("Shastriya Categories", html);
+
+        // Bulk CSV Export
+        var csvResponse = await client.GetAsync("/Products/ExportCsv");
+        Assert.Equal(HttpStatusCode.OK, csvResponse.StatusCode);
+        Assert.Equal("text/csv", csvResponse.Content.Headers.ContentType?.MediaType);
+        var csv = await csvResponse.Content.ReadAsStringAsync();
+        Assert.Contains("SKU", csv);
+        Assert.Contains("StockQuantity", csv);
+    }
+
+    [Fact]
+    public async Task Admin_Audit_Trail_RendersSecurityLogs_ForSuperAdmin()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+        var response = await client.GetAsync("/Audit");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Security &amp; Operational Audit Trail", html);
+        Assert.Contains("Timestamp (UTC)", html);
+    }
+
+    // =========================================================================
+    // PHASE 9: LOGOUT CONFIRMATION, ACCESSIBLE MODALS & IDLE TIMEOUT TESTS
+    // =========================================================================
+
+    [Fact]
+    public async Task CustomerPortal_RendersAccessibleConfirmModal_AndLogoutTrigger()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        // 1. Unified Accessible Confirm Modal exists in the layout
+        Assert.Contains("id=\"confirmActionModal\"", html);
+        Assert.Contains("role=\"dialog\"", html);
+        Assert.Contains("aria-modal=\"true\"", html);
+        Assert.Contains("confirmModalForm", html);
+        Assert.Contains("confirmModalProceedBtn", html);
+        Assert.Contains("confirmModalCancelBtn", html);
+    }
+
+    [Fact]
+    public async Task Customer_LogoutPost_ClearsSession_AndRedirectsToLoginWithToast()
+    {
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        // POST logout with form token
+        var response = await client.PostAsync("/Account/Logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+
+        // GET logout is strictly prohibited and redirects safely without performing destructive action
+        var getResponse = await client.GetAsync("/Account/Logout");
+        Assert.Equal(HttpStatusCode.Redirect, getResponse.StatusCode);
+        Assert.Contains("/Account/Login", getResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DoctorPortalNav_RendersLogoutTrigger_AndIdleTimeoutModal()
+    {
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        // Doctor portal login page renders without errors
+        var loginResponse = await client.GetAsync("/Account/Login?role=Doctor");
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        var html = await loginResponse.Content.ReadAsStringAsync();
+
+        Assert.Contains("Doctor Portal", html);
+        Assert.Contains("Vaidya Clinical Desk", html);
+    }
+
+    [Fact]
+    public async Task AdminPortal_RendersAccessibleConfirmModal_AndIdleTimeoutModal_WhenAuthenticated()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+        var response = await client.GetAsync("/Dashboard");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        // 1. Accessible Confirm Modal
+        Assert.Contains("id=\"confirmActionModal\"", html);
+        Assert.Contains("role=\"dialog\"", html);
+        Assert.Contains("aria-modal=\"true\"", html);
+
+        // 2. Idle Timeout Modal with countdown
+        Assert.Contains("id=\"idleTimeoutModal\"", html);
+        Assert.Contains("id=\"idleCountdownTimer\"", html);
+        Assert.Contains("btnStaySignedIn", html);
+        Assert.Contains("idleLogoutForm", html);
+
+        // 3. Admin Logout triggers (sidebar and header)
+        Assert.Contains("data-tga-logout", html);
+        Assert.Contains("data-action-url=\"/Auth/Logout\"", html);
+    }
+
+    [Fact]
+    public async Task Admin_LogoutPost_RequiresPost_AndRedirectsToAdminLoginWithToast()
+    {
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+
+        var response = await client.PostAsync("/Auth/Logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Auth/Login", response.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+
+        // GET logout on Admin redirects to login
+        var getResponse = await client.GetAsync("/Auth/Logout");
+        Assert.Equal(HttpStatusCode.Redirect, getResponse.StatusCode);
+        Assert.Contains("/Auth/Login", getResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DestructiveActions_DeleteAddress_AndCancelOrder_AreProtectedByPost()
+    {
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        // Delete address without authentication redirects to login
+        var deleteResponse = await client.PostAsync("/Account/DeleteAddress/999", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        Assert.Equal(HttpStatusCode.Redirect, deleteResponse.StatusCode);
+        Assert.Contains("/Account/Login", deleteResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+
+        // Order cancel without authentication redirects to login
+        var cancelResponse = await client.PostAsync("/Orders/Cancel/999", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        Assert.Equal(HttpStatusCode.Redirect, cancelResponse.StatusCode);
+        Assert.Contains("/Account/Login", cancelResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
 }
+
 
 

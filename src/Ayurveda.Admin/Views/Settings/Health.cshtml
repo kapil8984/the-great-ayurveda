@@ -1,0 +1,59 @@
+@model Ayurveda.Application.ViewModels.AdminSystemHealthViewModel
+@{
+    ViewData["Title"] = "System Infrastructure Health";
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill mb-2">
+        <i class="bi bi-arrow-left me-1"></i> Back to Settings
+    </a>
+    <h2 class="fw-bold mb-1"><i class="bi bi-activity text-success me-2"></i>Infrastructure Health &amp; Telemetry</h2>
+    <p class="text-muted small mb-0">Live diagnostics of database connections, memory allocation, and storage subsystems.</p>
+</div>
+
+<div class="row g-4" style="max-width: 900px;">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-database text-success me-2"></i>Database Subsystem</h5>
+                <span class="badge @(Model.DatabaseHealthy ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger")">
+                    @(Model.DatabaseHealthy ? "Healthy & Connected" : "Unhealthy")
+                </span>
+            </div>
+            <div class="small text-muted mb-2">Provider: <strong>@Model.DatabaseProvider</strong></div>
+            <div class="small text-muted mb-0">Active Formulation Records: <strong>@Model.DatabaseItemCount</strong></div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-memory text-primary me-2"></i>Runtime Memory</h5>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Process Active</span>
+            </div>
+            <div class="small text-muted mb-2">Resident Working Set: <strong>@Model.MemoryUsageMb</strong></div>
+            <div class="small text-muted mb-0">Environment: <strong>@Model.EnvironmentName</strong></div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-envelope-check text-info me-2"></i>Notification Subsystem</h5>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Configured</span>
+            </div>
+            <div class="small text-muted mb-0">SMTP / In-app notification dispatcher initialized and ready for automated patient &amp; doctor dispatches.</div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history text-secondary me-2"></i>Server Epoch</h5>
+                <span class="badge bg-light text-dark border">UTC Timezone</span>
+            </div>
+            <div class="small text-muted mb-2">Universal Server Time: <strong>@Model.ServerTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</strong></div>
+            <div class="small text-muted mb-0">Indian Standard Time: <strong>@Model.ServerTimeUtc.AddHours(5.5).ToString("yyyy-MM-dd HH:mm:ss") IST</strong></div>
+        </div>
+    </div>
+</div>

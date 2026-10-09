@@ -1,0 +1,133 @@
+@model List<Ayurveda.Domain.Entities.Coupon>
+@{
+    ViewData["Title"] = "Promotional Coupons & Discounts";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-tag text-success me-2"></i>Coupons &amp; Campaign Offers</h2>
+        <p class="text-muted small mb-0">Manage customer discount promo codes, basket minimums, and discount caps.</p>
+    </div>
+    <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-xs fw-semibold" data-bs-toggle="modal" data-bs-target="#createCouponModal">
+        <i class="bi bi-plus-circle me-1"></i> New Promo Coupon
+    </button>
+</div>
+
+<!-- Coupons Table -->
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden bg-white">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th class="ps-4">Promo Code</th>
+                    <th>Discount Type</th>
+                    <th>Value</th>
+                    <th>Min. Order</th>
+                    <th>Max. Cap</th>
+                    <th>Usage</th>
+                    <th class="text-center">State</th>
+                    <th class="text-end pe-4">Toggle</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-tag-fill display-4 d-block mb-2"></i>
+                            No coupons created yet.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var c in Model)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold font-monospace fs-6 text-success">@c.Code</span>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">@c.DiscountType</span></td>
+                            <td class="fw-bold text-dark">
+                                @(c.DiscountType == Ayurveda.Domain.Enums.DiscountType.Percentage ? $"{c.DiscountAmount}% OFF" : $"₹{c.DiscountAmount:N0} Flat")
+                            </td>
+                            <td class="small text-muted">₹@c.MinOrderAmount</td>
+                            <td class="small text-muted">₹@c.MaxDiscountAmount</td>
+                            <td class="small text-muted">@c.UsageCount / @c.UsageLimit</td>
+                            <td class="text-center">
+                                @if (c.IsActive)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border">Disabled</span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <form asp-action="ToggleCoupon" asp-route-id="@c.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm rounded-pill px-3 @(c.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                        @(c.IsActive ? "Disable" : "Enable")
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Coupon Modal -->
+<div class="modal fade" id="createCouponModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="CreateCoupon" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-tag text-success me-2"></i>Create Promo Coupon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Coupon Code *</label>
+                        <input type="text" name="code" class="form-control rounded-3 font-monospace text-uppercase" placeholder="e.g. AYUSH25" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Discount Type</label>
+                            <select name="discountType" class="form-select rounded-3">
+                                <option value="Percentage">Percentage (%)</option>
+                                <option value="Flat">Flat Amount (₹)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Discount Amount *</label>
+                            <input type="number" name="discountAmount" step="1" class="form-control rounded-3" placeholder="e.g. 20" required />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Min Cart Amount (₹)</label>
+                            <input type="number" name="minOrderAmount" value="499" class="form-control rounded-3" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Max Discount Cap (₹)</label>
+                            <input type="number" name="maxDiscountAmount" value="300" class="form-control rounded-3" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Expiry Date (Optional)</label>
+                        <input type="date" name="expiryDate" class="form-control rounded-3" />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">Create Coupon</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -304,5 +305,28 @@ public class OrdersController : Controller
         };
 
         return View(model);
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return RedirectToAction("Login", "Account");
+
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
+        if (order != null && (order.Status == "Placed" || order.Status == "Confirmed"))
+        {
+            order.Status = "Cancelled";
+            order.CancellationReason = "Cancelled by patient before dispatch";
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = $"Order #{order.OrderNumber} has been cancelled successfully.";
+        }
+        else if (order != null)
+        {
+            TempData["ErrorMessage"] = $"Order #{order.OrderNumber} cannot be cancelled as it is already {order.Status}.";
+        }
+        return RedirectToAction(nameof(Details), new { id });
     }
 }

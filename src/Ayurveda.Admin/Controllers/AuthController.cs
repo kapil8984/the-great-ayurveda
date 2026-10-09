@@ -91,7 +91,23 @@ public class AuthController : Controller
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();
+        try
+        {
+            HttpContext.Session?.Clear();
+        }
+        catch
+        {
+            // Session may not be configured in test or limited host environments
+        }
         TempData["SuccessMessage"] = "Administrative session terminated successfully.";
+        return RedirectToAction(nameof(Login));
+    }
+
+    [HttpGet]
+    [ActionName("Logout")]
+    public IActionResult LogoutGet()
+    {
+        // Logout is strictly POST with anti-forgery token. Never allow GET logout links.
         return RedirectToAction(nameof(Login));
     }
 }

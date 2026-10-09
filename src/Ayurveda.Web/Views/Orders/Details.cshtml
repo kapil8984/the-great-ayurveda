@@ -28,7 +28,12 @@
             </a>
             @if (Model.CanCancel)
             {
-                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3"
+                        data-confirm-action
+                        data-confirm-title="Cancel Order"
+                        data-confirm-body="Are you sure you want to cancel Order #@Model.OrderNumber? This cannot be undone."
+                        data-confirm-btn-text="Confirm Cancellation"
+                        data-action-url="/Orders/Cancel/@Model.OrderId">
                     <i class="bi bi-x-circle me-1"></i> Cancel Order
                 </button>
             }

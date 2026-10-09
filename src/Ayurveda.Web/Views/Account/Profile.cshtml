@@ -32,7 +32,10 @@
 
                 <div class="mt-4">
                     <a asp-controller="Orders" asp-action="Index" class="btn btn-outline-success w-100 btn-sm rounded-pill mb-2">View Orders</a>
-                    <a asp-controller="Doctors" asp-action="MyAppointments" class="btn btn-outline-secondary w-100 btn-sm rounded-pill">View Consultations</a>
+                    <a asp-controller="Doctors" asp-action="MyAppointments" class="btn btn-outline-secondary w-100 btn-sm rounded-pill mb-2">View Consultations</a>
+                    <button type="button" class="btn btn-outline-danger w-100 btn-sm rounded-pill" data-tga-logout data-action-url="/Account/Logout">
+                        <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                    </button>
                 </div>
             </div>
         </div>
@@ -52,8 +55,18 @@
                                 <div class="p-3 border rounded-3 bg-light position-relative">
                                     <div class="fw-bold">@addr.RecipientName @(addr.IsDefault ? "(Default)" : "")</div>
                                     <div class="small text-muted mb-1">@addr.Phone</div>
-                                    <div class="small text-dark">
+                                    <div class="small text-dark mb-2">
                                         @addr.AddressLine1, @addr.City, @addr.State - @addr.PostalCode
+                                    </div>
+                                    <div class="pt-2 border-top text-end">
+                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3"
+                                                data-confirm-action
+                                                data-confirm-title="Delete Delivery Address"
+                                                data-confirm-body="Are you sure you want to remove this delivery address? This action cannot be undone."
+                                                data-confirm-btn-text="Delete Address"
+                                                data-action-url="/account/delete-address/@addr.Id">
+                                            <i class="bi bi-trash3 me-1"></i> Delete
+                                        </button>
                                     </div>
                                 </div>
                             </div>

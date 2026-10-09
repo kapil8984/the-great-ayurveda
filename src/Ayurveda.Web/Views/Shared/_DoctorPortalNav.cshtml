@@ -29,6 +29,10 @@
             <a asp-controller="DoctorPortal" asp-action="Profile" class="nav-link rounded-pill px-3 @(currentAction == "Profile" ? "active bg-success" : "text-dark")">
                 <i class="bi bi-person-gear me-1"></i> Practice Profile
             </a>
+            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 ms-lg-2" data-tga-logout data-action-url="/Account/Logout" title="Sign Out from Doctor Portal">
+                <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+            </button>
         </nav>
     </div>
 </div>
+<partial name="_IdleTimeoutModal" />

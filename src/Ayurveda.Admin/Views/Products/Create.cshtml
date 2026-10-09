@@ -1,0 +1,105 @@
+@model Ayurveda.Application.ViewModels.AdminProductEditViewModel
+@{
+    ViewData["Title"] = "Add New Ayurvedic Formulation";
+    var categories = ViewBag.Categories as List<Ayurveda.Domain.Entities.Category> ?? new();
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill mb-2">
+        <i class="bi bi-arrow-left me-1"></i> Back to Inventory
+    </a>
+    <h2 class="fw-bold mb-1">Add Classical Ayurvedic Formulation</h2>
+    <p class="text-muted small mb-0">Record product information, botanical ingredients, dosage, and stock quantity.</p>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-white" style="max-width: 900px;">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label asp-for="Title" class="form-label small fw-semibold">Formulation Title *</label>
+                <input asp-for="Title" class="form-control rounded-3" placeholder="e.g. Maha Sudarshan Churna" required />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Sku" class="form-label small fw-semibold">SKU Code</label>
+                <input asp-for="Sku" class="form-control rounded-3" placeholder="Auto-generated if empty" />
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="CategoryId" class="form-label small fw-semibold">Shastriya Category *</label>
+                <select asp-for="CategoryId" class="form-select rounded-3" required>
+                    <option value="">-- Select Category --</option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Brand" class="form-label small fw-semibold">Apothecary / Brand</label>
+                <input asp-for="Brand" class="form-control rounded-3" placeholder="The Great Ayurveda Labs" />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Price" class="form-label small fw-semibold">Selling Price (₹) *</label>
+                <input asp-for="Price" type="number" step="1" min="0" class="form-control rounded-3" required />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Mrp" class="form-label small fw-semibold">Maximum Retail Price (MRP ₹)</label>
+                <input asp-for="Mrp" type="number" step="1" min="0" class="form-control rounded-3" />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="StockQuantity" class="form-label small fw-semibold">Initial Warehouse Stock *</label>
+                <input asp-for="StockQuantity" type="number" min="0" class="form-control rounded-3" required />
+            </div>
+
+            <div class="col-12">
+                <label asp-for="ImageUrl" class="form-label small fw-semibold">Primary Image SVG/WebP URL</label>
+                <input asp-for="ImageUrl" class="form-control rounded-3" placeholder="/images/products/placeholder.svg" />
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Description" class="form-label small fw-semibold">Classical Description &amp; Textual Reference *</label>
+                <textarea asp-for="Description" rows="4" class="form-control rounded-3" placeholder="Therapeutic properties, references from Charaka or Sushruta Samhita..." required></textarea>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="KeyIngredients" class="form-label small fw-semibold">Key Botanical Ingredients (Dravyas)</label>
+                <input asp-for="KeyIngredients" class="form-control rounded-3" placeholder="e.g. Amla, Haritaki, Bibhitaki, Pippali" />
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="HowToUse" class="form-label small fw-semibold">Dosage &amp; Anupana (How to Use)</label>
+                <input asp-for="HowToUse" class="form-control rounded-3" placeholder="e.g. 1 teaspoon twice daily with warm water" />
+            </div>
+
+            <div class="col-12">
+                <div class="d-flex gap-4 pt-2">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" asp-for="IsActive" id="activeSwitch" checked>
+                        <label class="form-check-label small fw-semibold" for="activeSwitch">Publish Live</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" asp-for="IsFeatured" id="featuredSwitch">
+                        <label class="form-check-label small fw-semibold" for="featuredSwitch">Feature on Home</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" asp-for="IsBestseller" id="bestsellerSwitch">
+                        <label class="form-check-label small fw-semibold" for="bestsellerSwitch">Mark Bestseller</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 text-end pt-3 border-top">
+                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm">
+                    <i class="bi bi-check-lg me-1"></i> Create Formulation
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

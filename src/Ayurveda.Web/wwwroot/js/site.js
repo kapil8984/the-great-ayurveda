@@ -5,7 +5,8 @@
 
 document.addEventListener("DOMContentLoaded", function () {
     initSearchBox();
-    initLogoutModal();
+    initConfirmModal();
+    initIdleTimeoutModal();
     initAjaxCart();
     initPrakritiQuiz();
     initCountdownTimer();
@@ -521,32 +522,194 @@ function renderSuggestions(data, dropdown, query, scope, input) {
 
 
 // --------------------------------------------------------------------------
-// 2. LOGOUT CONFIRMATION MODAL TRIGGER
+// 2. REUSABLE ACCESSIBLE CONFIRMATION & LOGOUT MODAL (PHASE 9)
 // --------------------------------------------------------------------------
-function initLogoutModal() {
-    const logoutTriggers = document.querySelectorAll("[data-tga-logout]");
-    const modalEl = document.getElementById("confirmModal");
+function initConfirmModal() {
+    const modalEl = document.getElementById("confirmActionModal");
     if (!modalEl) return;
 
+    const modalTitleText = document.getElementById("confirmModalTitleText") || document.getElementById("confirmModalTitle");
+    const modalBody = document.getElementById("confirmModalBody");
+    const modalForm = document.getElementById("confirmModalForm");
+    const proceedBtn = document.getElementById("confirmModalProceedBtn");
+    const cancelBtn = document.getElementById("confirmModalCancelBtn");
+    const iconEl = document.getElementById("confirmModalIcon");
+
+    let lastFocusedElement = null;
+    const bsModal = new bootstrap.Modal(modalEl);
+
+    // Focus management & accessible focus trap
+    modalEl.addEventListener("shown.bs.modal", function () {
+        if (cancelBtn) cancelBtn.focus();
+    });
+
+    modalEl.addEventListener("hidden.bs.modal", function () {
+        if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+            lastFocusedElement.focus();
+        }
+    });
+
+    modalEl.addEventListener("keydown", function (e) {
+        if (e.key === "Tab") {
+            const focusables = modalEl.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+            if (focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+
+            if (e.shiftKey) {
+                if (document.activeElement === first) {
+                    last.focus();
+                    e.preventDefault();
+                }
+            } else {
+                if (document.activeElement === last) {
+                    first.focus();
+                    e.preventDefault();
+                }
+            }
+        } else if (e.key === "Enter" && document.activeElement !== cancelBtn) {
+            e.preventDefault();
+            if (modalForm) modalForm.submit();
+        }
+    });
+
+    // 1. Logout Triggers
+    const logoutTriggers = document.querySelectorAll("[data-tga-logout], .btn-logout-trigger");
     logoutTriggers.forEach(btn => {
         btn.addEventListener("click", function (e) {
             e.preventDefault();
-            const modalTitle = document.getElementById("confirmModalTitle");
-            const modalBody = document.getElementById("confirmModalBody");
-            const modalForm = document.getElementById("confirmModalForm");
+            lastFocusedElement = btn;
+
             const actionUrl = btn.getAttribute("data-action-url") || "/Account/Logout";
 
-            if (modalTitle) modalTitle.innerText = "Confirm Sign Out";
-            if (modalBody) modalBody.innerText = "Are you sure you want to log out of your Ayurvedic patient account?";
+            if (modalTitleText) modalTitleText.innerText = "Confirm Sign Out";
+            if (modalBody) modalBody.innerText = "Are you sure you want to log out of your session?";
+            if (proceedBtn) {
+                proceedBtn.innerText = "Log out";
+                proceedBtn.className = "btn btn-danger px-4 rounded-pill fw-semibold";
+            }
+            if (iconEl) {
+                iconEl.className = "bi bi-box-arrow-right text-danger fs-4";
+            }
             if (modalForm) {
                 modalForm.setAttribute("action", actionUrl);
                 modalForm.setAttribute("method", "post");
             }
 
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
+            bsModal.show();
         });
     });
+
+    // 2. Generic Destructive Confirmation Triggers (e.g. Delete Address, Cancel Order)
+    const confirmTriggers = document.querySelectorAll("[data-confirm-action]");
+    confirmTriggers.forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            lastFocusedElement = btn;
+
+            const title = btn.getAttribute("data-confirm-title") || "Confirm Action";
+            const body = btn.getAttribute("data-confirm-body") || "Are you sure you want to proceed?";
+            const proceedText = btn.getAttribute("data-confirm-btn-text") || "Confirm";
+            const btnClass = btn.getAttribute("data-confirm-btn-class") || "btn-danger";
+            const actionUrl = btn.getAttribute("data-action-url") || "";
+            const method = btn.getAttribute("data-action-method") || "post";
+
+            if (modalTitleText) modalTitleText.innerText = title;
+            if (modalBody) modalBody.innerText = body;
+            if (proceedBtn) {
+                proceedBtn.innerText = proceedText;
+                proceedBtn.className = `btn ${btnClass} px-4 rounded-pill fw-semibold`;
+            }
+            if (iconEl) {
+                iconEl.className = "bi bi-exclamation-triangle-fill text-warning fs-4";
+            }
+            if (modalForm) {
+                modalForm.setAttribute("action", actionUrl);
+                modalForm.setAttribute("method", method);
+            }
+
+            bsModal.show();
+        });
+    });
+}
+
+// --------------------------------------------------------------------------
+// 2b. SESSION INACTIVITY / IDLE TIMEOUT WARNING MODAL (PHASE 9 - Doctor Portal)
+// --------------------------------------------------------------------------
+function initIdleTimeoutModal() {
+    const idleModalEl = document.getElementById("idleTimeoutModal");
+    if (!idleModalEl) return;
+
+    const countdownEl = document.getElementById("idleCountdownTimer");
+    const staySignedBtn = document.getElementById("btnStaySignedIn");
+    const idleForm = document.getElementById("idleLogoutForm");
+
+    const idleTimeoutLimit = window.TGA_IDLE_TIMEOUT_MS || (25 * 60 * 1000);
+    const countdownSeconds = window.TGA_IDLE_COUNTDOWN_SEC || 60;
+
+    let idleTimer = null;
+    let countdownInterval = null;
+    let remainingSeconds = countdownSeconds;
+    const bsIdleModal = new bootstrap.Modal(idleModalEl, {
+        backdrop: 'static',
+        keyboard: false
+    });
+
+    function resetIdleTimer() {
+        if (countdownInterval) return; // Inactivity modal is actively open
+
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(showInactivityWarning, idleTimeoutLimit);
+    }
+
+    function showInactivityWarning() {
+        remainingSeconds = countdownSeconds;
+        if (countdownEl) countdownEl.innerText = remainingSeconds;
+
+        bsIdleModal.show();
+        if (staySignedBtn) staySignedBtn.focus();
+
+        countdownInterval = setInterval(() => {
+            remainingSeconds--;
+            if (countdownEl) countdownEl.innerText = remainingSeconds;
+
+            if (remainingSeconds <= 0) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                if (idleForm) {
+                    idleForm.submit();
+                } else {
+                    window.location.href = "/Account/Login";
+                }
+            }
+        }, 1000);
+    }
+
+    if (staySignedBtn) {
+        staySignedBtn.addEventListener("click", function () {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            bsIdleModal.hide();
+            resetIdleTimer();
+
+            fetch("/Home/Ping", { method: "HEAD" }).catch(() => {});
+        });
+    }
+
+    const activityEvents = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+    let lastActivity = Date.now();
+
+    activityEvents.forEach(evt => {
+        window.addEventListener(evt, () => {
+            const now = Date.now();
+            if (now - lastActivity > 1000) {
+                lastActivity = now;
+                resetIdleTimer();
+            }
+        }, { passive: true });
+    });
+
+    resetIdleTimer();
 }
 
 // --------------------------------------------------------------------------

@@ -90,32 +90,84 @@
                 <img src="/images/admin-logo-full.svg" alt="The Great Ayurveda Admin Portal" height="42" class="img-fluid" />
             </div>
 
-            <nav class="d-flex flex-column gap-1 flex-grow-1">
+            <nav class="d-flex flex-column gap-1 flex-grow-1 overflow-y-auto" style="max-height: calc(100vh - 180px);">
                 <a asp-controller="Dashboard" asp-action="Index">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
-                <a asp-controller="Doctors" asp-action="Pending">
-                    <i class="bi bi-person-check"></i> Doctor Verification
-                </a>
-                <a asp-controller="Products" asp-action="Index">
-                    <i class="bi bi-box-seam"></i> Products & Stock
-                </a>
-                <a asp-controller="Orders" asp-action="Index">
-                    <i class="bi bi-cart-check"></i> Orders & Dispatch
-                </a>
-                <a asp-controller="Yoga" asp-action="Index">
-                    <i class="bi bi-flower1"></i> Yoga & Wellness
-                </a>
-                <a asp-controller="Users" asp-action="Index">
-                    <i class="bi bi-people"></i> Users & Patients
-                </a>
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("SupportAgent") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Doctors" asp-action="Index">
+                        <i class="bi bi-hospital"></i> Doctor Practice
+                    </a>
+                    <a asp-controller="Doctors" asp-action="Pending">
+                        <i class="bi bi-person-check"></i> Doctor Verification
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("CatalogManager") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Products" asp-action="Index">
+                        <i class="bi bi-box-seam"></i> Products &amp; Stock
+                    </a>
+                    <a asp-controller="Marketing" asp-action="Coupons">
+                        <i class="bi bi-tag"></i> Coupons &amp; Offers
+                    </a>
+                    <a asp-controller="Marketing" asp-action="Banners">
+                        <i class="bi bi-images"></i> Store Banners
+                    </a>
+                    <a asp-controller="Yoga" asp-action="Index">
+                        <i class="bi bi-flower1"></i> Yoga &amp; Wellness
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("SupportAgent") || User.IsInRole("FinanceManager") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Orders" asp-action="Index">
+                        <i class="bi bi-cart-check"></i> Orders &amp; Dispatch
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("SupportAgent") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Appointments" asp-action="Index">
+                        <i class="bi bi-calendar2-heart"></i> Tele-Consultations
+                    </a>
+                    <a asp-controller="Moderation" asp-action="Reviews">
+                        <i class="bi bi-chat-square-quote"></i> Reviews &amp; Q&amp;A
+                    </a>
+                    <a asp-controller="Users" asp-action="Index">
+                        <i class="bi bi-people"></i> Users &amp; Patients
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("FinanceManager"))
+                {
+                    <a asp-controller="Finance" asp-action="Index">
+                        <i class="bi bi-cash-stack"></i> Finance &amp; GST
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin"))
+                {
+                    <div class="small text-uppercase text-white-50 px-2 pt-2 fw-semibold" style="font-size: 0.7rem;">System &amp; Security</div>
+                    <a asp-controller="AdminUsers" asp-action="Index">
+                        <i class="bi bi-shield-lock"></i> Staff Roles &amp; 2FA
+                    </a>
+                    <a asp-controller="Audit" asp-action="Index">
+                        <i class="bi bi-journal-text"></i> Audit Trail
+                    </a>
+                    <a asp-controller="Settings" asp-action="Index">
+                        <i class="bi bi-sliders"></i> System Settings
+                    </a>
+                }
             </nav>
 
             <div class="border-top border-secondary pt-3 mt-auto">
                 <div class="small text-white-50 px-2 mb-2 text-truncate">@User.Identity.Name</div>
                 <form asp-controller="Auth" asp-action="Logout" method="post" id="adminLogoutForm" class="m-0">
                     @Html.AntiForgeryToken()
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-pill btn-logout-trigger">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-pill btn-logout-trigger" data-tga-logout data-action-url="/Auth/Logout">
                         <i class="bi bi-box-arrow-right me-1"></i> Sign Out
                     </button>
                 </form>
@@ -132,7 +184,12 @@
                     <h5 class="fw-bold mb-0 text-dark text-nowrap d-none d-md-block">Management Console</h5>
                     <partial name="_SearchBox" />
                 </div>
-                <span class="badge bg-success-subtle text-success border border-success px-3 py-1 text-nowrap">Protected Admin Host</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border border-success px-3 py-1 text-nowrap d-none d-sm-inline">Protected Admin Host</span>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-tga-logout data-action-url="/Auth/Logout" title="Sign Out">
+                        <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                    </button>
+                </div>
             </header>
         }
 
@@ -141,24 +198,9 @@
         </main>
     </div>
 
-    <!-- Reusable Accessible Confirm Modal -->
-    <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true" role="dialog" aria-modal="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow border-0 rounded-4">
-                <div class="modal-header border-bottom-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="confirmModalTitle">Confirm Action</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body py-4 text-muted" id="confirmModalBody">
-                    Are you sure you want to proceed?
-                </div>
-                <div class="modal-footer border-top-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger px-4 rounded-pill" id="confirmModalProceedBtn">Confirm</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Reusable Accessible Confirm Modal & Idle Timeout Modal -->
+    <partial name="_ConfirmModal" />
+    <partial name="_IdleTimeoutModal" />
 
     <!-- Toasts Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
@@ -184,27 +226,6 @@
 
     <script src="/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="/js/admin.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const logoutTriggers = document.querySelectorAll(".btn-logout-trigger");
-            const confirmModalEl = document.getElementById("confirmActionModal");
-            if (confirmModalEl) {
-                logoutTriggers.forEach(btn => {
-                    btn.addEventListener("click", function (e) {
-                        e.preventDefault();
-                        const form = document.getElementById("adminLogoutForm");
-                        document.getElementById("confirmModalTitle").innerText = "Sign Out from Admin";
-                        document.getElementById("confirmModalBody").innerText = "Are you sure you want to terminate your administrative session?";
-                        document.getElementById("confirmModalProceedBtn").onclick = function () {
-                            if (form) form.submit();
-                        };
-                        const modal = new bootstrap.Modal(confirmModalEl);
-                        modal.show();
-                    });
-                });
-            }
-        });
-    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

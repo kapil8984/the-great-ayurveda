@@ -1,16 +1,23 @@
-<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true" role="dialog" aria-modal="true">
+<!-- Reusable Accessible Confirmation Modal (Phase 9) -->
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalBody" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0">
+        <div class="modal-content shadow-lg border-0 rounded-4">
             <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold text-dark" id="confirmModalTitle">Confirm Action</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="confirmModalTitle">
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-4" id="confirmModalIcon"></i>
+                    <span id="confirmModalTitleText">Confirm Action</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="confirmModalCloseBtn"></button>
             </div>
-            <div class="modal-body py-4 text-muted" id="confirmModalBody">
-                Are you sure you wish to proceed?
+            <div class="modal-body py-3 text-secondary" id="confirmModalBody">
+                Are you sure you want to proceed?
             </div>
             <div class="modal-footer border-top-0 pt-0">
-                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger px-4 rounded-pill" id="confirmModalProceedBtn">Confirm</button>
+                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal" id="confirmModalCancelBtn">Cancel</button>
+                <form id="confirmModalForm" method="post" action="" class="m-0 d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger px-4 rounded-pill fw-semibold" id="confirmModalProceedBtn">Confirm</button>
+                </form>
             </div>
         </div>
     </div>

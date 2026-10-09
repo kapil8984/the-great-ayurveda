@@ -162,6 +162,20 @@
                     </li>
                 </ul>
 
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="d-lg-none border-top pt-2 mt-2">
+                        <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded-3">
+                            <span class="small fw-semibold text-truncate me-2">
+                                <i class="bi bi-person-circle text-success me-1"></i> @User.Identity.Name
+                            </span>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1 text-nowrap" data-tga-logout data-action-url="/Account/Logout">
+                                <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                            </button>
+                        </div>
+                    </div>
+                }
+
                 <div class="text-muted small d-none d-xl-flex align-items-center gap-2">
                     <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
                         <i class="bi bi-patch-check-fill me-1"></i> Ministry of AYUSH Standards

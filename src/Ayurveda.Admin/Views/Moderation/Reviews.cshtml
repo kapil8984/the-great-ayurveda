@@ -1,0 +1,91 @@
+@model List<Ayurveda.Domain.Entities.ProductReview>
+@{
+    ViewData["Title"] = "Customer Reviews & Content Moderation";
+    var doctorReviews = ViewBag.DoctorReviews as List<Ayurveda.Domain.Entities.DoctorReview> ?? new();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-chat-square-quote text-success me-2"></i>Reviews Moderation</h2>
+        <p class="text-muted small mb-0">Audit public formulation reviews and verified doctor consultation feedback.</p>
+    </div>
+    <a asp-action="Questions" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+        <i class="bi bi-question-circle me-1"></i> Product Q&amp;A Moderation
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Product Formulation Reviews -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-box-seam text-success me-2"></i>Product Catalogue Reviews</h5>
+            @if (!Model.Any())
+            {
+                <p class="text-muted small py-4 text-center mb-0">No product reviews submitted yet.</p>
+            }
+            else
+            {
+                <div class="list-group list-group-flush">
+                    @foreach (var r in Model)
+                    {
+                        <div class="list-group-item px-0 py-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small text-dark">@(r.Product?.Title ?? "Product")</span>
+                                <div class="text-warning small">
+                                    @for (int i = 0; i < r.Rating; i++) { <span>★</span> }
+                                </div>
+                            </div>
+                            <p class="small text-muted mb-2">@r.ReviewText</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted" style="font-size: 0.725rem;">Posted @r.CreatedAt.ToString("dd MMM yyyy")</span>
+                                <form asp-action="DeleteProductReview" asp-route-id="@r.Id" method="post" class="d-inline" onsubmit="return confirm('Remove this review?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" style="font-size: 0.75rem;">
+                                        Delete Review
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Doctor Consultation Reviews -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-hospital text-success me-2"></i>Tele-Consultation Doctor Feedback</h5>
+            @if (!doctorReviews.Any())
+            {
+                <p class="text-muted small py-4 text-center mb-0">No doctor reviews logged yet.</p>
+            }
+            else
+            {
+                <div class="list-group list-group-flush">
+                    @foreach (var dr in doctorReviews)
+                    {
+                        <div class="list-group-item px-0 py-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small text-dark">Dr. @dr.Doctor.DoctorName</span>
+                                <div class="text-warning small">
+                                    @for (int i = 0; i < dr.Rating; i++) { <span>★</span> }
+                                </div>
+                            </div>
+                            <p class="small text-muted mb-2">@dr.ReviewText</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted" style="font-size: 0.725rem;">Patient: @(dr.User?.FullName ?? "Patient") • @dr.CreatedAt.ToString("dd MMM yyyy")</span>
+                                <form asp-action="DeleteDoctorReview" asp-route-id="@dr.Id" method="post" class="d-inline" onsubmit="return confirm('Remove this doctor review?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" style="font-size: 0.75rem;">
+                                        Delete Review
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

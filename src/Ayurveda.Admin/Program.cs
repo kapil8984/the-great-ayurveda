@@ -52,16 +52,40 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
+// Role & Policy-Based Authorization for Administrative Segregation
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireSuperAdmin", policy =>
+        policy.RequireRole(UserRole.SuperAdmin.ToString()));
+
+    options.AddPolicy("RequireCatalogManagement", policy =>
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), UserRole.CatalogManager.ToString()));
+
+    options.AddPolicy("RequireFinanceManagement", policy =>
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), UserRole.FinanceManager.ToString()));
+
+    options.AddPolicy("RequireCustomerSupport", policy =>
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), UserRole.SupportAgent.ToString()));
+});
+
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.AddMemoryCache();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Bootstrap super admin account if needed
+// Bootstrap admin staff accounts if needed
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -79,24 +103,34 @@ using (var scope = app.Services.CreateScope())
 
         await DbInitializer.InitializeAsync(db, userManager, roleManager, logger);
 
-        // Ensure super admin exists in dev
-        var adminEmail = "admin@thegreatayurveda.com";
-        var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
-        if (existingAdmin == null)
+        // Ensure 4 administrative role accounts exist in dev/test
+        var adminAccounts = new (string Email, string Name, UserRole Role)[]
         {
-            var adminUser = new ApplicationUser
+            ("admin@thegreatayurveda.com", "System SuperAdmin", UserRole.SuperAdmin),
+            ("catalog@thegreatayurveda.com", "Catalog Manager", UserRole.CatalogManager),
+            ("support@thegreatayurveda.com", "Support Agent", UserRole.SupportAgent),
+            ("finance@thegreatayurveda.com", "Finance Manager", UserRole.FinanceManager)
+        };
+
+        foreach (var acc in adminAccounts)
+        {
+            var existingUser = await userManager.FindByEmailAsync(acc.Email);
+            if (existingUser == null)
             {
-                UserName = adminEmail,
-                Email = adminEmail,
-                FullName = "System SuperAdmin",
-                EmailConfirmed = true,
-                CreatedAt = DateTime.UtcNow
-            };
-            var createResult = await userManager.CreateAsync(adminUser, "AdminSecure@2026");
-            if (createResult.Succeeded)
-            {
-                await userManager.AddToRoleAsync(adminUser, UserRole.SuperAdmin.ToString());
-                logger.LogInformation("Default development administrator created: {AdminEmail}", adminEmail);
+                var newUser = new ApplicationUser
+                {
+                    UserName = acc.Email,
+                    Email = acc.Email,
+                    FullName = acc.Name,
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var createResult = await userManager.CreateAsync(newUser, "AdminSecure@2026");
+                if (createResult.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(newUser, acc.Role.ToString());
+                    logger.LogInformation("Administrative account created: {Email} ({Role})", acc.Email, acc.Role);
+                }
             }
         }
     }
@@ -115,7 +149,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Security Headers
+// Security Headers & Host Isolation
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
@@ -124,7 +158,28 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Optional IP Allow-listing Middleware
+app.Use(async (context, next) =>
+{
+    var allowedIpsConfig = app.Configuration.GetSection("AdminSecurity:AllowedIPs").Get<string[]>();
+    if (allowedIpsConfig != null && allowedIpsConfig.Length > 0)
+    {
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+        if (!string.IsNullOrEmpty(remoteIp) && !remoteIp.Equals("::1") && !remoteIp.Equals("127.0.0.1"))
+        {
+            if (!allowedIpsConfig.Contains(remoteIp))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Forbidden: IP address not authorized to access administrative console.");
+                return;
+            }
+        }
+    }
+    await next();
+});
+
 app.UseRouting();
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();

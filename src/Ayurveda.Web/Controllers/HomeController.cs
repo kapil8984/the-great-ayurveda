@@ -120,4 +120,10 @@ public class HomeController : Controller
     {
         return View();
     }
+
+    [HttpHead, HttpGet]
+    public IActionResult Ping()
+    {
+        return Ok();
+    }
 }
