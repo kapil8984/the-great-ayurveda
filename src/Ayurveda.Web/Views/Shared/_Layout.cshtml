@@ -3,8 +3,28 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@(ViewData["Title"] != null ? $"{ViewData["Title"]} | The Great Ayurveda" : "The Great Ayurveda | Authentic Ayurveda Care & Consultation")</title>
-    <meta name="description" content="Discover authentic Ayurvedic medicines, organic herbs, and book personalized video consultations with certified AYUSH doctors." />
+    <title>@(ViewData["Title"] != null && !((string)ViewData["Title"]!).Contains("The Great Ayurveda")
+        ? $"{ViewData["Title"]} | The Great Ayurveda" 
+        : (ViewData["Title"] ?? "The Great Ayurveda | Authentic Ayurveda Care & Consultation"))</title>
+    <meta name="description" content="Experience authentic Ayurvedic healthcare, pure classical formulations, and certified Vaidya consultations tailored to your Dosha (Vata, Pitta, Kapha)." />
+    <meta name="theme-color" content="#1F5E3B" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph & Social Cards -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="The Great Ayurveda" />
+    <meta property="og:title" content="@(ViewData["Title"] != null ? $"{ViewData["Title"]} | The Great Ayurveda" : "The Great Ayurveda | Authentic Ayurveda Care & Consultation")" />
+    <meta property="og:description" content="Experience authentic Ayurvedic healthcare, pure classical formulations, and certified Vaidya consultations tailored to your Dosha (Vata, Pitta, Kapha)." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@(ViewData["Title"] != null ? $"{ViewData["Title"]} | The Great Ayurveda" : "The Great Ayurveda | Authentic Ayurveda Care & Consultation")" />
+    <meta name="twitter:description" content="Experience authentic Ayurvedic healthcare, pure classical formulations, and certified Vaidya consultations tailored to your Dosha (Vata, Pitta, Kapha)." />
+    <meta name="twitter:image" content="/og-image.png" />
     
     <!-- Local Bootstrap 5.3 & Bootstrap Icons (No CDN) -->
     <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />

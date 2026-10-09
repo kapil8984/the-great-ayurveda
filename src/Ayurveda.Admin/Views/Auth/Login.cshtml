@@ -10,6 +10,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Sign In | The Great Ayurveda</title>
+    <meta name="theme-color" content="#18221D" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/admin.webmanifest" />
+
     <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css" />
     <style>
@@ -46,9 +54,8 @@
 <body>
     <div class="admin-login-card p-4 p-md-5">
         <div class="text-center mb-4">
-            <img src="/images/logo.svg" alt="The Great Ayurveda" height="38" style="filter: brightness(0) invert(1);" />
-            <h5 class="fw-bold mt-3 mb-1 text-white">Administrative Portal</h5>
-            <span class="badge bg-warning text-dark small fw-semibold">RESTRICTED ACCESS</span>
+            <img src="/images/admin-logo-full.svg" alt="The Great Ayurveda Admin Portal" height="46" class="img-fluid" />
+            <div class="mt-2 text-muted small">RESTRICTED ACCESS • AUTHORIZED PERSONNEL ONLY</div>
         </div>
 
         @if (!ViewData.ModelState.IsValid)

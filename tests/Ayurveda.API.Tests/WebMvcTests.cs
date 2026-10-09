@@ -144,7 +144,57 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Administrative Portal", content);
+        Assert.Contains("The Great Ayurveda Admin Portal", content);
         Assert.Contains("RESTRICTED ACCESS", content);
+    }
+
+    [Fact]
+    public async Task Storefront_HomePage_HasCorrectTitleAndBrandingMeta()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        // Acceptance criteria: correct tab title, meta description, theme color, manifest, og-image
+        Assert.Contains("The Great Ayurveda | Authentic Ayurveda Care &amp; Consultation", html);
+        Assert.Contains("<meta name=\"theme-color\" content=\"#1F5E3B\" />", html);
+        Assert.Contains("href=\"/site.webmanifest\"", html);
+        Assert.Contains("href=\"/favicon.ico\"", html);
+        Assert.Contains("content=\"/og-image.png\"", html);
+    }
+
+    [Theory]
+    [InlineData("/favicon.ico")]
+    [InlineData("/favicon-32x32.png")]
+    [InlineData("/apple-touch-icon.png")]
+    [InlineData("/site.webmanifest")]
+    [InlineData("/og-image.png")]
+    [InlineData("/images/logo-mark.svg")]
+    [InlineData("/images/logo-full.svg")]
+    [InlineData("/images/logo-dark.svg")]
+    public async Task Storefront_StaticBrandingAssets_AreServedSuccessfully(string assetPath)
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync(assetPath);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentLength > 0);
+    }
+
+    [Theory]
+    [InlineData("/favicon.ico")]
+    [InlineData("/favicon-32x32.png")]
+    [InlineData("/apple-touch-icon.png")]
+    [InlineData("/admin.webmanifest")]
+    [InlineData("/images/admin-logo-full.svg")]
+    public async Task AdminPortal_StaticBrandingAssets_AreServedSuccessfully(string assetPath)
+    {
+        var client = _adminFactory.CreateClient();
+        var response = await client.GetAsync(assetPath);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentLength > 0);
     }
 }

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 110" width="460" height="110">
+  <defs>
+    <linearGradient id="forestGradD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38A169" />
+      <stop offset="100%" stop-color="#1F5E3B" />
+    </linearGradient>
+    <linearGradient id="goldGradD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD166" />
+      <stop offset="100%" stop-color="#E3A72F" />
+    </linearGradient>
+  </defs>
+
+  <!-- Left Emblem -->
+  <g transform="translate(10, 8) scale(0.94)">
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#FFD166" stroke-width="1.2" stroke-dasharray="3,2.5" opacity="0.75" />
+    <circle cx="50" cy="50" r="42" fill="none" stroke="#38A169" stroke-width="0.8" opacity="0.5" />
+    <path d="M 32,77 C 37,84 63,84 68,77 C 62,81 38,81 32,77 Z" fill="#C0674B" />
+    <path d="M 50,76 C 22,69 12,47 23,30 C 33,45 42,62 50,76 Z" fill="url(#forestGradD)" />
+    <path d="M 50,76 C 78,69 88,47 77,30 C 67,45 58,62 50,76 Z" fill="url(#forestGradD)" />
+    <path d="M 50,76 C 31,64 24,46 35,34 C 43,47 47,63 50,76 Z" fill="url(#goldGradD)" opacity="0.95" />
+    <path d="M 50,76 C 69,64 76,46 65,34 C 57,47 53,63 50,76 Z" fill="url(#goldGradD)" opacity="0.95" />
+    <path d="M 50,77 C 39,58 37,39 50,18 C 63,39 61,58 50,77 Z" fill="url(#forestGradD)" />
+    <path d="M 50,75 C 50,56 50,37 50,20" stroke="#FBF6EA" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.95" />
+    <circle cx="50" cy="12.5" r="3.5" fill="url(#goldGradD)" />
+    <circle cx="50" cy="12.5" r="1.5" fill="#FFFFFF" />
+  </g>
+
+  <!-- Divider Line -->
+  <line x1="120" y1="20" x2="120" y2="90" stroke="#FFD166" stroke-width="1" opacity="0.4" />
+
+  <!-- Wordmark Typography for Dark Backgrounds -->
+  <text x="138" y="44" font-family="'Cinzel', 'Playfair Display', Georgia, serif" font-size="24" font-weight="700" fill="#FBF6EA" letter-spacing="3.5">THE GREAT</text>
+  <text x="138" y="74" font-family="'Cinzel', 'Playfair Display', Georgia, serif" font-size="28" font-weight="800" fill="#FFD166" letter-spacing="5">AYURVEDA</text>
+  
+  <text x="140" y="94" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="9" font-weight="600" fill="#E3A72F" letter-spacing="2.2" opacity="0.9">AUTHENTIC CARE &amp; CONSULTATION</text>
+</svg>

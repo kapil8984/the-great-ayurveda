@@ -4,6 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@(ViewData["Title"] != null ? $"{ViewData["Title"]} | TGA Admin Portal" : "Admin Portal | The Great Ayurveda")</title>
+    <meta name="description" content="Secure administrative management portal for The Great Ayurveda." />
+    <meta name="theme-color" content="#18221D" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/admin.webmanifest" />
     
     <!-- Local Bootstrap 5.3 & Icons -->
     <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />
@@ -51,9 +59,8 @@
     {
         <!-- Left Sidebar Navigation -->
         <aside class="admin-sidebar p-3 d-flex flex-column" style="width: 260px; flex-shrink: 0;">
-            <div class="d-flex align-items-center gap-2 mb-4 px-2">
-                <img src="/images/logo.svg" alt="TGA Admin" height="34" style="filter: brightness(0) invert(1);" />
-                <span class="badge bg-warning text-dark fw-bold">ADMIN</span>
+            <div class="mb-4 px-2">
+                <img src="/images/admin-logo-full.svg" alt="The Great Ayurveda Admin Portal" height="42" class="img-fluid" />
             </div>
 
             <nav class="d-flex flex-column gap-1 flex-grow-1">
