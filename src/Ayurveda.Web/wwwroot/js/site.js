@@ -18,58 +18,130 @@ document.addEventListener("DOMContentLoaded", function () {
 // --------------------------------------------------------------------------
 // 1. SMART SEARCH WITH 150MS DEBOUNCE & KEYBOARD NAV
 // --------------------------------------------------------------------------
+// 1. SMART SEARCH WITH 150MS DEBOUNCE, ABORTCONTROLLER, HIGHLIGHTS & KEYBOARD NAV
+// --------------------------------------------------------------------------
 function initSearchBox() {
     const searchInputs = document.querySelectorAll(".tga-search-input");
-    
+
     searchInputs.forEach(input => {
         const container = input.closest(".search-container");
         if (!container) return;
-        
+
         const dropdown = container.querySelector(".search-results-dropdown");
+        const clearBtn = container.querySelector(".btn-clear-search");
+        const form = container.querySelector("form");
         if (!dropdown) return;
 
-        let debounceTimer;
+        const scope = input.getAttribute("data-scope") || "public";
+        let debounceTimer = null;
+        let abortController = null;
         let selectedIndex = -1;
 
-        input.addEventListener("input", function () {
-            clearTimeout(debounceTimer);
+        // Toggle Clear Button
+        function toggleClearBtn() {
+            if (clearBtn) {
+                if (input.value.trim().length > 0) {
+                    clearBtn.classList.remove("d-none");
+                } else {
+                    clearBtn.classList.add("d-none");
+                }
+            }
+        }
+
+        // On Clear Button Click
+        if (clearBtn) {
+            clearBtn.addEventListener("click", function () {
+                input.value = "";
+                toggleClearBtn();
+                renderRecentAndTrending(dropdown, scope, input);
+                input.focus();
+            });
+        }
+
+        // Focus event: show recent and trending if empty
+        input.addEventListener("focus", function () {
+            toggleClearBtn();
             const query = input.value.trim();
             if (query.length < 2) {
-                dropdown.innerHTML = "";
-                dropdown.classList.remove("show");
+                renderRecentAndTrending(dropdown, scope, input);
+            }
+        });
+
+        // Input event: 150ms debounce + AbortController cancellation
+        input.addEventListener("input", function () {
+            toggleClearBtn();
+            clearTimeout(debounceTimer);
+            const query = input.value.trim();
+
+            if (query.length < 2) {
+                renderRecentAndTrending(dropdown, scope, input);
                 return;
             }
 
             debounceTimer = setTimeout(() => {
-                fetch(`/search/suggest?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        renderSuggestions(data, dropdown);
-                    })
-                    .catch(err => console.error("Search suggest error:", err));
+                if (abortController) {
+                    abortController.abort();
+                }
+                abortController = new AbortController();
+
+                dropdown.innerHTML = `<div class="p-3 text-muted small text-center"><span class="spinner-border spinner-border-sm me-2 text-success"></span>Searching classical formulations...</div>`;
+                dropdown.classList.add("show");
+
+                fetch(`/search/suggest?q=${encodeURIComponent(query)}&scope=${encodeURIComponent(scope)}`, {
+                    signal: abortController.signal
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error("Search network error");
+                    return res.json();
+                })
+                .then(data => {
+                    selectedIndex = -1;
+                    renderSuggestions(data, dropdown, query, scope, input);
+                })
+                .catch(err => {
+                    if (err.name !== "AbortError") {
+                        console.error("Search suggest error:", err);
+                    }
+                });
             }, 150);
         });
 
+        // Form Submit: Save recent search
+        if (form) {
+            form.addEventListener("submit", function () {
+                const q = input.value.trim();
+                if (q) saveRecentSearch(scope, q);
+            });
+        }
+
+        // Keyboard navigation (ArrowDown, ArrowUp, Enter, Escape)
         input.addEventListener("keydown", function (e) {
             const items = dropdown.querySelectorAll(".search-item");
-            if (!items.length) return;
 
             if (e.key === "ArrowDown") {
+                if (!items.length) return;
                 e.preventDefault();
                 selectedIndex = (selectedIndex + 1) % items.length;
                 updateActiveItem(items, selectedIndex);
             } else if (e.key === "ArrowUp") {
+                if (!items.length) return;
                 e.preventDefault();
                 selectedIndex = (selectedIndex - 1 + items.length) % items.length;
                 updateActiveItem(items, selectedIndex);
-            } else if (e.key === "Enter" && selectedIndex >= 0) {
-                e.preventDefault();
-                items[selectedIndex].click();
+            } else if (e.key === "Enter") {
+                if (selectedIndex >= 0 && items[selectedIndex]) {
+                    e.preventDefault();
+                    items[selectedIndex].click();
+                } else {
+                    const q = input.value.trim();
+                    if (q) saveRecentSearch(scope, q);
+                }
             } else if (e.key === "Escape") {
                 dropdown.classList.remove("show");
             }
         });
 
+        // Click outside closes dropdown
         document.addEventListener("click", function (e) {
             if (!container.contains(e.target)) {
                 dropdown.classList.remove("show");
@@ -89,63 +161,364 @@ function updateActiveItem(items, index) {
     });
 }
 
-function renderSuggestions(data, dropdown) {
-    if (!data || (!data.products?.length && !data.categories?.length && !data.doctors?.length)) {
-        dropdown.innerHTML = `<div class="p-3 text-muted small text-center">No Ayurvedic formulations or Vaidyas found.</div>`;
+// --------------------------------------------------------------------------
+// RECENT & TRENDING SEARCHES ENGINE
+// --------------------------------------------------------------------------
+function getRecentSearches(scope) {
+    try {
+        const stored = localStorage.getItem(`tga_recent_searches_${scope}`);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveRecentSearch(scope, query) {
+    if (!query || query.trim().length < 2) return;
+    try {
+        const list = getRecentSearches(scope).filter(x => x.toLowerCase() !== query.toLowerCase());
+        list.unshift(query.trim());
+        if (list.length > 6) list.pop();
+        localStorage.setItem(`tga_recent_searches_${scope}`, JSON.stringify(list));
+    } catch {}
+}
+
+function clearRecentSearches(scope, dropdown, input) {
+    try {
+        localStorage.removeItem(`tga_recent_searches_${scope}`);
+        renderRecentAndTrending(dropdown, scope, input);
+    } catch {}
+}
+
+function renderRecentAndTrending(dropdown, scope, input) {
+    const recents = getRecentSearches(scope);
+    const trending = [
+        "Chyawanprash", "Ashwagandha", "Triphala", "Kumkumadi Tailam", 
+        "A2 Cow Ghee", "Giloy Ghanvati", "Hair Fall Oil"
+    ];
+
+    if (!recents.length && !trending.length) {
+        dropdown.classList.remove("show");
+        return;
+    }
+
+    let html = `<div class="p-3">`;
+
+    if (recents.length > 0) {
+        html += `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-uppercase text-xs fw-bold text-muted"><i class="bi bi-clock-history me-1"></i> Recent Searches</span>
+                <button type="button" class="btn btn-link p-0 text-xs text-danger text-decoration-none btn-clear-recents">Clear All</button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+        `;
+        recents.forEach(r => {
+            html += `<span class="search-recent-chip" data-search-term="${escapeHtml(r)}"><i class="bi bi-clock text-muted"></i> ${escapeHtml(r)}</span>`;
+        });
+        html += `</div>`;
+    }
+
+    html += `
+        <div class="mb-2">
+            <span class="text-uppercase text-xs fw-bold text-success"><i class="bi bi-graph-up-arrow me-1"></i> Trending Ayurveda Searches</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+    `;
+    trending.forEach(t => {
+        html += `<span class="search-trending-chip" data-search-term="${escapeHtml(t)}"><i class="bi bi-fire text-warning"></i> ${escapeHtml(t)}</span>`;
+    });
+    html += `</div></div>`;
+
+    dropdown.innerHTML = html;
+    dropdown.classList.add("show");
+
+    // Wire chips
+    dropdown.querySelectorAll("[data-search-term]").forEach(chip => {
+        chip.addEventListener("click", function () {
+            const term = chip.getAttribute("data-search-term");
+            if (input) {
+                input.value = term;
+                saveRecentSearch(scope, term);
+                if (scope === "admin") {
+                    window.location.href = `/Admin/Products?query=${encodeURIComponent(term)}`;
+                } else {
+                    window.location.href = `/search?q=${encodeURIComponent(term)}`;
+                }
+            }
+        });
+    });
+
+    const clearRecentsBtn = dropdown.querySelector(".btn-clear-recents");
+    if (clearRecentsBtn) {
+        clearRecentsBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            clearRecentSearches(scope, dropdown, input);
+        });
+    }
+}
+
+// --------------------------------------------------------------------------
+// HIGHLIGHT MATCHED TEXT SAFELY
+// --------------------------------------------------------------------------
+function highlightMatch(text, query) {
+    if (!text) return "";
+    if (!query) return escapeHtml(text);
+
+    const safeText = escapeHtml(text);
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escapedQuery})`, "gi");
+
+    return safeText.replace(regex, `<mark class="tga-match-highlight">$1</mark>`);
+}
+
+// --------------------------------------------------------------------------
+// RENDER SEARCH SUGGESTIONS (PRODUCTS, CATEGORIES, HERBS, DOCTORS, ADMIN)
+// --------------------------------------------------------------------------
+function renderSuggestions(data, dropdown, query, scope, input) {
+    if (!data || data.totalSuggestions === 0) {
+        let noResultsHtml = `
+            <div class="p-4 text-center">
+                <i class="bi bi-search text-muted fs-3 mb-2 d-block"></i>
+                <div class="fw-semibold text-dark mb-1">No Ayurvedic formulations found for "${escapeHtml(query)}"</div>
+                <div class="text-muted small mb-3">Try checking spelling or explore our classical Dravyas:</div>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <span class="search-trending-chip" data-search-term="Chyawanprash">Chyawanprash</span>
+                    <span class="search-trending-chip" data-search-term="Ashwagandha">Ashwagandha</span>
+                    <span class="search-trending-chip" data-search-term="Triphala">Triphala</span>
+                    <span class="search-trending-chip" data-search-term="Kumkumadi">Kumkumadi</span>
+                </div>
+            </div>
+        `;
+        dropdown.innerHTML = noResultsHtml;
         dropdown.classList.add("show");
+
+        dropdown.querySelectorAll("[data-search-term]").forEach(chip => {
+            chip.addEventListener("click", function () {
+                const term = chip.getAttribute("data-search-term");
+                input.value = term;
+                saveRecentSearch(scope, term);
+                window.location.href = `/search?q=${encodeURIComponent(term)}`;
+            });
+        });
         return;
     }
 
     let html = "";
 
-    // Categories
-    if (data.categories && data.categories.length) {
-        html += `<div class="dropdown-header text-uppercase text-xs fw-bold px-3 pt-2 text-success">Categories</div>`;
-        data.categories.forEach(cat => {
-            html += `
-                <a href="/Shop?categoryId=${cat.id}" class="search-item d-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark">
-                    <i class="bi bi-tag text-muted"></i>
-                    <span>${escapeHtml(cat.name)}</span>
-                </a>
-            `;
-        });
+    // 1. Did You Mean typo banner
+    if (data.didYouMean) {
+        html += `
+            <div class="p-2 px-3 bg-warning-subtle border-bottom d-flex align-items-center justify-content-between">
+                <div class="small text-dark">
+                    <i class="bi bi-lightbulb-fill text-warning me-1"></i> Did you mean: 
+                    <a href="/search?q=${encodeURIComponent(data.didYouMean)}" class="fw-bold text-success text-decoration-none btn-did-you-mean" data-term="${escapeHtml(data.didYouMean)}">${escapeHtml(data.didYouMean)}</a>?
+                </div>
+            </div>
+        `;
     }
 
-    // Products
-    if (data.products && data.products.length) {
-        html += `<div class="dropdown-header text-uppercase text-xs fw-bold px-3 pt-2 text-success">Medicines &amp; Formulations</div>`;
-        data.products.forEach(prod => {
-            html += `
-                <a href="/Shop/Details/${prod.id}" class="search-item d-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark">
-                    <img src="${prod.imageUrl || '/images/products/chyawanprash.svg'}" alt="" width="28" height="28" class="rounded object-fit-contain" />
-                    <div class="flex-grow-1 overflow-hidden">
-                        <div class="text-truncate small fw-semibold">${escapeHtml(prod.title)}</div>
-                        <div class="text-muted text-xs">₹${prod.price} <span class="badge bg-light text-dark ms-1">${escapeHtml(prod.categoryName || '')}</span></div>
-                    </div>
-                </a>
-            `;
-        });
+    // 2. Hindi / Hinglish Synonym Applied banner
+    if (data.synonymApplied) {
+        html += `
+            <div class="p-2 px-3 bg-success-subtle border-bottom d-flex align-items-center">
+                <div class="small text-success-emphasis">
+                    <i class="bi bi-translate me-1"></i> Ayurvedic Synonym: 
+                    <strong>${escapeHtml(data.synonymApplied)}</strong>
+                </div>
+            </div>
+        `;
     }
 
-    // Doctors
-    if (data.doctors && data.doctors.length) {
-        html += `<div class="dropdown-header text-uppercase text-xs fw-bold px-3 pt-2 text-success">Ayurvedic Doctors</div>`;
-        data.doctors.forEach(doc => {
-            html += `
-                <a href="/Doctors/Profile/${doc.id}" class="search-item d-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark">
-                    <i class="bi bi-person-circle fs-5 text-success"></i>
-                    <div class="flex-grow-1 overflow-hidden">
-                        <div class="text-truncate small fw-semibold">Dr. ${escapeHtml(doc.doctorName)}</div>
-                        <div class="text-muted text-xs">${escapeHtml(doc.specialization || '')} • ₹${doc.consultationFee}</div>
-                    </div>
-                </a>
-            `;
-        });
+    // --- SCOPE: PUBLIC ---
+    if (scope !== "admin") {
+        // Products
+        if (data.products && data.products.length) {
+            html += `<div class="search-section-header"><i class="bi bi-capsule me-1"></i> Formulations &amp; Medicines (${data.products.length})</div>`;
+            data.products.forEach(p => {
+                html += `
+                    <a href="${p.url}" class="search-item" data-search-item>
+                        <img src="${p.imageUrl || '/images/products/chyawanprash.svg'}" alt="" width="36" height="36" class="rounded object-fit-contain bg-light p-1" />
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(p.title, query)}</div>
+                            <div class="text-muted text-xs">${escapeHtml(p.subtitle || '')}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-success small">₹${p.price || 0}</div>
+                            ${p.badge ? `<span class="badge bg-light text-dark border text-xs">${escapeHtml(p.badge)}</span>` : ''}
+                        </div>
+                    </a>
+                `;
+            });
+        }
+
+        // Classical Ayurvedic Herbs
+        if (data.herbs && data.herbs.length) {
+            html += `<div class="search-section-header"><i class="bi bi-flower1 me-1"></i> Classical Ayurvedic Herbs (${data.herbs.length})</div>`;
+            data.herbs.forEach(h => {
+                html += `
+                    <a href="${h.url}" class="search-item" data-search-item>
+                        <i class="bi bi-tree text-success fs-5"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(h.title, query)}</div>
+                            <div class="text-muted text-xs text-truncate">${escapeHtml(h.subtitle || '')}</div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success text-xs">Herb</span>
+                    </a>
+                `;
+            });
+        }
+
+        // Categories
+        if (data.categories && data.categories.length) {
+            html += `<div class="search-section-header"><i class="bi bi-tag me-1"></i> Categories (${data.categories.length})</div>`;
+            data.categories.forEach(c => {
+                html += `
+                    <a href="${c.url}" class="search-item" data-search-item>
+                        <i class="bi bi-grid text-muted fs-5"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(c.title, query)}</div>
+                            <div class="text-muted text-xs">${escapeHtml(c.subtitle || '')}</div>
+                        </div>
+                        <span class="badge bg-light text-secondary text-xs">Explore</span>
+                    </a>
+                `;
+            });
+        }
+
+        // Health Concerns & Doshas
+        if (data.concerns && data.concerns.length) {
+            html += `<div class="search-section-header"><i class="bi bi-heart-pulse me-1"></i> Health Concerns (${data.concerns.length})</div>`;
+            data.concerns.forEach(cn => {
+                html += `
+                    <a href="${cn.url}" class="search-item" data-search-item>
+                        <i class="bi bi-activity text-danger fs-5"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(cn.title, query)}</div>
+                            <div class="text-muted text-xs text-truncate">${escapeHtml(cn.subtitle || '')}</div>
+                        </div>
+                        <span class="badge bg-danger-subtle text-danger text-xs">Concern</span>
+                    </a>
+                `;
+            });
+        }
+
+        // Verified Doctors
+        if (data.doctors && data.doctors.length) {
+            html += `<div class="search-section-header"><i class="bi bi-person-badge me-1"></i> AYUSH Vaidyas (${data.doctors.length})</div>`;
+            data.doctors.forEach(d => {
+                html += `
+                    <a href="${d.url}" class="search-item" data-search-item>
+                        <i class="bi bi-person-circle fs-4 text-success"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(d.title, query)}</div>
+                            <div class="text-muted text-xs">${escapeHtml(d.subtitle || '')}</div>
+                        </div>
+                        <span class="badge bg-success text-white text-xs">Consult</span>
+                    </a>
+                `;
+            });
+        }
+    } else {
+        // --- SCOPE: ADMIN ---
+        if (data.adminOrders && data.adminOrders.length) {
+            html += `<div class="search-section-header"><i class="bi bi-receipt me-1"></i> Orders (${data.adminOrders.length})</div>`;
+            data.adminOrders.forEach(o => {
+                html += `
+                    <a href="${o.url}" class="search-item" data-search-item>
+                        <i class="bi bi-box-seam text-primary fs-5"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(o.title, query)}</div>
+                            <div class="text-muted text-xs">${escapeHtml(o.subtitle || '')}</div>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary text-xs">${escapeHtml(o.badge || '')}</span>
+                    </a>
+                `;
+            });
+        }
+
+        if (data.adminUsers && data.adminUsers.length) {
+            html += `<div class="search-section-header"><i class="bi bi-people me-1"></i> Users &amp; Patients (${data.adminUsers.length})</div>`;
+            data.adminUsers.forEach(u => {
+                html += `
+                    <a href="${u.url}" class="search-item" data-search-item>
+                        <i class="bi bi-person text-secondary fs-5"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(u.title, query)}</div>
+                            <div class="text-muted text-xs">${escapeHtml(u.subtitle || '')}</div>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary text-xs">User</span>
+                    </a>
+                `;
+            });
+        }
+
+        if (data.adminProducts && data.adminProducts.length) {
+            html += `<div class="search-section-header"><i class="bi bi-boxes me-1"></i> Products Stock (${data.adminProducts.length})</div>`;
+            data.adminProducts.forEach(p => {
+                html += `
+                    <a href="${p.url}" class="search-item" data-search-item>
+                        <i class="bi bi-box text-success fs-5"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(p.title, query)}</div>
+                            <div class="text-muted text-xs">${escapeHtml(p.subtitle || '')}</div>
+                        </div>
+                        <span class="badge ${p.badge === 'In Stock' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} text-xs">${escapeHtml(p.badge || '')}</span>
+                    </a>
+                `;
+            });
+        }
+
+        if (data.doctors && data.doctors.length) {
+            html += `<div class="search-section-header"><i class="bi bi-person-check me-1"></i> Doctors (${data.doctors.length})</div>`;
+            data.doctors.forEach(d => {
+                html += `
+                    <a href="${d.url}" class="search-item" data-search-item>
+                        <i class="bi bi-heart-pulse text-info fs-5"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="text-truncate fw-semibold small">${highlightMatch(d.title, query)}</div>
+                            <div class="text-muted text-xs">${escapeHtml(d.subtitle || '')}</div>
+                        </div>
+                        <span class="badge bg-info-subtle text-info text-xs">${escapeHtml(d.badge || '')}</span>
+                    </a>
+                `;
+            });
+        }
     }
+
+    // View all results footer link & latency indicator
+    html += `
+        <div class="p-2 px-3 bg-light d-flex justify-content-between align-items-center border-top">
+            <a href="/search?q=${encodeURIComponent(query)}" class="small fw-semibold text-success text-decoration-none">
+                <i class="bi bi-search me-1"></i> See all results for "${escapeHtml(query)}" &rarr;
+            </a>
+            <span class="text-muted text-xs">⚡ ${data.latencyMs}ms</span>
+        </div>
+    `;
 
     dropdown.innerHTML = html;
     dropdown.classList.add("show");
+
+    // Track search click into recent searches
+    dropdown.querySelectorAll("[data-search-item]").forEach(item => {
+        item.addEventListener("click", function () {
+            saveRecentSearch(scope, query);
+        });
+    });
+
+    const didYouMeanBtn = dropdown.querySelector(".btn-did-you-mean");
+    if (didYouMeanBtn) {
+        didYouMeanBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            const term = didYouMeanBtn.getAttribute("data-term");
+            if (input) {
+                input.value = term;
+                saveRecentSearch(scope, term);
+                window.location.href = `/search?q=${encodeURIComponent(term)}`;
+            }
+        });
+    }
 }
+
 
 // --------------------------------------------------------------------------
 // 2. LOGOUT CONFIRMATION MODAL TRIGGER

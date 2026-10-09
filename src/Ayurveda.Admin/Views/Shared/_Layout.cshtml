@@ -52,6 +52,33 @@
             background-color: #FFFFFF;
             border-bottom: 1px solid #E5E7EB;
         }
+        .search-results-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            max-height: 420px;
+            overflow-y: auto;
+            z-index: 1060;
+            display: none;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+        .search-results-dropdown.show {
+            display: block;
+        }
+        .search-item:hover, .search-item.active {
+            background-color: #F3F4F6;
+        }
+        .tga-match-highlight {
+            background-color: #FEF3C7;
+            color: #92400E;
+            font-weight: 700;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body class="d-flex">
@@ -100,9 +127,12 @@
     <div class="flex-grow-1 d-flex flex-column min-vh-100">
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <header class="admin-header py-3 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0 text-dark">Management Console</h5>
-                <span class="badge bg-success-subtle text-success border border-success px-3 py-1">Protected Admin Host</span>
+            <header class="admin-header py-2 px-4 d-flex justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3 flex-grow-1">
+                    <h5 class="fw-bold mb-0 text-dark text-nowrap d-none d-md-block">Management Console</h5>
+                    <partial name="_SearchBox" />
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success px-3 py-1 text-nowrap">Protected Admin Host</span>
             </header>
         }
 
@@ -153,6 +183,7 @@
     </div>
 
     <script src="/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/admin.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const logoutTriggers = document.querySelectorAll(".btn-logout-trigger");

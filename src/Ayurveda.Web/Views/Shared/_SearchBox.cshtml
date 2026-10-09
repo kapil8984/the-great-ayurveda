@@ -1,13 +1,35 @@
-<div class="search-container">
-    <div class="input-group">
-        <span class="input-group-text bg-white border-end-0 text-muted">
-            <i class="bi bi-search"></i>
-        </span>
-        <input type="text" 
-               class="form-control border-start-0 tga-search-input" 
-               placeholder="Search Ayurvedic medicines, herbs, concerns or doctors..." 
-               autocomplete="off" 
-               aria-label="Search" />
-    </div>
-    <div class="search-results-dropdown shadow"></div>
+@* Reusable Smart SearchBox Partial (public, doctor, admin) *@
+@{
+    var scope = ViewData["Scope"] as string ?? "public";
+    var placeholder = ViewData["Placeholder"] as string ?? (scope == "admin" 
+        ? "Search orders, customers, doctors, products..." 
+        : "Search Ayurvedic medicines, herbs, concerns or doctors...");
+    var initialQuery = ViewData["InitialQuery"] as string ?? "";
+}
+
+<div class="search-container position-relative tga-search-box-wrapper" data-scope="@scope">
+    <form action="@(scope == "admin" ? "/Admin/Products" : "/search")" method="get" class="search-form m-0" role="search">
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 text-muted ps-3">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text"
+                   name="q"
+                   value="@initialQuery"
+                   class="form-control border-start-0 border-end-0 tga-search-input"
+                   placeholder="@placeholder"
+                   autocomplete="off"
+                   aria-label="Search"
+                   aria-autocomplete="list"
+                   aria-expanded="false"
+                   data-scope="@scope" />
+            <button type="button" class="input-group-text bg-white border-start-0 border-end-0 text-muted btn-clear-search @(string.IsNullOrEmpty(initialQuery) ? "d-none" : "")" title="Clear search">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
+            <button type="submit" class="btn btn-tga-gold px-3 d-none d-sm-inline-flex align-items-center">
+                <span>Search</span>
+            </button>
+        </div>
+    </form>
+    <div class="search-results-dropdown shadow-lg rounded-3" role="region" aria-live="polite"></div>
 </div>

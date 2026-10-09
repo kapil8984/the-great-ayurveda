@@ -1,3 +1,5 @@
+using Ayurveda.Application.Interfaces;
+
 namespace Ayurveda.Application.ViewModels;
 
 public class ProductCardViewModel
@@ -228,3 +230,16 @@ public class BannerItemViewModel
     public string ImageUrl { get; set; } = string.Empty;
     public string? LinkUrl { get; set; }
 }
+
+public class SearchResultsViewModel
+{
+    public CatalogListViewModel Catalog { get; set; } = new();
+    public string Query { get; set; } = string.Empty;
+    public string? DidYouMean { get; set; }
+    public string? SynonymApplied { get; set; }
+    public long LatencyMs { get; set; }
+    public List<SearchItemDto> MatchingHerbs { get; set; } = new();
+    public List<SearchItemDto> MatchingDoctors { get; set; } = new();
+    public List<string> TrendingSearches { get; set; } = new();
+}
+

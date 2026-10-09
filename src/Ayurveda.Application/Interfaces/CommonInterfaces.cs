@@ -30,12 +30,24 @@ public interface ICallProvider
 public class SearchSuggestionResultDto
 {
     public string Query { get; set; } = string.Empty;
+    public string? DidYouMean { get; set; }
+    public string? SynonymApplied { get; set; }
+    public long LatencyMs { get; set; }
+    public List<string> TrendingSearches { get; set; } = new();
+
+    // Grouped Suggestions
     public List<SearchItemDto> Products { get; set; } = new();
     public List<SearchItemDto> Categories { get; set; } = new();
     public List<SearchItemDto> Concerns { get; set; } = new();
+    public List<SearchItemDto> Herbs { get; set; } = new();
     public List<SearchItemDto> Doctors { get; set; } = new();
+
+    // Admin Scoped Suggestions
     public List<SearchItemDto> AdminOrders { get; set; } = new();
     public List<SearchItemDto> AdminUsers { get; set; } = new();
+    public List<SearchItemDto> AdminProducts { get; set; } = new();
+
+    public int TotalSuggestions => Products.Count + Categories.Count + Concerns.Count + Herbs.Count + Doctors.Count + AdminOrders.Count + AdminUsers.Count + AdminProducts.Count;
 }
 
 public class SearchItemDto
@@ -46,6 +58,8 @@ public class SearchItemDto
     public string? ImageUrl { get; set; }
     public string Url { get; set; } = string.Empty;
     public string? Badge { get; set; }
+    public decimal? Price { get; set; }
+    public double? Rating { get; set; }
 }
 
 public class PaymentInitiateResultDto

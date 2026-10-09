@@ -521,5 +521,92 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Contains("Key Ingredients", html);
         Assert.Contains("Traditionally Used For", html);
     }
+
+    // =========================================================================
+    // PHASE 6: SMART SEARCH TESTS
+    // =========================================================================
+
+    [Fact]
+    public async Task Search_Suggest_ReturnsGroupedResults_WithLatencyHeader()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/search/suggest?q=ashwa");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.Contains("X-Search-Latency-Ms"));
+
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Ashwagandha", json);
+        Assert.Contains("latencyMs", json);
+    }
+
+    [Fact]
+    public async Task Search_Suggest_HinglishTransliteration_AppliesSynonym()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/search/suggest?q=bukhar");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("synonymApplied", json);
+        Assert.Contains("Fever", json);
+    }
+
+    [Fact]
+    public async Task Search_Suggest_TypoTolerance_ReturnsDidYouMean()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/search/suggest?q=chavanprash");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("didYouMean", json);
+        Assert.Contains("Chyawanprash", json);
+    }
+
+    [Fact]
+    public async Task Search_ResultsPage_RendersSuccessfully_WithQueryAndFacets()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/search?q=triphala");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Results for", html);
+        Assert.Contains("triphala", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Refine Formulations", html);
+        Assert.Contains("Price Range", html);
+    }
+
+    [Fact]
+    public async Task Search_ResultsPage_WithZeroResults_RendersSuggestionsAndTrending()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/search?q=xyznonexistentayurveda999");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("No Ayurvedic formulations matched your search", html);
+        Assert.Contains("Search Suggestions", html);
+        Assert.Contains("Popular Ayurveda Searches", html);
+        Assert.Contains("Ashwagandha", html);
+    }
+
+    [Fact]
+    public async Task Search_ResultsPage_TypoBanner_RendersDidYouMeanLink()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/search?q=chavanprash");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Did you mean:", html);
+        Assert.Contains("Chyawanprash", html);
+    }
 }
 
