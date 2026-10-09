@@ -1,105 +1,226 @@
 @model Ayurveda.Application.ViewModels.OrderDetailViewModel
 @{
-    ViewData["Title"] = $"Order #{Model.OrderNumber}";
+    ViewData["Title"] = $"Order Details #{Model.OrderNumber}";
 }
 
 <div class="container py-4">
+    <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">Orders</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">My Orders</a></li>
             <li class="breadcrumb-item active" aria-current="page">#@Model.OrderNumber</li>
         </ol>
     </nav>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Top Headline Strip -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-            <h1 class="h3 fw-bold mb-1" style="font-family: Georgia, serif;">Order #@Model.OrderNumber</h1>
-            <div class="text-muted small">Placed on @Model.OrderDate.ToString("dd MMMM yyyy, hh:mm tt")</div>
+            <h1 class="h3 fw-bold mb-1" style="font-family: var(--tga-font-heading); color: var(--tga-primary);">
+                Order #@Model.OrderNumber
+            </h1>
+            <div class="text-muted small">
+                Placed on <strong>@Model.OrderDate.ToString("dd MMMM yyyy, hh:mm tt")</strong> • Mode: @Model.PaymentMethod (@Model.PaymentStatus)
+            </div>
         </div>
-        <div>
-            <span class="badge bg-success-subtle text-success fs-6 px-3 py-2">Status: @Model.Status</span>
+        <div class="d-flex gap-2">
+            <a asp-action="Invoice" asp-route-id="@Model.OrderId" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="bi bi-printer me-1"></i> Print Tax Invoice
+            </a>
+            @if (Model.CanCancel)
+            {
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="bi bi-x-circle me-1"></i> Cancel Order
+                </button>
+            }
+            @if (Model.CanReturn)
+            {
+                <button type="button" class="btn btn-outline-warning text-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#returnModal">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Request Return
+                </button>
+            }
+            <form asp-action="Reorder" asp-route-id="@Model.OrderId" method="post" class="d-inline m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-tga-primary btn-sm rounded-pill px-3">
+                    <i class="bi bi-arrow-repeat me-1"></i> Reorder All
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- Order Timeline / Tracking -->
-    <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
-        <h5 class="fw-bold mb-4">Order Progress</h5>
+    <!-- Alert Notices -->
+    @if (Model.Status == "Cancelled")
+    {
+        <div class="alert alert-danger rounded-4 border-0 mb-4 shadow-sm">
+            <i class="bi bi-x-circle-fill me-2"></i> <strong>Order Cancelled:</strong> @(Model.CancellationReason ?? "Cancelled per customer request.")
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ReturnStatus))
+    {
+        <div class="alert alert-warning rounded-4 border-0 mb-4 shadow-sm">
+            <i class="bi bi-arrow-counterclockwise me-2"></i> <strong>Return Status:</strong> @Model.ReturnStatus — @(Model.ReturnReason ?? "Return underway.")
+        </div>
+    }
+
+    <!-- 5-Stage Visual Progress Timeline -->
+    <div class="card p-4 shadow-sm border-0 rounded-4 bg-white mb-4">
+        <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-geo-alt text-success me-2"></i> Real-Time Shipment Tracking</h5>
+        
         <div class="row text-center g-3">
-            @{
-                var steps = new[] { "Placed", "Packed", "Shipped", "OutForDelivery", "Delivered" };
-                var currentIdx = Array.IndexOf(steps, Model.Status);
-                if (currentIdx == -1) currentIdx = 0;
-            }
-            @for (int i = 0; i < steps.Length; i++)
+            @foreach (var step in Model.Timeline)
             {
-                var isDone = i <= currentIdx;
-                var isCurrent = i == currentIdx;
                 <div class="col">
-                    <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-2 @(isDone ? "bg-success text-white" : "bg-light text-muted border")" style="width: 42px; height: 42px;">
-                        <i class="bi @(isDone ? "bi-check-lg" : "bi-circle")"></i>
+                    <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-2 shadow-sm @(step.IsCompleted ? "bg-success text-white" : "bg-light text-muted border")" style="width: 46px; height: 46px;">
+                        <i class="bi @(step.IsCompleted ? "bi-check-lg" : "bi-circle") fs-5"></i>
                     </div>
-                    <div class="small fw-semibold @(isCurrent ? "text-success" : isDone ? "text-dark" : "text-muted")">
-                        @steps[i]
+                    <div class="small fw-bold @(step.IsCurrent ? "text-success" : step.IsCompleted ? "text-dark" : "text-muted")">
+                        @step.Title
                     </div>
+                    @if (step.Timestamp.HasValue)
+                    {
+                        <div class="text-muted" style="font-size: 0.72rem;">@step.Timestamp.Value.ToString("dd MMM, hh:mm tt")</div>
+                    }
                 </div>
             }
         </div>
+
+        @if (!string.IsNullOrEmpty(Model.TrackingNumber))
+        {
+            <div class="d-flex flex-wrap justify-content-between align-items-center mt-4 pt-3 border-top small bg-light p-3 rounded-3">
+                <div>
+                    <span class="text-muted">Courier Partner:</span> <strong>@Model.CourierName</strong> • 
+                    <span class="text-muted">Waybill / Tracking #:</span> <strong class="text-success font-monospace">@Model.TrackingNumber</strong>
+                </div>
+                <div class="text-muted">
+                    Speed: <span class="badge bg-secondary-subtle text-secondary rounded-pill">@Model.DeliveryType Priority</span>
+                </div>
+            </div>
+        }
     </div>
 
+    <!-- Items & Shipping/Price Summary -->
     <div class="row g-4">
-        <!-- Order Items -->
+        <!-- Col 1: Ordered Items -->
         <div class="col-lg-8">
-            <div class="card shadow-sm border-0 rounded-3 p-4">
-                <h5 class="fw-bold mb-3 border-bottom pb-2">Items Ordered</h5>
+            <div class="card shadow-sm border-0 rounded-4 bg-white p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2 text-dark">Medicines & Formulations in this Order</h5>
                 <div class="d-flex flex-column gap-3">
                     @foreach (var item in Model.Items)
                     {
-                        <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded-3 border bg-light">
                             <div class="d-flex align-items-center gap-3">
-                                <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" 
-                                     alt="@item.Title" width="56" height="56" class="rounded border p-1" style="object-fit: contain;" />
+                                <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId">
+                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" 
+                                         alt="@item.Title" width="60" height="60" class="rounded-3 border p-1 bg-white" style="object-fit: contain;" />
+                                </a>
                                 <div>
-                                    <div class="fw-bold text-dark">@item.Title</div>
+                                    <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId" class="fw-bold text-dark text-decoration-none hover-green">
+                                        @item.Title
+                                    </a>
                                     <div class="small text-muted">₹@item.UnitPrice.ToString("N0") × @item.Quantity</div>
                                 </div>
                             </div>
-                            <div class="fw-bold text-success">₹@item.TotalPrice.ToString("N2")</div>
+                            <div class="fw-bold text-success fs-6">₹@item.TotalPrice.ToString("N2")</div>
                         </div>
                     }
                 </div>
             </div>
         </div>
 
-        <!-- Order Summary & Shipping Address -->
+        <!-- Col 2: Shipping & Payment Summary -->
         <div class="col-lg-4">
-            <div class="card shadow-sm border-0 rounded-3 p-4 mb-3">
-                <h6 class="fw-bold mb-3 border-bottom pb-2">Shipping Information</h6>
-                <div class="small text-muted mb-2">Delivery Address:</div>
+            <div class="card shadow-sm border-0 rounded-4 bg-white p-4 mb-3">
+                <h6 class="fw-bold mb-3 border-bottom pb-2 text-dark"><i class="bi bi-house-door text-success me-1"></i> Shipping Address</h6>
                 <div class="small text-dark fw-medium mb-3">@Model.ShippingAddress</div>
 
-                <div class="small text-muted mb-1">Payment:</div>
-                <div class="small text-dark fw-medium">@Model.PaymentMethod (@Model.PaymentStatus)</div>
+                <div class="small text-muted mb-1">Payment Method:</div>
+                <div class="small text-dark fw-bold">@Model.PaymentMethod (@Model.PaymentStatus)</div>
             </div>
 
-            <div class="card shadow-sm border-0 rounded-3 p-4">
-                <h6 class="fw-bold mb-3 border-bottom pb-2">Price Breakdown</h6>
+            <div class="card shadow-sm border-0 rounded-4 bg-white p-4">
+                <h6 class="fw-bold mb-3 border-bottom pb-2 text-dark">Price Breakdown</h6>
                 <div class="d-flex justify-content-between mb-2 small">
-                    <span class="text-muted">Subtotal:</span>
+                    <span class="text-muted">Items Subtotal:</span>
                     <span>₹@Model.Subtotal.ToString("N2")</span>
                 </div>
+                @if (Model.DiscountAmount > 0)
+                {
+                    <div class="d-flex justify-content-between mb-2 small text-success">
+                        <span>Discount:</span>
+                        <span>-₹@Model.DiscountAmount.ToString("N2")</span>
+                    </div>
+                }
                 <div class="d-flex justify-content-between mb-2 small">
                     <span class="text-muted">Delivery Fee:</span>
                     <span>@(Model.DeliveryFee == 0 ? "FREE" : $"₹{Model.DeliveryFee:N2}")</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2 small">
-                    <span class="text-muted">GST:</span>
+                    <span class="text-muted">GST (5% AYUSH):</span>
                     <span>₹@Model.TaxAmount.ToString("N2")</span>
                 </div>
-                <div class="d-flex justify-content-between fw-bold text-success border-top pt-2">
+                <div class="d-flex justify-content-between fw-bold text-success border-top pt-2 fs-5">
                     <span>Grand Total:</span>
                     <span>₹@Model.TotalAmount.ToString("N2")</span>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Cancel Order -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4 border-0">
+            <form asp-action="CancelOrder" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.OrderId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="cancelModalLabel">Cancel Order #@Model.OrderNumber</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Are you sure you want to cancel this order? Formulations will be released back to inventory.</p>
+                    <label class="form-label small fw-semibold">Reason for Cancellation:</label>
+                    <select name="reason" class="form-select form-select-sm mb-3">
+                        <option value="Changed my mind">Changed my mind</option>
+                        <option value="Ordered wrong product/variant">Ordered wrong product/variant</option>
+                        <option value="Found alternative medicine">Found alternative medicine</option>
+                        <option value="Delivery time is too long">Delivery time is too long</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm rounded-pill" data-bs-dismiss="modal">Keep Order</button>
+                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Return Order -->
+<div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4 border-0">
+            <form asp-action="RequestReturn" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.OrderId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="returnModalLabel">Request Return / Replacement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Per our Ayurvedic safety guidelines, returns are accepted within 7 days for defective, broken seals, or incorrect deliveries.</p>
+                    <label class="form-label small fw-semibold">Reason for Return:</label>
+                    <select name="reason" class="form-select form-select-sm mb-3">
+                        <option value="Damaged outer seal upon delivery">Damaged outer seal upon delivery</option>
+                        <option value="Received incorrect formulation">Received incorrect formulation</option>
+                        <option value="Product leaking or broken container">Product leaking or broken container</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm rounded-pill" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning btn-sm rounded-pill px-3">Submit Return Request</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

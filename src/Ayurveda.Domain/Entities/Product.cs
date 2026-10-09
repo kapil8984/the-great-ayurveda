@@ -30,6 +30,7 @@ public class Product
     public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
     public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
     public virtual ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
+    public virtual ICollection<ProductQuestion> Questions { get; set; } = new List<ProductQuestion>();
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     public virtual ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
@@ -57,4 +58,16 @@ public class ProductVariant
     public decimal Mrp { get; set; }
     public int StockQuantity { get; set; }
     public bool IsActive { get; set; } = true;
+}
+
+public class ProductQuestion
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public virtual Product Product { get; set; } = null!;
+    public string QuestionText { get; set; } = string.Empty;
+    public string AnswerText { get; set; } = string.Empty;
+    public string? AskedBy { get; set; }
+    public string? AnsweredBy { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

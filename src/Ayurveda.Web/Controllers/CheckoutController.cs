@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Ayurveda.Application.ViewModels;
 using Ayurveda.Domain.Entities;
 using Ayurveda.Domain.Enums;
@@ -12,11 +13,16 @@ public class CheckoutController : Controller
 {
     private readonly AyurvedaDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IConfiguration _configuration;
 
-    public CheckoutController(AyurvedaDbContext context, UserManager<ApplicationUser> userManager)
+    public CheckoutController(
+        AyurvedaDbContext context,
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration)
     {
         _context = context;
         _userManager = userManager;
+        _configuration = configuration;
     }
 
     private async Task<ApplicationUser> GetCurrentUserAsync()
@@ -27,7 +33,13 @@ public class CheckoutController : Controller
             var demoUser = await _context.Users.FirstOrDefaultAsync();
             if (demoUser == null)
             {
-                demoUser = new ApplicationUser { UserName = "guest@ayurveda.local", Email = "guest@ayurveda.local", FullName = "Valued Customer" };
+                demoUser = new ApplicationUser
+                {
+                    UserName = "guest@ayurveda.local",
+                    Email = "guest@ayurveda.local",
+                    FullName = "Valued Customer",
+                    EmailConfirmed = true
+                };
                 await _userManager.CreateAsync(demoUser, "GuestPass@2026");
             }
             user = demoUser;
@@ -52,12 +64,16 @@ public class CheckoutController : Controller
 
         var addresses = await _context.Addresses
             .Where(a => a.UserId == user.Id)
+            .OrderByDescending(a => a.IsDefault)
+            .ThenByDescending(a => a.CreatedAt)
             .Select(a => new AddressViewModel
             {
                 Id = a.Id,
                 RecipientName = a.RecipientName,
                 Phone = a.Phone,
                 AddressLine1 = a.AddressLine1,
+                AddressLine2 = a.AddressLine2,
+                Landmark = a.Landmark,
                 City = a.City,
                 State = a.State,
                 PostalCode = a.PostalCode,
@@ -65,23 +81,56 @@ public class CheckoutController : Controller
             })
             .ToListAsync();
 
+        var appliedCouponCode = HttpContext.Session.GetString("AppliedCouponCode");
+        decimal couponDiscount = 0;
+        var items = cart.CartItems.Select(ci => new CartItemViewModel
+        {
+            CartItemId = ci.Id,
+            ProductId = ci.ProductId,
+            Title = ci.Product.Title,
+            Brand = ci.Product.Brand,
+            ImageUrl = ci.Product.ImageUrl,
+            UnitPrice = ci.Product.Price,
+            Mrp = ci.Product.Mrp,
+            Quantity = ci.Quantity,
+            Stock = ci.Product.Stock
+        }).ToList();
+
+        decimal subtotal = items.Sum(i => i.TotalPrice);
+
+        if (!string.IsNullOrWhiteSpace(appliedCouponCode))
+        {
+            var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Code.ToUpper() == appliedCouponCode.ToUpper() && c.IsActive);
+            if (coupon != null && subtotal >= coupon.MinOrderAmount)
+            {
+                if (coupon.DiscountType == DiscountType.Percentage)
+                {
+                    var calc = Math.Round(subtotal * (coupon.DiscountAmount / 100m), 2);
+                    couponDiscount = coupon.MaxDiscountAmount > 0 ? Math.Min(calc, coupon.MaxDiscountAmount) : calc;
+                }
+                else
+                {
+                    couponDiscount = coupon.DiscountAmount;
+                }
+            }
+        }
+
         var cartVm = new CartViewModel
         {
             CartId = cart.Id,
-            Items = cart.CartItems.Select(ci => new CartItemViewModel
-            {
-                CartItemId = ci.Id,
-                ProductId = ci.ProductId,
-                Title = ci.Product.Title,
-                UnitPrice = ci.Product.Price,
-                Quantity = ci.Quantity
-            }).ToList()
+            Items = items,
+            AppliedCouponCode = appliedCouponCode,
+            CouponDiscount = couponDiscount
         };
 
         var model = new CheckoutViewModel
         {
             SavedAddresses = addresses,
-            Cart = cartVm
+            SelectedAddressId = addresses.FirstOrDefault(a => a.IsDefault)?.Id ?? addresses.FirstOrDefault()?.Id,
+            Cart = cartVm,
+            DeliveryType = "Standard",
+            IdempotencyKey = Guid.NewGuid().ToString("N"),
+            RazorpayKeyId = _configuration["Payment:Razorpay:KeyId"] ?? "rzp_test_AyurvedaDemoKey123"
         };
 
         return View(model);
@@ -92,6 +141,17 @@ public class CheckoutController : Controller
     public async Task<IActionResult> PlaceOrder(CheckoutViewModel model)
     {
         var user = await GetCurrentUserAsync();
+
+        // Idempotency check: prevent duplicate submissions
+        if (!string.IsNullOrWhiteSpace(model.IdempotencyKey))
+        {
+            var existingOrder = await _context.Orders
+                .FirstOrDefaultAsync(o => o.UserId == user.Id && o.IdempotencyKey == model.IdempotencyKey);
+            if (existingOrder != null)
+            {
+                return RedirectToAction(nameof(Confirmation), new { id = existingOrder.Id });
+            }
+        }
 
         var cart = await _context.Carts
             .Include(c => c.CartItems)
@@ -104,9 +164,9 @@ public class CheckoutController : Controller
             return RedirectToAction("Index", "Cart");
         }
 
-        // Determine destination address
+        // 1. Resolve Shipping Address
         string shippingAddressText = "";
-        if (model.SelectedAddressId.HasValue)
+        if (model.SelectedAddressId.HasValue && model.SelectedAddressId.Value > 0)
         {
             var savedAddr = await _context.Addresses.FirstOrDefaultAsync(a => a.Id == model.SelectedAddressId.Value && a.UserId == user.Id);
             if (savedAddr != null)
@@ -119,12 +179,12 @@ public class CheckoutController : Controller
             var newAddr = new Address
             {
                 UserId = user.Id,
-                RecipientName = model.NewAddress.RecipientName,
-                Phone = model.NewAddress.Phone,
-                AddressLine1 = model.NewAddress.AddressLine1,
-                City = model.NewAddress.City,
-                State = model.NewAddress.State,
-                PostalCode = model.NewAddress.PostalCode,
+                RecipientName = model.NewAddress.RecipientName.Trim(),
+                Phone = model.NewAddress.Phone.Trim(),
+                AddressLine1 = model.NewAddress.AddressLine1.Trim(),
+                City = model.NewAddress.City.Trim(),
+                State = model.NewAddress.State.Trim(),
+                PostalCode = model.NewAddress.PostalCode.Trim(),
                 IsDefault = true
             };
             _context.Addresses.Add(newAddr);
@@ -133,10 +193,10 @@ public class CheckoutController : Controller
         }
         else
         {
-            shippingAddressText = $"{user.FullName}, {user.Email}, Primary Delivery Address, New Delhi 110001";
+            shippingAddressText = $"{user.FullName}, {user.ContactNumber ?? "9876543210"}, Primary Delivery Address, New Delhi 110001";
         }
 
-        // Server-side price & stock verification in transaction
+        // 2. Server-side price & stock verification in atomic transaction
         var executionStrategy = _context.Database.CreateExecutionStrategy();
         Order? order = null;
 
@@ -171,9 +231,40 @@ public class CheckoutController : Controller
                     });
                 }
 
-                decimal deliveryFee = subtotal >= 499.00m ? 0.00m : 40.00m;
-                decimal tax = Math.Round(subtotal * 0.05m, 2);
-                decimal grandTotal = subtotal + deliveryFee + tax;
+                // 3. Coupon calculation
+                var appliedCouponCode = HttpContext.Session.GetString("AppliedCouponCode");
+                decimal couponDiscount = 0;
+                if (!string.IsNullOrWhiteSpace(appliedCouponCode))
+                {
+                    var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Code.ToUpper() == appliedCouponCode.ToUpper() && c.IsActive);
+                    if (coupon != null && subtotal >= coupon.MinOrderAmount)
+                    {
+                        if (coupon.DiscountType == DiscountType.Percentage)
+                        {
+                            var calc = Math.Round(subtotal * (coupon.DiscountAmount / 100m), 2);
+                            couponDiscount = coupon.MaxDiscountAmount > 0 ? Math.Min(calc, coupon.MaxDiscountAmount) : calc;
+                        }
+                        else
+                        {
+                            couponDiscount = coupon.DiscountAmount;
+                        }
+                        coupon.UsageCount += 1;
+                    }
+                }
+
+                decimal deliveryFee = 0.00m;
+                if (model.DeliveryType == "Express")
+                {
+                    deliveryFee = 99.00m;
+                }
+                else
+                {
+                    deliveryFee = subtotal >= 499.00m ? 0.00m : 40.00m;
+                }
+
+                decimal taxableAmount = Math.Max(0, subtotal - couponDiscount);
+                decimal tax = Math.Round(taxableAmount * 0.05m, 2);
+                decimal grandTotal = Math.Max(0, taxableAmount + deliveryFee + tax);
 
                 order = new Order
                 {
@@ -182,18 +273,34 @@ public class CheckoutController : Controller
                     OrderDate = DateTime.UtcNow,
                     Status = OrderStatus.Placed.ToString(),
                     TotalAmount = grandTotal,
+                    DiscountAmount = couponDiscount,
                     DeliveryFee = deliveryFee,
                     TaxAmount = tax,
                     ShippingAddress = shippingAddressText,
                     PaymentMethod = model.SelectedPaymentMethod.ToString(),
                     PaymentStatus = model.SelectedPaymentMethod == PaymentMethod.Razorpay ? "Paid" : "Pending",
+                    DeliveryType = model.DeliveryType ?? "Standard",
+                    IdempotencyKey = model.IdempotencyKey,
+                    TrackingNumber = $"TRK-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+                    CourierName = "BlueDart Express Healthcare Logistics",
                     OrderItems = orderItems
                 };
 
                 _context.Orders.Add(order);
 
-                // Clear cart items
+                // Add confirmation notification
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = user.Id,
+                    Title = "Order Confirmed!",
+                    Message = $"Your order #{order.OrderNumber} for ₹{grandTotal:N0} has been confirmed.",
+                    Type = "Order",
+                    TargetUrl = $"/Orders/Details/{order.Id}"
+                });
+
+                // Clear cart items and coupon
                 _context.CartItems.RemoveRange(cart.CartItems);
+                HttpContext.Session.Remove("AppliedCouponCode");
 
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -231,10 +338,25 @@ public class CheckoutController : Controller
             OrderNumber = order.OrderNumber,
             OrderDate = order.OrderDate,
             TotalAmount = order.TotalAmount,
+            Subtotal = order.TotalAmount - order.DeliveryFee - order.TaxAmount + order.DiscountAmount,
+            DiscountAmount = order.DiscountAmount,
+            DeliveryFee = order.DeliveryFee,
+            TaxAmount = order.TaxAmount,
             Status = order.Status,
             PaymentMethod = order.PaymentMethod ?? "Online",
             PaymentStatus = order.PaymentStatus,
-            ShippingAddress = order.ShippingAddress
+            ShippingAddress = order.ShippingAddress,
+            DeliveryType = order.DeliveryType,
+            TrackingNumber = order.TrackingNumber,
+            CourierName = order.CourierName,
+            Items = order.OrderItems.Select(oi => new OrderItemViewModel
+            {
+                ProductId = oi.ProductId,
+                Title = oi.Product.Title,
+                ImageUrl = oi.Product.ImageUrl,
+                UnitPrice = oi.UnitPrice,
+                Quantity = oi.Quantity
+            }).ToList()
         };
 
         return View(model);

@@ -1,0 +1,101 @@
+@model Ayurveda.Application.ViewModels.WishlistViewModel
+@{
+    ViewData["Title"] = "My Saved Formulations (Wishlist)";
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-success text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" class="text-success text-decoration-none">Store</a></li>
+            <li class="breadcrumb-item active" aria-current="page">My Wishlist</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1" style="font-family: var(--tga-font-heading);">My Saved Formulations</h1>
+            <p class="text-muted small mb-0">You have <strong>@Model.TotalCount</strong> items saved in your personal wellness list</p>
+        </div>
+        <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-success btn-sm rounded-pill">
+            <i class="bi bi-plus-circle me-1"></i> Explore More Medicines
+        </a>
+    </div>
+
+    @if (Model.Items != null && Model.Items.Any())
+    {
+        <div class="row g-3">
+            @foreach (var item in Model.Items)
+            {
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative bg-white">
+                        <div class="p-3 text-center position-relative" style="background: #FDFBF7;">
+                            <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId">
+                                <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" 
+                                     alt="@item.Title" class="img-fluid" style="height: 160px; object-fit: contain;" />
+                            </a>
+                            @if (item.DiscountPercent > 0)
+                            {
+                                <span class="badge bg-danger position-absolute top-0 start-0 m-2">@item.DiscountPercent% OFF</span>
+                            }
+                            <form asp-controller="Wishlist" asp-action="Remove" method="post" class="position-absolute top-0 end-0 m-2">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="productId" value="@item.ProductId" />
+                                <button type="submit" class="btn btn-sm btn-light border rounded-circle text-danger" title="Remove from wishlist" style="width: 32px; height: 32px;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="card-body d-flex flex-column p-3">
+                            <span class="small text-muted text-uppercase fw-semibold" style="font-size: 0.72rem;">@item.Brand</span>
+                            <h6 class="fw-bold mb-2 text-truncate-2" style="min-height: 40px;">
+                                <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId" class="text-dark text-decoration-none hover-green">
+                                    @item.Title
+                                </a>
+                            </h6>
+
+                            <div class="d-flex align-items-baseline gap-2 mb-3">
+                                <span class="fs-5 fw-bold text-success">₹@item.Price.ToString("N0")</span>
+                                @if (item.Mrp > item.Price)
+                                {
+                                    <span class="small text-muted text-decoration-line-through">₹@item.Mrp.ToString("N0")</span>
+                                }
+                            </div>
+
+                            <div class="mt-auto">
+                                @if (item.IsInStock)
+                                {
+                                    <form asp-controller="Wishlist" asp-action="MoveToCart" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="productId" value="@item.ProductId" />
+                                        <button type="submit" class="btn btn-tga-primary btn-sm rounded-pill w-100">
+                                            <i class="bi bi-bag-plus me-1"></i> Move to Basket
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-light text-muted btn-sm rounded-pill w-100" disabled>
+                                        Out of Stock
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 bg-white rounded-4 border shadow-sm">
+            <i class="bi bi-heart text-muted display-4 mb-3 d-block"></i>
+            <h4 class="fw-bold text-dark">Your wishlist is empty</h4>
+            <p class="text-muted small">Save formulations by tapping the heart icon on any product page.</p>
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-primary btn-sm rounded-pill px-4">
+                Explore Medicines
+            </a>
+        </div>
+    }
+</div>

@@ -1,141 +1,189 @@
 @model Ayurveda.Application.ViewModels.CheckoutViewModel
 @{
-    ViewData["Title"] = "Secure Checkout";
+    ViewData["Title"] = "Secure Checkout | The Great Ayurveda";
 }
 
 <div class="container py-4">
-    <h1 class="h3 fw-bold mb-4" style="font-family: Georgia, serif;">Complete Your Order</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 fw-bold m-0" style="font-family: var(--tga-font-heading); color: var(--tga-primary);">
+            Finalize Your Order
+        </h1>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+            <i class="bi bi-shield-lock-fill me-1"></i> 256-Bit SSL Encrypted
+        </span>
+    </div>
 
     <form asp-action="PlaceOrder" method="post" id="checkoutForm">
         @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="IdempotencyKey" />
         
         <div class="row g-4">
-            <!-- Left Col: Delivery Address & Payment Method -->
+            <!-- Left Col: Shipping Address, Delivery Options & Payment Selection -->
             <div class="col-lg-8">
                 <!-- 1. Shipping Address Section -->
-                <div class="card p-4 shadow-sm border-0 rounded-3 mb-4">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt text-success me-2"></i> 1. Shipping Address</h5>
+                <div class="card p-4 shadow-sm border-0 rounded-4 bg-white mb-4">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-geo-alt-fill text-success me-2"></i> 1. Delivery Address</h5>
                     
                     @if (Model.SavedAddresses != null && Model.SavedAddresses.Any())
                     {
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold">Select Saved Address:</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">Select from Saved Addresses:</label>
                             <div class="row g-2">
                                 @foreach (var addr in Model.SavedAddresses)
                                 {
                                     <div class="col-md-6">
-                                        <div class="form-check p-3 border rounded bg-light">
+                                        <div class="form-check p-3 border rounded-3 bg-light h-100">
                                             <input class="form-check-input" type="radio" name="SelectedAddressId" id="addr_@addr.Id" value="@addr.Id" @(addr.IsDefault || Model.SelectedAddressId == addr.Id ? "checked" : "") />
                                             <label class="form-check-label small" for="addr_@addr.Id">
                                                 <strong>@addr.RecipientName</strong> (@addr.Phone)<br />
-                                                @addr.AddressLine1, @addr.City, @addr.State - @addr.PostalCode
+                                                @addr.AddressLine1 @(addr.AddressLine2 ?? "")<br />
+                                                @addr.City, @addr.State - <strong>@addr.PostalCode</strong>
                                             </label>
                                         </div>
                                     </div>
                                 }
                             </div>
                         </div>
+                        <div class="text-muted small mb-3">--- OR enter a new address below ---</div>
                     }
 
-                    <div class="mt-2">
-                        <h6 class="fw-bold text-dark mb-3">Or Enter Delivery Address:</h6>
+                    <div class="p-3 border rounded-3 bg-light">
+                        <h6 class="fw-bold text-dark mb-3">Add / Enter Delivery Address:</h6>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-semibold">Recipient Full Name *</label>
-                                <input asp-for="NewAddress.RecipientName" class="form-control" placeholder="Recipient Name" />
-                                <span asp-validation-for="NewAddress.RecipientName" class="text-danger small"></span>
+                                <input asp-for="NewAddress.RecipientName" class="form-control form-control-sm" placeholder="Full Name" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-semibold">Contact Mobile Number *</label>
-                                <input asp-for="NewAddress.Phone" class="form-control" placeholder="10-digit mobile" />
-                                <span asp-validation-for="NewAddress.Phone" class="text-danger small"></span>
+                                <label class="form-label small fw-semibold">10-Digit Mobile Number *</label>
+                                <input asp-for="NewAddress.Phone" class="form-control form-control-sm" placeholder="e.g. 9876543210" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label small fw-semibold">House / Flat / Building & Street *</label>
-                                <input asp-for="NewAddress.AddressLine1" class="form-control" placeholder="e.g. 102, Green Avenue, MG Road" />
-                                <span asp-validation-for="NewAddress.AddressLine1" class="text-danger small"></span>
+                                <label class="form-label small fw-semibold">Flat / House No., Building & Street Address *</label>
+                                <input asp-for="NewAddress.AddressLine1" class="form-control form-control-sm" placeholder="e.g. 204, Lotus Meadows, MG Road" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">City *</label>
-                                <input asp-for="NewAddress.City" class="form-control" placeholder="City" />
-                                <span asp-validation-for="NewAddress.City" class="text-danger small"></span>
+                                <input asp-for="NewAddress.City" class="form-control form-control-sm" placeholder="City" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">State *</label>
-                                <input asp-for="NewAddress.State" class="form-control" placeholder="State" />
-                                <span asp-validation-for="NewAddress.State" class="text-danger small"></span>
+                                <input asp-for="NewAddress.State" class="form-control form-control-sm" placeholder="State" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">PIN Code *</label>
-                                <input asp-for="NewAddress.PostalCode" class="form-control" placeholder="6-digit PIN" />
-                                <span asp-validation-for="NewAddress.PostalCode" class="text-danger small"></span>
+                                <input asp-for="NewAddress.PostalCode" class="form-control form-control-sm" placeholder="6-digit PIN" maxlength="6" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. Payment Method -->
-                <div class="card p-4 shadow-sm border-0 rounded-3 mb-4">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-credit-card text-success me-2"></i> 2. Choose Payment Mode</h5>
+                <!-- 2. Delivery Speed Section -->
+                <div class="card p-4 shadow-sm border-0 rounded-4 bg-white mb-4">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-truck text-success me-2"></i> 2. Delivery Speed</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check p-3 border rounded-3 bg-light">
+                                <input class="form-check-input" type="radio" asp-for="DeliveryType" id="delStandard" value="Standard" checked />
+                                <label class="form-check-label small" for="delStandard">
+                                    <strong class="text-dark">Standard Delivery (3-5 Days)</strong><br />
+                                    <span class="text-success fw-semibold">FREE on orders > ₹499</span> (else ₹40)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check p-3 border rounded-3 bg-light">
+                                <input class="form-check-input" type="radio" asp-for="DeliveryType" id="delExpress" value="Express" />
+                                <label class="form-check-label small" for="delExpress">
+                                    <strong class="text-dark">Express Priority (1-2 Days)</strong><br />
+                                    <span class="text-primary fw-semibold">+₹99 Healthcare Logistics</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Payment Method Section -->
+                <div class="card p-4 shadow-sm border-0 rounded-4 bg-white mb-4">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-credit-card-2-front text-success me-2"></i> 3. Payment Method</h5>
                     
-                    <div class="form-check p-3 border rounded mb-2">
+                    <div class="form-check p-3 border rounded-3 mb-2 bg-light">
                         <input class="form-check-input" type="radio" asp-for="SelectedPaymentMethod" id="payRazorpay" value="Razorpay" checked />
-                        <label class="form-check-label fw-semibold" for="payRazorpay">
-                            <i class="bi bi-shield-check text-success me-1"></i> Online Payment via UPI / Cards / Net Banking (Razorpay Test Mode)
+                        <label class="form-check-label fw-semibold text-dark" for="payRazorpay">
+                            <i class="bi bi-shield-check text-success me-1"></i> Razorpay Secure Gateway (UPI / Credit & Debit Cards / Net Banking)
                         </label>
-                        <div class="small text-muted ps-4">Instant confirmation and secure encryption.</div>
+                        <div class="small text-muted ps-4">Instant payment verification in TEST mode. 100% encrypted transaction.</div>
                     </div>
 
-                    <div class="form-check p-3 border rounded">
+                    <div class="form-check p-3 border rounded-3 bg-light">
                         <input class="form-check-input" type="radio" asp-for="SelectedPaymentMethod" id="payCod" value="CashOnDelivery" />
-                        <label class="form-check-label fw-semibold" for="payCod">
+                        <label class="form-check-label fw-semibold text-dark" for="payCod">
                             <i class="bi bi-cash-stack text-warning me-1"></i> Cash on Delivery (COD)
                         </label>
-                        <div class="small text-muted ps-4">Pay upon receiving package at your doorstep.</div>
+                        <div class="small text-muted ps-4">Pay cash or UPI directly to the courier agent upon package receipt.</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Col: Summary & Confirmation -->
+            <!-- Right Col: Order Review & Confirmation -->
             <div class="col-lg-4">
-                <div class="card p-4 shadow-sm border-0 rounded-3">
-                    <h5 class="fw-bold mb-3 border-bottom pb-2">Order Review</h5>
+                <div class="card p-4 shadow-sm border-0 rounded-4 bg-white sticky-top" style="top: 90px;">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2" style="font-family: var(--tga-font-heading);">
+                        Order Review (@Model.Cart.Items.Sum(i => i.Quantity) items)
+                    </h5>
 
-                    <div class="small text-muted mb-3">
+                    <!-- Item Preview List -->
+                    <div class="overflow-auto mb-3" style="max-height: 200px;">
                         @foreach (var item in Model.Cart.Items)
                         {
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-truncate" style="max-width: 200px;">@item.Title x @item.Quantity</span>
-                                <span class="fw-semibold text-dark">₹@item.TotalPrice.ToString("N0")</span>
+                            <div class="d-flex align-items-center justify-content-between mb-2 small pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" width="38" height="38" class="rounded border p-1" style="object-fit: contain;" alt="@item.Title" />
+                                    <div>
+                                        <div class="text-truncate fw-semibold" style="max-width: 140px;">@item.Title</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">Qty: @item.Quantity</div>
+                                    </div>
+                                </div>
+                                <span class="fw-bold text-dark">₹@item.TotalPrice.ToString("N0")</span>
                             </div>
                         }
                     </div>
 
-                    <div class="border-top pt-2">
-                        <div class="d-flex justify-content-between mb-2 small">
-                            <span>Subtotal</span>
-                            <span>₹@Model.Cart.Subtotal.ToString("N2")</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 small">
-                            <span>Delivery Fee</span>
-                            <span>@(Model.Cart.DeliveryFee == 0 ? "FREE" : $"₹{Model.Cart.DeliveryFee:N2}")</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 small">
-                            <span>Tax (5% GST)</span>
-                            <span>₹@Model.Cart.TaxAmount.ToString("N2")</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-3 fs-5 fw-bold text-success border-top pt-2">
-                            <span>Total Payable</span>
-                            <span>₹@Model.Cart.GrandTotal.ToString("N2")</span>
-                        </div>
+                    <!-- Price Summary -->
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Item Subtotal:</span>
+                        <span>₹@Model.Cart.Subtotal.ToString("N2")</span>
                     </div>
 
-                    <button type="submit" class="btn btn-tga-gold w-100 py-2 fs-6 rounded-pill shadow">
-                        <i class="bi bi-lock-fill me-1"></i> Place Order Now
+                    @if (Model.Cart.CouponDiscount > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2 small text-success">
+                            <span>Promo Discount:</span>
+                            <span>-₹@Model.Cart.CouponDiscount.ToString("N2")</span>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Delivery:</span>
+                        <span>@(Model.Cart.DeliveryFee == 0 ? "FREE" : $"₹{Model.Cart.DeliveryFee:N2}")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 small">
+                        <span class="text-muted">GST (5% AYUSH):</span>
+                        <span>₹@Model.Cart.TaxAmount.ToString("N2")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-4 fs-5 fw-bold text-success border-top pt-2">
+                        <span>Total Payable:</span>
+                        <span>₹@Model.Cart.GrandTotal.ToString("N2")</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-tga-gold w-100 py-3 fs-6 rounded-pill shadow-sm fw-bold">
+                        <i class="bi bi-lock-fill me-1"></i> Place Order (₹@Model.Cart.GrandTotal.ToString("N0"))
                     </button>
 
-                    <div class="medical-disclaimer-banner mt-3 text-center" style="font-size: 0.75rem;">
-                        <i class="bi bi-info-circle me-1"></i> By placing this order, you confirm you have reviewed traditional usage precautions.
+                    <div class="medical-disclaimer-banner mt-3 text-center" style="font-size: 0.72rem;">
+                        <i class="bi bi-info-circle me-1"></i> By placing order, you acknowledge understanding traditional Ayurvedic application guidelines.
                     </div>
                 </div>
             </div>

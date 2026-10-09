@@ -1,6 +1,6 @@
 @model Ayurveda.Application.ViewModels.ProductDetailsViewModel
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = $"{Model.Title} | The Great Ayurveda";
 }
 
 <div class="container py-4">
@@ -8,138 +8,547 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-success text-decoration-none">Home</a></li>
-            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" class="text-success text-decoration-none">Shop</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" class="text-success text-decoration-none">Store</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@Model.CategoryId" class="text-success text-decoration-none">@Model.CategoryName</a></li>
+            @if (!string.IsNullOrEmpty(Model.SubcategoryName))
+            {
+                <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@Model.CategoryId" asp-route-subcategoryId="@Model.SubcategoryId" class="text-success text-decoration-none">@Model.SubcategoryName</a></li>
+            }
             <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
         </ol>
     </nav>
 
+    <!-- Main Showcase Section -->
     <div class="row g-5 mb-5">
-        <!-- Col 1: Images -->
+        <!-- Col 1: Interactive Image Gallery -->
         <div class="col-lg-5">
-            <div class="p-4 bg-white rounded-4 border text-center shadow-sm">
-                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/products/chyawanprash.svg" : Model.ImageUrl)" 
-                     alt="@Model.Title" 
-                     class="img-fluid" 
-                     style="max-height: 380px; object-fit: contain;" />
+            <div class="p-4 bg-white rounded-4 border text-center shadow-sm position-relative sticky-top" style="top: 90px;">
+                <!-- Main Zoomable Preview -->
+                <div class="overflow-hidden mb-3 text-center" style="background: #FDFBF7; border-radius: 12px; height: 380px; display: flex; align-items: center; justify-content: center;">
+                    <img id="mainProductImage" 
+                         src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/products/chyawanprash.svg" : Model.ImageUrl)" 
+                         alt="@Model.Title" 
+                         class="img-fluid" 
+                         style="max-height: 350px; object-fit: contain; transition: transform 0.3s ease;" />
+                </div>
+
+                <!-- Thumbnails Strip -->
+                <div class="d-flex justify-content-center gap-2 overflow-auto py-2">
+                    <button type="button" class="btn btn-outline-success p-1 rounded-3 gallery-thumb active" data-img-url="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/products/chyawanprash.svg" : Model.ImageUrl)" style="width: 60px; height: 60px;">
+                        <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/products/chyawanprash.svg" : Model.ImageUrl)" class="img-fluid" style="height: 100%; object-fit: contain;" alt="Thumb 1" />
+                    </button>
+                    @if (Model.AdditionalImages != null && Model.AdditionalImages.Any())
+                    {
+                        @for (int i = 0; i < Model.AdditionalImages.Count; i++)
+                        {
+                            <button type="button" class="btn btn-outline-secondary p-1 rounded-3 gallery-thumb" data-img-url="@Model.AdditionalImages[i]" style="width: 60px; height: 60px;">
+                                <img src="@Model.AdditionalImages[i]" class="img-fluid" style="height: 100%; object-fit: contain;" alt="Thumb @(i + 2)" />
+                            </button>
+                        }
+                    }
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top small text-muted">
+                    <span><i class="bi bi-shield-check text-success me-1"></i> 100% Lab Verified & AYUSH Certified</span>
+                    <button type="button" id="shareBtn" class="btn btn-link text-muted p-0 text-decoration-none small">
+                        <i class="bi bi-share me-1"></i> Share
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Col 2: Product Info & Actions -->
+        <!-- Col 2: Product Specifications, Variants & Buy Controls -->
         <div class="col-lg-7">
-            <div class="text-uppercase small text-muted fw-semibold">@Model.Brand • @Model.CategoryName</div>
-            <h1 class="h2 fw-bold text-dark mt-1 mb-2" style="font-family: Georgia, serif;">@Model.Title</h1>
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-uppercase small text-muted fw-bold" style="letter-spacing: 0.5px;">@Model.Brand • @Model.CategoryName</span>
+                <span class="badge bg-light text-muted border rounded-pill">SKU: @Model.Sku</span>
+            </div>
 
-            <!-- Ratings -->
+            <h1 class="h2 fw-bold text-dark mt-1 mb-2" style="font-family: var(--tga-font-heading);">@Model.Title</h1>
+
+            <!-- Ratings & Reviews Summary -->
             <div class="d-flex align-items-center gap-2 mb-3">
-                <div class="tga-rating">
-                    <i class="bi bi-star-fill"></i>
-                </div>
-                <span class="fw-bold">@Model.AverageRating.ToString("0.0")</span>
-                <span class="text-muted small">(@Model.ReviewCount ratings & verified reviews)</span>
+                <span class="text-warning">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <i class="bi @(i <= Math.Round(Model.AverageRating) ? "bi-star-fill" : "bi-star")"></i>
+                    }
+                </span>
+                <span class="fw-bold fs-6">@Model.AverageRating.ToString("0.0")</span>
+                <span class="text-muted small">(@Model.ReviewCount ratings & verified customer reviews)</span>
             </div>
 
             <!-- Price Strip -->
-            <div class="d-flex align-items-baseline gap-3 p-3 bg-light rounded-3 mb-4">
-                <span class="fs-2 fw-bold text-success">₹@Model.Price.ToString("N0")</span>
+            <div class="p-3 bg-light rounded-4 mb-4 border d-flex flex-wrap align-items-baseline gap-3">
+                <span class="fs-2 fw-bold text-success" id="displayPrice">₹@Model.Price.ToString("N0")</span>
                 @if (Model.Mrp > Model.Price)
                 {
-                    <span class="text-muted text-decoration-line-through">MRP ₹@Model.Mrp.ToString("N0")</span>
-                    <span class="badge bg-danger">@Model.DiscountPercent% OFF</span>
+                    <span class="text-muted text-decoration-line-through fs-5" id="displayMrp">MRP ₹@Model.Mrp.ToString("N0")</span>
+                    <span class="badge bg-danger rounded-pill px-3 py-2" id="displayDiscount">@Model.DiscountPercent% OFF</span>
                 }
-                <span class="small text-muted ms-auto">Inclusive of all taxes</span>
+                <span class="small text-muted ms-auto">Inclusive of all taxes & 5% GST</span>
             </div>
 
-            <p class="text-secondary mb-4">@Model.Description</p>
+            <!-- Description -->
+            <p class="text-secondary leading-relaxed mb-4">@Model.Description</p>
 
-            <!-- Traditionally Used For -->
+            <!-- Traditionally Used For Tag Strip -->
             @if (!string.IsNullOrEmpty(Model.TraditionallyUsedFor))
             {
-                <div class="mb-3">
-                    <span class="small fw-bold text-uppercase text-muted">Traditionally Used For:</span>
-                    <div class="fw-medium text-dark">@Model.TraditionallyUsedFor</div>
+                <div class="mb-4 p-3 rounded-3" style="background: rgba(12, 98, 88, 0.05); border-left: 4px solid var(--tga-primary);">
+                    <div class="small fw-bold text-uppercase text-muted mb-1"><i class="bi bi-heart-pulse-fill text-success me-1"></i> Traditionally Used For:</div>
+                    <div class="fw-semibold text-dark">@Model.TraditionallyUsedFor</div>
                 </div>
             }
 
-            <!-- Add to Cart Form -->
-            <form asp-controller="Cart" asp-action="AddToCart" method="post" class="mb-4">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="productId" value="@Model.Id" />
-                <div class="row g-3 align-items-center">
-                    <div class="col-auto">
-                        <label class="form-label small fw-semibold mb-0">Quantity:</label>
+            <!-- 1. Variants Selector (Size / Pack) -->
+            @if (Model.Variants != null && Model.Variants.Any())
+            {
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-uppercase text-muted">Select Pack Size / Quantity:</label>
+                    <div class="d-flex flex-wrap gap-2" id="variantSelectorGroup">
+                        <button type="button" 
+                                class="btn btn-outline-success active rounded-pill px-3 variant-btn"
+                                data-price="@Model.Price"
+                                data-mrp="@Model.Mrp"
+                                data-stock="@Model.Stock"
+                                data-title="Standard">
+                            Standard Pack
+                        </button>
+                        @foreach (var v in Model.Variants)
+                        {
+                            <button type="button" 
+                                    class="btn btn-outline-secondary rounded-pill px-3 variant-btn"
+                                    data-price="@v.Price"
+                                    data-mrp="@v.Mrp"
+                                    data-stock="@v.StockQuantity"
+                                    data-title="@v.SizeOrPack">
+                                @v.Title (@v.SizeOrPack)
+                            </button>
+                        }
                     </div>
-                    <div class="col-auto">
-                        <input type="number" name="quantity" class="form-control" value="1" min="1" max="@Math.Max(1, Model.Stock)" style="width: 80px;" />
+                </div>
+            }
+
+            <!-- 2. Purchase Actions (Add to Basket / Buy Now) -->
+            <div class="card p-3 rounded-4 border-0 shadow-sm bg-white mb-4">
+                <form asp-controller="Cart" asp-action="AddToCart" method="post" id="purchaseForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    
+                    <div class="row g-3 align-items-center mb-3">
+                        <div class="col-auto">
+                            <label class="form-label small fw-bold mb-0">Quantity:</label>
+                        </div>
+                        <div class="col-auto">
+                            <div class="input-group input-group-sm" style="width: 110px;">
+                                <button class="btn btn-outline-secondary" type="button" onclick="decrementQty()">-</button>
+                                <input type="number" id="qtyInput" name="quantity" class="form-control text-center" value="1" min="1" max="@Math.Max(1, Model.Stock)" />
+                                <button class="btn btn-outline-secondary" type="button" onclick="incrementQty()">+</button>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            @if (Model.IsInStock)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+                                    <i class="bi bi-check-circle-fill me-1"></i> In Stock (@Model.Stock units available)
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill small">
+                                    <i class="bi bi-x-circle-fill me-1"></i> Currently Out of Stock
+                                </span>
+                            }
+                        </div>
                     </div>
-                    <div class="col">
+
+                    <div class="d-flex flex-wrap gap-2">
                         @if (Model.IsInStock)
                         {
-                            <button type="submit" class="btn btn-tga-primary px-4 shadow">
-                                <i class="bi bi-cart-plus me-1"></i> Add to Cart
+                            <button type="submit" class="btn btn-tga-primary flex-grow-1 py-2 rounded-pill shadow-sm">
+                                <i class="bi bi-cart-plus me-1"></i> Add to Basket
+                            </button>
+                            <button type="submit" formaction="/Cart/BuyNow" class="btn btn-tga-gold flex-grow-1 py-2 rounded-pill shadow-sm">
+                                <i class="bi bi-lightning-charge-fill me-1"></i> Buy Now
                             </button>
                         }
                         else
                         {
-                            <button type="button" class="btn btn-secondary px-4" disabled>Out of Stock</button>
+                            <button type="button" class="btn btn-secondary w-100 py-2 rounded-pill" disabled>
+                                Currently Out of Stock
+                            </button>
                         }
+                        
+                        <button type="button" 
+                                class="btn btn-outline-danger rounded-circle p-2 wishlist-toggle-btn"
+                                data-product-id="@Model.Id"
+                                title="Add to Wishlist" 
+                                style="width: 44px; height: 44px;">
+                            <i class="bi @(Model.IsInWishlist ? "bi-heart-fill" : "bi-heart") fs-5"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 3. Delivery Pincode Checker -->
+            <div class="card p-3 rounded-4 border bg-white mb-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-geo-alt-fill text-success fs-5"></i>
+                    <h6 class="fw-bold m-0 text-dark">Check Delivery & Cash on Delivery Availability</h6>
+                </div>
+                <div class="input-group input-group-sm mb-2" style="max-width: 320px;">
+                    <input type="text" id="pincodeInput" class="form-control rounded-start-pill" placeholder="Enter 6-digit PIN code" maxlength="6" />
+                    <button class="btn btn-dark rounded-end-pill px-3" type="button" id="checkPinBtn">Check</button>
+                </div>
+                <div id="pincodeResult" class="small text-muted">Enter PIN code to verify serviceability and estimated delivery date.</div>
+            </div>
+
+            <!-- 4. Active Offers Strip -->
+            <div class="card p-3 rounded-4 border-0 shadow-sm bg-light mb-4">
+                <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-tag-fill text-danger me-1"></i> Available Coupons & Special Offers:</h6>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <div class="p-2 bg-white rounded border border-success-subtle small">
+                            <span class="badge bg-success mb-1">AYUR10</span>
+                            <div class="fw-semibold text-dark">10% OFF on orders > ₹499</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-2 bg-white rounded border border-warning-subtle small">
+                            <span class="badge bg-warning text-dark mb-1">TGAFIRST</span>
+                            <div class="fw-semibold text-dark">Flat ₹100 OFF on ₹599+</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-2 bg-white rounded border border-info-subtle small">
+                            <span class="badge bg-info text-dark mb-1">VEDA20</span>
+                            <div class="fw-semibold text-dark">20% OFF on ₹1,499+</div>
+                        </div>
                     </div>
                 </div>
-            </form>
-
-            <!-- Highlights -->
-            <div class="row g-2 border-top pt-3 small text-muted">
-                <div class="col-6"><i class="bi bi-truck text-success me-1"></i> Fast delivery across India</div>
-                <div class="col-6"><i class="bi bi-shield-check text-success me-1"></i> 100% Genuine Ayurvedic Herbs</div>
-                <div class="col-6"><i class="bi bi-arrow-repeat text-success me-1"></i> Easy 7-day returns on sealed items</div>
-                <div class="col-6"><i class="bi bi-cash-stack text-success me-1"></i> Cash on Delivery Available</div>
             </div>
         </div>
     </div>
 
-    <!-- Product Detailed Information Tabs / Sections -->
-    <div class="row g-4 mb-5">
-        <div class="col-lg-8">
-            <div class="p-4 bg-white rounded-4 border shadow-sm">
-                <h4 class="fw-bold mb-3" style="font-family: Georgia, serif;">Herbal Profile & Pharmacopoeia</h4>
-                
-                @if (!string.IsNullOrEmpty(Model.Ingredients))
-                {
-                    <h6 class="fw-bold text-success mt-3 mb-1">Key Botanical Ingredients</h6>
-                    <p class="text-muted small">@Model.Ingredients</p>
-                }
+    <!-- Frequently Bought Together Bundle -->
+    @if (Model.FrequentlyBoughtTogether != null)
+    {
+        <div class="card p-4 rounded-4 border-0 shadow-sm bg-white mb-5">
+            <h5 class="fw-bold mb-3" style="font-family: var(--tga-font-heading);">
+                <i class="bi bi-stars text-warning me-2"></i>Frequently Bought Together (Vedic Synergy Bundle)
+            </h5>
+            <div class="row align-items-center g-4">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Main Item -->
+                        <div class="text-center" style="width: 140px;">
+                            <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/products/chyawanprash.svg" : Model.ImageUrl)" class="img-fluid rounded border p-2 mb-1" style="height: 100px; object-fit: contain;" alt="@Model.Title" />
+                            <div class="small fw-bold text-truncate">@Model.Title</div>
+                            <div class="small text-success fw-bold">₹@Model.Price.ToString("N0")</div>
+                        </div>
 
-                @if (!string.IsNullOrEmpty(Model.HowToUse))
-                {
-                    <h6 class="fw-bold text-success mt-3 mb-1">Traditional Dosage & Method of Use (Anupana)</h6>
-                    <p class="text-muted small">@Model.HowToUse</p>
-                }
+                        <div class="fs-4 text-muted">+</div>
+
+                        <!-- Companion Item -->
+                        <div class="text-center" style="width: 140px;">
+                            <img src="@(string.IsNullOrEmpty(Model.FrequentlyBoughtTogether.ImageUrl) ? "/images/products/triphala.svg" : Model.FrequentlyBoughtTogether.ImageUrl)" class="img-fluid rounded border p-2 mb-1" style="height: 100px; object-fit: contain;" alt="@Model.FrequentlyBoughtTogether.Title" />
+                            <div class="small fw-bold text-truncate">@Model.FrequentlyBoughtTogether.Title</div>
+                            <div class="small text-success fw-bold">₹@Model.FrequentlyBoughtTogether.Price.ToString("N0")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 border-md-start ps-md-4">
+                    @{
+                        var bundleTotal = Model.Price + Model.FrequentlyBoughtTogether.Price;
+                    }
+                    <div class="small text-muted">Bundle Price:</div>
+                    <div class="fs-3 fw-bold text-success mb-2">₹@bundleTotal.ToString("N0")</div>
+                    
+                    <form asp-controller="Cart" asp-action="AddToCart" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="productId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-tga-primary btn-sm rounded-pill w-100 mb-1">
+                            Add Both to Basket
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Tabs / Detailed Information: Pharmacopoeia, How To Use, Precautions, Reviews, Q&A -->
+    <div class="card p-4 rounded-4 border-0 shadow-sm bg-white mb-5">
+        <ul class="nav nav-tabs border-bottom mb-4" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold text-dark" id="herbs-tab" data-bs-toggle="tab" data-bs-target="#herbsTab" type="button" role="tab">
+                    Botanical Pharmacopoeia
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-dark" id="dosage-tab" data-bs-toggle="tab" data-bs-target="#dosageTab" type="button" role="tab">
+                    Dosage & Method (Anupana)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-dark" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviewsTab" type="button" role="tab">
+                    Customer Reviews (@Model.ReviewCount)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-dark" id="qa-tab" data-bs-toggle="tab" data-bs-target="#qaTab" type="button" role="tab">
+                    Customer Q&A (@Model.Questions.Count)
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="productTabContent">
+            <!-- 1. Botanical Pharmacopoeia -->
+            <div class="tab-pane fade show active" id="herbsTab" role="tabpanel">
+                <h5 class="fw-bold mb-3 text-dark">Ayurvedic Ingredients & Herbology</h5>
+                <p class="text-secondary mb-4">@Model.Ingredients</p>
 
                 @if (!string.IsNullOrEmpty(Model.Precautions))
                 {
-                    <h6 class="fw-bold text-danger mt-3 mb-1">Precautions & Sensitivities</h6>
-                    <p class="text-muted small">@Model.Precautions</p>
+                    <div class="alert alert-warning rounded-3 border-0 small mb-4">
+                        <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Precautions & Dosha Considerations:</h6>
+                        @Model.Precautions
+                    </div>
                 }
 
-                <!-- Medical Disclaimer Alert -->
-                <div class="medical-disclaimer-banner mt-4">
-                    <strong><i class="bi bi-info-circle me-1"></i> Medical Disclaimer:</strong>
-                    This formulation is traditionally prepared for dosha balance and general vitality. It is not intended to cure or replace medical advice. If you have chronic conditions or are pregnant, consult an AYUSH physician prior to use.
+                <div class="medical-disclaimer-banner">
+                    <strong><i class="bi bi-info-circle me-1"></i> AYUSH Health Disclaimer:</strong>
+                    Statements regarding these traditional Ayurvedic formulations have not been evaluated by conventional allopathic regulators. This product is prepared according to classical texts (Charaka, Sushruta, Bhavaprakasha) and is intended for holistic health maintenance, not to cure, mitigate, or replace professional medical treatment.
                 </div>
             </div>
-        </div>
 
-        <!-- Right: Consult a doctor prompt -->
-        <div class="col-lg-4">
-            <div class="p-4 bg-white rounded-4 border shadow-sm text-center">
-                <img src="/images/doctor-avatar.svg" width="72" height="72" class="mb-3" alt="Doctor" />
-                <h5 class="fw-bold">Unsure if this fits your Dosha?</h5>
-                <p class="small text-muted">
-                    Book a direct 1-on-1 video or audio consultation with a certified Ayurvedic doctor for tailored guidance.
-                </p>
-                <a asp-controller="Doctors" asp-action="Index" class="btn btn-tga-gold w-100 rounded-pill">
-                    <i class="bi bi-calendar-check me-1"></i> Consult a Doctor Now
-                </a>
+            <!-- 2. Dosage & Method -->
+            <div class="tab-pane fade" id="dosageTab" role="tabpanel">
+                <h5 class="fw-bold mb-3 text-dark">Traditional Administration & Anupana</h5>
+                <p class="text-secondary leading-relaxed mb-4">@Model.HowToUse</p>
+
+                <div class="p-3 bg-light rounded-3 small text-muted">
+                    <strong>Note on Anupana (Herbal Vehicle):</strong> Warm water, raw wild honey, or whole cow's milk helps guide the formulation to the targeted deep tissues (Dhatus) efficiently.
+                </div>
+            </div>
+
+            <!-- 3. Customer Reviews -->
+            <div class="tab-pane fade" id="reviewsTab" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold m-0 text-dark">Verified Customer Experiences</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-4 fw-bold text-dark">@Model.AverageRating.ToString("0.0")</span>
+                        <span class="text-warning">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <i class="bi @(i <= Math.Round(Model.AverageRating) ? "bi-star-fill" : "bi-star")"></i>
+                            }
+                        </span>
+                    </div>
+                </div>
+
+                @if (Model.Reviews != null && Model.Reviews.Any())
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var review in Model.Reviews)
+                        {
+                            <div class="card border rounded-3 p-3 bg-light">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <span class="fw-bold text-dark">@review.UserName</span>
+                                        @if (review.IsVerifiedPurchase)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 small">
+                                                <i class="bi bi-patch-check-fill me-1"></i> Verified Buyer
+                                            </span>
+                                        }
+                                    </div>
+                                    <span class="small text-muted">@review.CreatedAt.ToString("dd MMM yyyy")</span>
+                                </div>
+                                <div class="text-warning small mb-2">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")"></i>
+                                    }
+                                </div>
+                                <p class="text-secondary small mb-2">@review.ReviewText</p>
+                                <div class="small text-muted">
+                                    <button type="button" class="btn btn-link btn-sm text-muted p-0 text-decoration-none">
+                                        <i class="bi bi-hand-thumbs-up me-1"></i> Helpful (@review.HelpfulVotes)
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">No reviews submitted yet. Be the first to share your experience!</p>
+                }
+            </div>
+
+            <!-- 4. Customer Q&A -->
+            <div class="tab-pane fade" id="qaTab" role="tabpanel">
+                <h5 class="fw-bold mb-3 text-dark">Questions & Answers from Senior Vaidyas</h5>
+                @if (Model.Questions != null && Model.Questions.Any())
+                {
+                    <div class="accordion" id="faqAccordion">
+                        @for (int i = 0; i < Model.Questions.Count; i++)
+                        {
+                            var faq = Model.Questions[i];
+                            <div class="accordion-item mb-2 border rounded-3 overflow-hidden">
+                                <h2 class="accordion-header" id="heading_@i">
+                                    <button class="accordion-button @(i > 0 ? "collapsed" : "") fw-semibold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_@i">
+                                        Q: @faq.QuestionText
+                                    </button>
+                                </h2>
+                                <div id="collapse_@i" class="accordion-collapse collapse @(i == 0 ? "show" : "")" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body bg-light small text-secondary">
+                                        <div class="mb-2"><strong>A:</strong> @faq.AnswerText</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                            Answered by <em>@faq.AnsweredBy</em>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">Have a query regarding this medicine? <a asp-controller="Doctors" asp-action="Index" class="text-success fw-bold">Consult an Ayurvedic Doctor</a> for personalized clinical advice.</p>
+                }
             </div>
         </div>
     </div>
+
+    <!-- Related Formulations Carousel / Grid -->
+    @if (Model.RelatedProducts != null && Model.RelatedProducts.Any())
+    {
+        <div class="mb-5">
+            <h4 class="fw-bold mb-4" style="font-family: var(--tga-font-heading);">Similar Ayurvedic Formulations</h4>
+            <div class="row g-3">
+                @foreach (var related in Model.RelatedProducts)
+                {
+                    <div class="col-6 col-md-3">
+                        <partial name="_ProductCard" model="related" />
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Recently Viewed Items -->
+    @if (Model.RecentlyViewed != null && Model.RecentlyViewed.Any())
+    {
+        <div class="mb-5 pt-4 border-top">
+            <h5 class="fw-bold mb-3 text-muted small text-uppercase"><i class="bi bi-clock-history me-1"></i> Recently Viewed Formulations</h5>
+            <div class="row g-3">
+                @foreach (var recent in Model.RecentlyViewed)
+                {
+                    <div class="col-6 col-md-3">
+                        <partial name="_ProductCard" model="recent" />
+                    </div>
+                }
+            </div>
+        </div>
+    }
 </div>
+
+@section Scripts {
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Thumbnail switcher
+        document.querySelectorAll(".gallery-thumb").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.querySelectorAll(".gallery-thumb").forEach(function (b) { b.classList.remove("active", "btn-outline-success"); b.classList.add("btn-outline-secondary"); });
+                this.classList.add("active", "btn-outline-success");
+                this.classList.remove("btn-outline-secondary");
+                var newUrl = this.getAttribute("data-img-url");
+                var mainImg = document.getElementById("mainProductImage");
+                if (mainImg && newUrl) {
+                    mainImg.src = newUrl;
+                }
+            });
+        });
+
+        // Variant picker pill listener
+        document.querySelectorAll(".variant-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.querySelectorAll(".variant-btn").forEach(function (b) { b.classList.remove("active", "btn-outline-success"); b.classList.add("btn-outline-secondary"); });
+                this.classList.add("active", "btn-outline-success");
+                this.classList.remove("btn-outline-secondary");
+
+                var price = this.getAttribute("data-price");
+                var mrp = this.getAttribute("data-mrp");
+                if (price) {
+                    document.getElementById("displayPrice").textContent = "₹" + Number(price).toLocaleString("en-IN");
+                }
+                if (mrp && document.getElementById("displayMrp")) {
+                    document.getElementById("displayMrp").textContent = "MRP ₹" + Number(mrp).toLocaleString("en-IN");
+                }
+            });
+        });
+
+        // Pincode checker
+        var checkPinBtn = document.getElementById("checkPinBtn");
+        var pinInput = document.getElementById("pincodeInput");
+        var pinResult = document.getElementById("pincodeResult");
+
+        if (checkPinBtn && pinInput && pinResult) {
+            checkPinBtn.addEventListener("click", function () {
+                var pin = pinInput.value.trim();
+                if (!pin) {
+                    pinResult.innerHTML = '<span class="text-danger">Please enter a 6-digit PIN.</span>';
+                    return;
+                }
+                pinResult.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Checking delivery...';
+                fetch("/Shop/CheckPincode?pincode=" + encodeURIComponent(pin))
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        if (data.isServiceable) {
+                            pinResult.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-truck me-1"></i> ' + data.message + '</span>';
+                        } else {
+                            pinResult.innerHTML = '<span class="text-danger">' + data.message + '</span>';
+                        }
+                    })
+                    .catch(function () {
+                        pinResult.innerHTML = '<span class="text-danger">Unable to verify PIN code right now.</span>';
+                    });
+            });
+        }
+
+        // Share button
+        var shareBtn = document.getElementById("shareBtn");
+        if (shareBtn) {
+            shareBtn.addEventListener("click", function () {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(window.location.href).then(function () {
+                        alert("Product link copied to clipboard!");
+                    });
+                } else {
+                    alert("URL: " + window.location.href);
+                }
+            });
+        }
+    });
+
+    function incrementQty() {
+        var input = document.getElementById("qtyInput");
+        if (input) {
+            var current = parseInt(input.value) || 1;
+            var max = parseInt(input.getAttribute("max")) || 99;
+            if (current < max) input.value = current + 1;
+        }
+    }
+
+    function decrementQty() {
+        var input = document.getElementById("qtyInput");
+        if (input) {
+            var current = parseInt(input.value) || 1;
+            if (current > 1) input.value = current - 1;
+        }
+    }
+</script>
+}

@@ -1,5 +1,7 @@
 using System.Net;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +13,15 @@ using Ayurveda.Infrastructure.Data;
 using Xunit;
 
 namespace Ayurveda.API.Tests;
+
+public class PassThroughAntiforgery : IAntiforgery
+{
+    public AntiforgeryTokenSet GetAndStoreTokens(HttpContext httpContext) => new("test", "test", "__RequestVerificationToken", "test");
+    public AntiforgeryTokenSet GetTokens(HttpContext httpContext) => new("test", "test", "__RequestVerificationToken", "test");
+    public Task<bool> IsRequestValidAsync(HttpContext httpContext) => Task.FromResult(true);
+    public Task ValidateRequestAsync(HttpContext httpContext) => Task.CompletedTask;
+    public void SetCookieTokenAndHeader(HttpContext httpContext) { }
+}
 
 public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
 {
@@ -26,6 +37,7 @@ public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
                 d.ServiceType == typeof(DbContextOptions<AyurvedaDbContext>) ||
                 d.ServiceType == typeof(DbContextOptions) ||
                 d.ServiceType == typeof(AyurvedaDbContext) ||
+                d.ServiceType == typeof(IAntiforgery) ||
                 d.ServiceType.FullName?.Contains("EntityFrameworkCore") == true ||
                 d.ServiceType.Name.Contains("DbContextOptionsConfiguration")).ToList();
 
@@ -33,6 +45,8 @@ public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
             {
                 services.Remove(d);
             }
+
+            services.AddSingleton<IAntiforgery, PassThroughAntiforgery>();
 
             services.AddDbContext<AyurvedaDbContext>(options =>
             {
@@ -374,4 +388,138 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.DoesNotContain("Register", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Sign Up", html, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task Catalog_StoreListing_RendersSeededProductsAndFacetedFilters()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Shop");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Authentic Ayurvedic Pharmacopoeia", html);
+        Assert.Contains("Ayurvedic Categories", html);
+        Assert.Contains("Ayurvedic Brands", html);
+        Assert.Contains("Price Range", html);
+        Assert.Contains("Customer Rating", html);
+        Assert.Contains("Exclude Out of Stock", html);
+        Assert.Contains("Great Ayurveda Labs", html);
+    }
+
+    [Fact]
+    public async Task Catalog_ProductDetails_RendersVariantsAndAyushDisclaimer()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Shop/Details/1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Botanical Pharmacopoeia", html);
+        Assert.Contains("Traditionally Used For", html);
+        Assert.Contains("Check Delivery", html);
+        Assert.Contains("Cash on Delivery Availability", html);
+        Assert.Contains("AYUSH Health Disclaimer", html);
+        Assert.Contains("Add to Basket", html);
+        Assert.Contains("Buy Now", html);
+    }
+
+    [Fact]
+    public async Task Catalog_PincodeCheck_ValidPincode_ReturnsServiceableEta()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Shop/CheckPincode?pincode=110001");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var content = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("\"isServiceable\":true", content);
+        Assert.Contains("North India", content);
+    }
+
+    [Fact]
+    public async Task Catalog_PincodeCheck_InvalidPincode_ReturnsError()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Shop/CheckPincode?pincode=123");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var content = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("\"isServiceable\":false", content);
+    }
+
+    [Fact]
+    public async Task ECommerce_CartFlow_AddAndUpdateQuantity_Succeeds()
+    {
+        var client = _webFactory.CreateClient();
+        
+        // Add to cart
+        var form = new Dictionary<string, string>
+        {
+            ["productId"] = "1",
+            ["quantity"] = "2"
+        };
+        var postResponse = await client.PostAsync("/Cart/AddToCart", new FormUrlEncodedContent(form));
+        Assert.True(postResponse.IsSuccessStatusCode || postResponse.StatusCode == HttpStatusCode.Redirect);
+
+        // Fetch Cart page
+        var cartResponse = await client.GetAsync("/Cart");
+        Assert.Equal(HttpStatusCode.OK, cartResponse.StatusCode);
+        var html = await cartResponse.Content.ReadAsStringAsync();
+
+        Assert.Contains("Your Wellness Basket", html);
+        Assert.Contains("Order Summary", html);
+        Assert.Contains("Apply Coupon Code", html);
+        Assert.Contains("Proceed to Checkout", html);
+    }
+
+    [Fact]
+    public async Task ECommerce_Checkout_RendersAddressesAndPaymentModes()
+    {
+        var client = _webFactory.CreateClient();
+        
+        // Ensure cart has item first
+        var form = new Dictionary<string, string> { ["productId"] = "1", ["quantity"] = "1" };
+        await client.PostAsync("/Cart/AddToCart", new FormUrlEncodedContent(form));
+
+        var response = await client.GetAsync("/Checkout");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Finalize Your Order", html);
+        Assert.Contains("Delivery Address", html);
+        Assert.Contains("Standard Delivery", html);
+        Assert.Contains("Express Priority", html);
+        Assert.Contains("Razorpay Secure Gateway", html);
+        Assert.Contains("Cash on Delivery", html);
+    }
+
+    [Fact]
+    public async Task ECommerce_Wishlist_Index_RendersSuccessfully()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Wishlist");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("My Saved Formulations", html);
+    }
+
+    [Fact]
+    public async Task ECommerce_ProductCompare_RendersMatrix()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Shop/Compare?ids=1,2");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Side-by-Side Product Comparison", html);
+        Assert.Contains("Key Ingredients", html);
+        Assert.Contains("Traditionally Used For", html);
+    }
 }
+

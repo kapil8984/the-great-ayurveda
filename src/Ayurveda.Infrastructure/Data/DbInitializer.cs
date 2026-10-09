@@ -16,7 +16,7 @@ public static class DbInitializer
     {
         try
         {
-            // Seed Roles
+            // 1. Seed Roles
             var roles = new[]
             {
                 UserRole.Customer.ToString(),
@@ -36,143 +36,193 @@ public static class DbInitializer
                 }
             }
 
-            // Seed Categories if empty
-            if (!await context.Categories.AnyAsync())
+            // 2. Seed Categories
+            var categoryDefinitions = new (string Name, string Description, string ImageUrl)[]
             {
-                var categories = new List<Category>
-                {
-                    new() { Name = "Immunity & Rasayana", Description = "Traditional formulations to support vitality and natural defenses.", ImageUrl = "/images/categories/immunity.svg" },
-                    new() { Name = "Digestive Care", Description = "Holistic herbal churnas and gut wellness formulations.", ImageUrl = "/images/categories/digestion.svg" },
-                    new() { Name = "Joint & Muscle Care", Description = "Therapeutic massage oils and soothing herbal balms.", ImageUrl = "/images/categories/joints.svg" },
-                    new() { Name = "Skin Care", Description = "Pure herbal ubtans, Kumkumadi and Ayurvedic face oils.", ImageUrl = "/images/categories/skin.svg" },
-                    new() { Name = "Hair Care", Description = "Bhringraj, Amla and cold-pressed hair wellness oils.", ImageUrl = "/images/categories/hair.svg" },
-                    new() { Name = "Stress, Sleep & Brain", Description = "Pure Ashwagandha, Brahmi and calming botanical teas.", ImageUrl = "/images/categories/sleep.svg" },
-                    new() { Name = "Diabetes & Metabolism Support", Description = "Traditional herbs supporting healthy blood sugar balance.", ImageUrl = "/images/categories/metabolism.svg" },
-                    new() { Name = "Women's Wellness", Description = "Shatavari, hormonal harmony and restorative tonics.", ImageUrl = "/images/categories/womens.svg" },
-                    new() { Name = "Herbs & Raw Powders", Description = "Single-herb powders, roots and ethically harvested botanicals.", ImageUrl = "/images/categories/herbs.svg" },
-                    new() { Name = "Panchakarma & Therapy Kits", Description = "Authentic Nasya, Abhyanga and wellness accessories.", ImageUrl = "/images/categories/panchakarma.svg" },
-                    new() { Name = "Yoga & Wellness", Description = "Cotton yoga mats, meditation props and aromatherapy.", ImageUrl = "/images/categories/yoga.svg" },
-                    new() { Name = "Honey, Ghee & Natural Foods", Description = "A2 Gir Cow Bilona Ghee and wild raw forest honey.", ImageUrl = "/images/categories/foods.svg" }
-                };
+                ("Immunity & Rasayana", "Traditional formulations to support vitality, Ojas, and natural defenses.", "/images/categories/immunity.svg"),
+                ("Digestive Care", "Holistic herbal churnas, deepana-pachana herbs, and gut wellness formulations.", "/images/categories/digestion.svg"),
+                ("Joint & Muscle Care", "Therapeutic classical massage oils, tailas, and soothing herbal balms.", "/images/categories/joints.svg"),
+                ("Skin Care", "Pure herbal ubtans, Kumkumadi face oils, and complexion balms.", "/images/categories/skin.svg"),
+                ("Hair Care", "Bhringraj, Amla, Brahmi, and cold-pressed hair wellness oils and shampoos.", "/images/categories/hair.svg"),
+                ("Stress, Sleep & Brain", "Pure Ashwagandha, Medhya Rasayanas, and calming botanical teas.", "/images/categories/sleep.svg"),
+                ("Diabetes & Metabolism Support", "Traditional herbs supporting healthy blood sugar and metabolic Agni.", "/images/categories/metabolism.svg"),
+                ("Women's Wellness", "Shatavari, hormonal harmony, cycle balance, and restorative tonics.", "/images/categories/womens.svg"),
+                ("Herbs & Raw Powders", "Single-herb churnas, ethically harvested roots, seeds, and spices.", "/images/categories/herbs.svg"),
+                ("Panchakarma & Therapy Kits", "Authentic Nasya oils, Basti accessories, and Abhyanga essentials.", "/images/categories/panchakarma.svg"),
+                ("Yoga & Wellness", "Organic cotton mats, meditation props, brass incense burners, and aromatherapy.", "/images/categories/yoga.svg"),
+                ("Honey, Ghee & Natural Foods", "Vedic A2 Gir Cow Bilona Ghee and wild raw multi-flora forest honey.", "/images/categories/foods.svg")
+            };
 
-                await context.Categories.AddRangeAsync(categories);
-                await context.SaveChangesAsync();
-                logger.LogInformation("Seeded 12 core Ayurvedic categories.");
+            foreach (var def in categoryDefinitions)
+            {
+                var existing = await context.Categories.FirstOrDefaultAsync(c => c.Name == def.Name);
+                if (existing == null)
+                {
+                    context.Categories.Add(new Category
+                    {
+                        Name = def.Name,
+                        Description = def.Description,
+                        ImageUrl = def.ImageUrl,
+                        IsActive = true
+                    });
+                }
             }
+            await context.SaveChangesAsync();
 
-            // Seed Products if empty
-            if (!await context.Products.AnyAsync())
+            // 3. Seed Subcategories (3 per category = 36 total)
+            var subcategoryMap = new Dictionary<string, string[]>
             {
-                var categories = await context.Categories.ToListAsync();
-                var immunityCat = categories.FirstOrDefault(c => c.Name.Contains("Immunity"))?.Id ?? categories[0].Id;
-                var digestiveCat = categories.FirstOrDefault(c => c.Name.Contains("Digestive"))?.Id ?? categories[0].Id;
-                var jointsCat = categories.FirstOrDefault(c => c.Name.Contains("Joint"))?.Id ?? categories[0].Id;
-                var hairCat = categories.FirstOrDefault(c => c.Name.Contains("Hair"))?.Id ?? categories[0].Id;
-                var stressCat = categories.FirstOrDefault(c => c.Name.Contains("Stress"))?.Id ?? categories[0].Id;
+                ["Immunity & Rasayana"] = new[] { "Chyawanprash", "Herbal Tonics", "Giloy & Tulsi" },
+                ["Digestive Care"] = new[] { "Churnas", "Tablets", "Herbal Teas" },
+                ["Joint & Muscle Care"] = new[] { "Massage Oils", "Balms", "Supplements" },
+                ["Skin Care"] = new[] { "Face Care", "Body Care", "Herbal Soaps & Ubtans" },
+                ["Hair Care"] = new[] { "Hair Oils", "Shampoos", "Herbal Powders" },
+                ["Stress, Sleep & Brain"] = new[] { "Ashwagandha", "Brahmi", "Sleep Support" },
+                ["Diabetes & Metabolism Support"] = new[] { "Herbal Juices", "Tablets", "Teas" },
+                ["Women's Wellness"] = new[] { "Cycle Support", "Pregnancy & Postnatal Care", "Hormonal Balance" },
+                ["Herbs & Raw Powders"] = new[] { "Single Herbs", "Powders", "Seeds & Spices" },
+                ["Panchakarma & Therapy Kits"] = new[] { "Oils", "Basti/Nasya/Abhyanga items", "Accessories" },
+                ["Yoga & Wellness"] = new[] { "Mats & Props", "Books", "Aromatherapy" },
+                ["Honey, Ghee & Natural Foods"] = new[] { "Honey", "Cow Ghee", "Herbal Sweeteners" }
+            };
 
-                var initialProducts = new List<Product>
+            var categoriesInDb = await context.Categories.ToListAsync();
+            foreach (var cat in categoriesInDb)
+            {
+                if (subcategoryMap.TryGetValue(cat.Name, out var subNames))
                 {
-                    new()
+                    foreach (var subName in subNames)
                     {
-                        Title = "Organic Amla Chyawanprash Special",
-                        Brand = "Great Ayurveda Labs",
-                        Description = "Traditional Ayurvedic rasayana with 40+ wildcrafted herbs, raw honey and A2 cow ghee. Traditionally used to support seasonal immunity and vitality.",
-                        Price = 450.00m,
-                        Mrp = 550.00m,
-                        DiscountPercent = 18,
-                        Stock = 50,
-                        CategoryId = immunityCat,
-                        ImageUrl = "/images/products/chyawanprash.svg",
-                        AverageRating = 4.8,
-                        TraditionallyUsedFor = "Immunity, Vitality, Respiratory Health",
-                        Ingredients = "Wild Amla, Ashwagandha, Shatavari, Pipali, Cardamom, Raw Honey, A2 Ghee",
-                        HowToUse = "1-2 teaspoons twice daily with warm milk or lukewarm water.",
-                        Precautions = "Consult a doctor before use if diabetic.",
-                        IsActive = true
-                    },
-                    new()
-                    {
-                        Title = "Triphala Churna Digestive Powder",
-                        Brand = "Great Ayurveda Labs",
-                        Description = "Pure balanced tri-doshic blend of Haritaki, Bibhitaki, and Amalaki. Gently supports digestion and natural detoxification.",
-                        Price = 220.00m,
-                        Mrp = 275.00m,
-                        DiscountPercent = 20,
-                        Stock = 75,
-                        CategoryId = digestiveCat,
-                        ImageUrl = "/images/products/triphala.svg",
-                        AverageRating = 4.7,
-                        TraditionallyUsedFor = "Digestion, Regularity, Gut Cleansing",
-                        Ingredients = "Terminalia chebula (Haritaki), Terminalia bellirica (Bibhitaki), Emblica officinalis (Amalaki)",
-                        HowToUse = "1 teaspoon before bedtime with warm water.",
-                        Precautions = "Not recommended during acute diarrhea.",
-                        IsActive = true
-                    },
-                    new()
-                    {
-                        Title = "Mahanarayan Muscle & Joint Oil",
-                        Brand = "Great Ayurveda Labs",
-                        Description = "Authentic classical oil prepared with sesame base and 30+ botanical extracts. Traditionally used for comforting stiff joints and active muscles.",
-                        Price = 380.00m,
-                        Mrp = 450.00m,
-                        DiscountPercent = 15,
-                        Stock = 40,
-                        CategoryId = jointsCat,
-                        ImageUrl = "/images/products/mahanarayan.svg",
-                        AverageRating = 4.9,
-                        TraditionallyUsedFor = "Joint Flexibility, Muscle Ease, Vata Balance",
-                        Ingredients = "Sesame oil, Dashamula, Ashwagandha, Bala, Shatavari, Camphor",
-                        HowToUse = "Warm slightly and gently massage into affected areas.",
-                        Precautions = "For external application only. Do not apply on open wounds.",
-                        IsActive = true
-                    },
-                    new()
-                    {
-                        Title = "Kuntal Care Bhringraj Hair Wellness Oil",
-                        Brand = "Great Ayurveda Labs",
-                        Description = "Cold-pressed virgin coconut and sesame oil infused with Bhringraj, Brahmi and Hibiscus to nourish scalp and hair roots.",
-                        Price = 340.00m,
-                        Mrp = 400.00m,
-                        DiscountPercent = 15,
-                        Stock = 60,
-                        CategoryId = hairCat,
-                        ImageUrl = "/images/products/hair-oil.svg",
-                        AverageRating = 4.6,
-                        TraditionallyUsedFor = "Scalp Health, Hair Strength, Relaxation",
-                        Ingredients = "Eclipta alba (Bhringraj), Bacopa monnieri (Brahmi), Amla, Coconut Oil, Sesame Oil",
-                        HowToUse = "Apply to scalp and leave on for at least 1 hour or overnight before washing.",
-                        Precautions = "For external use only.",
-                        IsActive = true
-                    },
-                    new()
-                    {
-                        Title = "Pure Ashwagandha Root Extract Capsules",
-                        Brand = "Great Ayurveda Labs",
-                        Description = "Standardized Withania somnifera root extract. Traditionally used in Ayurveda as a rejuvenating adaptogen to support restful sleep and stress response.",
-                        Price = 490.00m,
-                        Mrp = 599.00m,
-                        DiscountPercent = 18,
-                        Stock = 35,
-                        CategoryId = stressCat,
-                        ImageUrl = "/images/products/ashwagandha.svg",
-                        AverageRating = 4.9,
-                        TraditionallyUsedFor = "Stress Relief, Sound Sleep, Physical Endurance",
-                        Ingredients = "Organic Ashwagandha root extract (5% Withanolides)",
-                        HowToUse = "1 capsule twice daily after meals with warm water or milk.",
-                        Precautions = "Pregnant or nursing women should consult a healthcare professional.",
-                        IsActive = true
+                        var existingSub = await context.Subcategories.FirstOrDefaultAsync(s => s.CategoryId == cat.Id && s.Name == subName);
+                        if (existingSub == null)
+                        {
+                            context.Subcategories.Add(new Subcategory
+                            {
+                                CategoryId = cat.Id,
+                                Name = subName,
+                                Slug = subName.ToLower().Replace(" ", "-").Replace("&", "and").Replace("/", "-"),
+                                Description = $"Authentic Ayurvedic {subName} formulations.",
+                                IsActive = true
+                            });
+                        }
                     }
-                };
+                }
+            }
+            await context.SaveChangesAsync();
 
-                await context.Products.AddRangeAsync(initialProducts);
+            // 4. Seed At Least 72 Products (2 products per subcategory)
+            var currentProductCount = await context.Products.CountAsync();
+            if (currentProductCount < 60)
+            {
+                var subcategories = await context.Subcategories.Include(s => s.Category).ToListAsync();
+                var catalogData = GetSeedCatalogData();
+
+                foreach (var item in catalogData)
+                {
+                    var sub = subcategories.FirstOrDefault(s => s.Category.Name == item.CategoryName && s.Name == item.SubcategoryName);
+                    if (sub == null) continue;
+
+                    var productExists = await context.Products.AnyAsync(p => p.Title == item.Title);
+                    if (!productExists)
+                    {
+                        var product = new Product
+                        {
+                            Title = item.Title,
+                            Brand = item.Brand,
+                            Description = item.Description,
+                            Price = item.Price,
+                            Mrp = item.Mrp,
+                            DiscountPercent = item.Mrp > 0 ? (int)Math.Round((1.0m - (item.Price / item.Mrp)) * 100) : 0,
+                            Stock = item.Stock,
+                            CategoryId = sub.CategoryId,
+                            SubcategoryId = sub.Id,
+                            ImageUrl = item.ImageUrl,
+                            AverageRating = item.Rating,
+                            Sku = item.Sku,
+                            Tags = item.Tags,
+                            TraditionallyUsedFor = item.TraditionallyUsedFor,
+                            Ingredients = item.Ingredients,
+                            HowToUse = item.HowToUse,
+                            Precautions = item.Precautions,
+                            IsPrescriptionRequired = item.IsPrescriptionRequired,
+                            IsActive = true
+                        };
+
+                        // Add Variants
+                        if (item.Variants != null && item.Variants.Any())
+                        {
+                            foreach (var v in item.Variants)
+                            {
+                                product.Variants.Add(new ProductVariant
+                                {
+                                    Title = v.Title,
+                                    SizeOrPack = v.SizeOrPack,
+                                    Price = v.Price,
+                                    Mrp = v.Mrp,
+                                    StockQuantity = v.Stock,
+                                    Sku = $"{product.Sku}-{v.SizeOrPack?.Replace(" ", "")}"
+                                });
+                            }
+                        }
+
+                        // Add Reviews
+                        if (item.Reviews != null && item.Reviews.Any())
+                        {
+                            foreach (var r in item.Reviews)
+                            {
+                                product.Reviews.Add(new ProductReview
+                                {
+                                    UserId = 1, // linked to default user
+                                    Rating = r.Rating,
+                                    ReviewText = r.Text,
+                                    HelpfulVotes = r.Helpful,
+                                    IsVerifiedPurchase = true,
+                                    CreatedAt = DateTime.UtcNow.AddDays(-r.DaysAgo)
+                                });
+                            }
+                        }
+
+                        // Add Q&A
+                        if (item.Faqs != null && item.Faqs.Any())
+                        {
+                            foreach (var f in item.Faqs)
+                            {
+                                product.Questions.Add(new ProductQuestion
+                                {
+                                    QuestionText = f.Question,
+                                    AnswerText = f.Answer,
+                                    AskedBy = f.AskedBy,
+                                    AnsweredBy = "Senior Ayurvedic Vaidya, Great Ayurveda Labs",
+                                    CreatedAt = DateTime.UtcNow.AddDays(-10)
+                                });
+                            }
+                        }
+
+                        context.Products.Add(product);
+                    }
+                }
                 await context.SaveChangesAsync();
-                logger.LogInformation("Seeded initial showcase products.");
+                logger.LogInformation("Seeded complete 72+ item Ayurvedic catalogue across 36 subcategories.");
             }
 
-            // Seed Yoga poses if empty
+            // 5. Seed Promotional Coupons
+            if (!await context.Coupons.AnyAsync())
+            {
+                var coupons = new List<Coupon>
+                {
+                    new() { Code = "AYUR10", DiscountType = DiscountType.Percentage, DiscountAmount = 10, MinOrderAmount = 499, MaxDiscountAmount = 250, IsActive = true },
+                    new() { Code = "TGAFIRST", DiscountType = DiscountType.Flat, DiscountAmount = 100, MinOrderAmount = 599, MaxDiscountAmount = 100, IsActive = true },
+                    new() { Code = "VEDA20", DiscountType = DiscountType.Percentage, DiscountAmount = 20, MinOrderAmount = 1499, MaxDiscountAmount = 500, IsActive = true }
+                };
+                await context.Coupons.AddRangeAsync(coupons);
+                await context.SaveChangesAsync();
+                logger.LogInformation("Seeded active discount coupons.");
+            }
+
+            // 6. Seed Yoga poses if empty
             if (!await context.Yogas.AnyAsync())
             {
-                var catId = (await context.Categories.FirstAsync()).Id;
+                var firstCatId = (await context.Categories.FirstAsync()).Id;
                 var initialYoga = new List<Yoga>
                 {
                     new()
@@ -182,7 +232,7 @@ public static class DbInitializer
                         Instructions = "Stand at the front edge of the mat with palms folded in Pranamasana. Flow through Hastautthanasana, Padahastasana, Ashwa Sanchalanasana, and Bhujangasana with synchronized breath.",
                         ImageUrl = "/images/yoga/surya-namaskar.svg",
                         VideoUrl = "https://www.youtube.com/embed/sample",
-                        CategoryId = catId,
+                        CategoryId = firstCatId,
                         BenefitsJson = "[\"Boosts metabolic fire (Agni)\", \"Improves spinal flexibility\", \"Enhances prana circulation\", \"Calms the mind\"]",
                         AverageRating = 5.0
                     },
@@ -193,7 +243,7 @@ public static class DbInitializer
                         Instructions = "Shift weight to the left foot. Place the right sole against the inner left thigh or calf (avoiding the knee). Bring palms to prayer at heart center.",
                         ImageUrl = "/images/yoga/vrikshasana.svg",
                         VideoUrl = "https://www.youtube.com/embed/sample",
-                        CategoryId = catId,
+                        CategoryId = firstCatId,
                         BenefitsJson = "[\"Strengthens ankles and calves\", \"Improves neuromuscular coordination\", \"Promotes mental stillness\"]",
                         AverageRating = 4.8
                     }
@@ -209,5 +259,1216 @@ public static class DbInitializer
             logger.LogError(ex, "An error occurred during database seeding.");
             throw;
         }
+    }
+
+    private class ProductSeedDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Brand { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public string SubcategoryName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Mrp { get; set; }
+        public int Stock { get; set; }
+        public double Rating { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+        public string Sku { get; set; } = string.Empty;
+        public string Tags { get; set; } = string.Empty;
+        public string TraditionallyUsedFor { get; set; } = string.Empty;
+        public string Ingredients { get; set; } = string.Empty;
+        public string HowToUse { get; set; } = string.Empty;
+        public string Precautions { get; set; } = string.Empty;
+        public bool IsPrescriptionRequired { get; set; }
+        public List<(string Title, string SizeOrPack, decimal Price, decimal Mrp, int Stock)> Variants { get; set; } = new();
+        public List<(int Rating, string Text, int Helpful, int DaysAgo)> Reviews { get; set; } = new();
+        public List<(string Question, string Answer, string AskedBy)> Faqs { get; set; } = new();
+    }
+
+    private static List<ProductSeedDto> GetSeedCatalogData()
+    {
+        return new List<ProductSeedDto>
+        {
+            // 1. Immunity & Rasayana -> Chyawanprash
+            new()
+            {
+                Title = "Organic Amla Chyawanprash Special",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Immunity & Rasayana",
+                SubcategoryName = "Chyawanprash",
+                Description = "Classical Rasayana crafted with 40+ wildcrafted herbs, fresh forest Amla, raw honey, and Vedic A2 cow ghee. Restores Ojas and seasonal immunity.",
+                Price = 450m, Mrp = 550m, Stock = 65, Rating = 4.9,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "TGA-IMM-001",
+                Tags = "immunity, ojas, rasayana, chyawanprash, organic",
+                TraditionallyUsedFor = "Seasonal Immunity, Respiratory Strength, Ojas Vitality",
+                Ingredients = "Fresh Organic Amla, Ashwagandha, Shatavari, Pipali, Cardamom, Raw Forest Honey, A2 Cow Ghee",
+                HowToUse = "1-2 teaspoons twice daily with warm milk or lukewarm water on an empty stomach.",
+                Precautions = "Contains honey and jaggery; consult doctor if diabetic.",
+                Variants = new() { ("500g Jar", "500g", 450m, 550m, 40), ("1kg Family Pack", "1kg", 820m, 999m, 25) },
+                Reviews = new() { (5, "Authentic taste without artificial sweetness. Energy levels improved significantly.", 14, 12), (5, "Classic Ayurvedic texture with real amla goodness.", 8, 25) },
+                Faqs = new() { ("Can children consume this Chyawanprash?", "Yes, children above 3 years can take half a teaspoon daily with warm milk.", "Ramesh K.") }
+            },
+            new()
+            {
+                Title = "Sugar-Free Gold Chyawanprash",
+                Brand = "VaidyaRoots",
+                CategoryName = "Immunity & Rasayana",
+                SubcategoryName = "Chyawanprash",
+                Description = "Specially formulated for blood sugar conscious individuals, infused with Swarna Bhasma and pure herbs without refined sugars or jaggery.",
+                Price = 690m, Mrp = 850m, Stock = 42, Rating = 4.8,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "VR-IMM-002",
+                Tags = "sugarfree, gold, chyawanprash, immunity",
+                TraditionallyUsedFor = "Diabetic-Friendly Vitality, Natural Cellular Defense",
+                Ingredients = "Amla Pulp, Swarna Bhasma, Gudmar, Jamun seed extract, Ashwagandha, Sesame Oil",
+                HowToUse = "1 teaspoon in the morning with lukewarm water.",
+                Precautions = "Safe for diabetic adults; follow physician's dietary instructions.",
+                Variants = new() { ("500g Jar", "500g", 690m, 850m, 42) },
+                Reviews = new() { (5, "Zero spike in blood sugar, very rejuvenating.", 9, 8) }
+            },
+
+            // 1. Immunity & Rasayana -> Herbal Tonics
+            new()
+            {
+                Title = "Drakshasava Classical Herbal Elixir",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Immunity & Rasayana",
+                SubcategoryName = "Herbal Tonics",
+                Description = "Naturally fermented herbal asava prepared from black raisins (Draksha). Traditionally revitalizes digestive fire and overcomes general debility.",
+                Price = 280m, Mrp = 340m, Stock = 38, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "AS-IMM-003",
+                Tags = "drakshasava, asava, digestive tonic, fatigue",
+                TraditionallyUsedFor = "General Debility, Chronic Fatigue, Blood Purification",
+                Ingredients = "Draksha (Raisins), Dhataki flowers, Cinnamon, Cardamom, Long Pepper, Jaggery",
+                HowToUse = "15-20 ml twice daily with an equal quantity of water after meals.",
+                Precautions = "Natural self-generated alcohol up to 8%. Avoid on empty stomach.",
+                Variants = new() { ("450ml Bottle", "450ml", 280m, 340m, 38) }
+            },
+            new()
+            {
+                Title = "Amritaprasha Rasayana Revitalizer",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Immunity & Rasayana",
+                SubcategoryName = "Herbal Tonics",
+                Description = "Potent classical restorative avaleha described in Ashtanga Hridaya. Rebuilds deep tissues, promotes stamina and reproductive vitality.",
+                Price = 580m, Mrp = 720m, Stock = 18, Rating = 4.9,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "TGA-IMM-004",
+                Tags = "rasayana, vitality, stamina, tissue strength",
+                TraditionallyUsedFor = "Post-Illness Convalescence, Deep Tissue Nourishment",
+                Ingredients = "Ghee, Honey, Ashwagandha, Shatavari, Vidari, Gokshura, Pippali, Sugar candy",
+                HowToUse = "1 teaspoon twice daily followed by warm cow milk.",
+                Precautions = "Rich formulation; avoid in high ama (indigestion) conditions."
+            },
+
+            // 1. Immunity & Rasayana -> Giloy & Tulsi
+            new()
+            {
+                Title = "Pure Giloy Ghanvati Tablets (500mg)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Immunity & Rasayana",
+                SubcategoryName = "Giloy & Tulsi",
+                Description = "Concentrated aqueous extract of Tinospora cordifolia (Amrita). Clarifies Pitta, strengthens liver metabolism and supports leukocyte count.",
+                Price = 180m, Mrp = 220m, Stock = 110, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-IMM-005",
+                Tags = "giloy, amrita, fever, immunity, tablets",
+                TraditionallyUsedFor = "Recurrent Fevers, Liver Detoxification, Natural Platelet Support",
+                Ingredients = "Standardized Giloy Stem Extract (Tinospora cordifolia 500mg)",
+                HowToUse = "1-2 tablets twice daily after meals with lukewarm water.",
+                Precautions = "Do not exceed recommended dose.",
+                Variants = new() { ("60 Tablets", "60 Tabs", 180m, 220m, 70), ("120 Tablets Value Pack", "120 Tabs", 320m, 400m, 40) }
+            },
+            new()
+            {
+                Title = "Panch Tulsi Pure Herbal Drops",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Immunity & Rasayana",
+                SubcategoryName = "Giloy & Tulsi",
+                Description = "Steam-distilled blend of 5 sacred Holy Basil varieties: Rama, Shyama, Krishna, Van, and Shukla Tulsi. Enhances respiratory prana.",
+                Price = 195m, Mrp = 250m, Stock = 85, Rating = 4.7,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "DN-IMM-006",
+                Tags = "tulsi, drops, respiratory, immunity",
+                TraditionallyUsedFor = "Throat Comfort, Cough Relief, Environmental Defense",
+                Ingredients = "Ocimum sanctum, Ocimum gratissimum, Ocimum canum, Ocimum basilicum, Ocimum kilimandscharicum",
+                HowToUse = "2-3 drops in a glass of warm water or green tea twice daily.",
+                Precautions = "Store in a cool dry place away from sunlight."
+            },
+
+            // 2. Digestive Care -> Churnas
+            new()
+            {
+                Title = "Triphala Churna Digestive Powder",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Digestive Care",
+                SubcategoryName = "Churnas",
+                Description = "Traditional tri-doshic blend of Haritaki, Bibhitaki, and Amalaki. Gently supports digestion, colon tone, and natural detoxification.",
+                Price = 220m, Mrp = 275m, Stock = 90, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-DIG-001",
+                Tags = "triphala, churna, digestion, detox, colon",
+                TraditionallyUsedFor = "Bowel Regularity, Colon Cleansing, Gentle Detox",
+                Ingredients = "Terminalia chebula (Haritaki), Terminalia bellirica (Bibhitaki), Emblica officinalis (Amalaki)",
+                HowToUse = "1 teaspoon before bedtime with warm water.",
+                Precautions = "Avoid during acute diarrhea or severe dehydration.",
+                Variants = new() { ("200g Pack", "200g", 220m, 275m, 60), ("500g Eco Pouch", "500g", 480m, 600m, 30) },
+                Reviews = new() { (5, "The gold standard Triphala. Regularity restored in 3 days.", 22, 18) }
+            },
+            new()
+            {
+                Title = "Hingwashtak Churna Classical Agni Tonic",
+                Brand = "VaidyaRoots",
+                CategoryName = "Digestive Care",
+                SubcategoryName = "Churnas",
+                Description = "Authentic formulation of Asafoetida, ginger, black pepper, and cumin. Stimulates digestive fire (Deepana) and digests metabolic toxins (Pachana).",
+                Price = 190m, Mrp = 230m, Stock = 45, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "VR-DIG-002",
+                Tags = "hingwashtak, bloat, gas, agni, churna",
+                TraditionallyUsedFor = "Gas, Abdominal Heaviness, Sluggish Digestion",
+                Ingredients = "Hing (Shuddha Asafoetida), Sunthi, Maricha, Pippali, Ajwain, Cumin, Black Cumin, Rock Salt",
+                HowToUse = "Half a teaspoon mixed with the first bite of food with ghee.",
+                Precautions = "Contains rock salt; limit use in severe hypertension."
+            },
+
+            // 2. Digestive Care -> Tablets
+            new()
+            {
+                Title = "Abhayarishta & Shankh Vati Digestive Combo",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Digestive Care",
+                SubcategoryName = "Tablets",
+                Description = "Herbo-mineral classical tablets prepared with purified conch shell bhasma and digestive spices to relieve acid reflux and sour belching.",
+                Price = 240m, Mrp = 299m, Stock = 50, Rating = 4.6,
+                ImageUrl = "/images/products/triphala.svg", Sku = "AS-DIG-003",
+                Tags = "shankh vati, acidity, reflux, digestive",
+                TraditionallyUsedFor = "Hyperacidity, Indigestion, Stomach Discomfort",
+                Ingredients = "Shankha Bhasma, Shuddha Vatsanabha, Trikatu, Pancha Lavana, Lemon juice bhavana",
+                HowToUse = "1-2 tablets after meals with lukewarm water.",
+                Precautions = "Contains processed mineral bhasma; follow doctor guidance for prolonged use."
+            },
+            new()
+            {
+                Title = "Avisipattikar Pitta Harmony Tablets",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Digestive Care",
+                SubcategoryName = "Tablets",
+                Description = "Classic cooling formulation described in Bhaishajya Ratnavali for neutralizing aggravated Pitta dosha in the upper GI tract.",
+                Price = 210m, Mrp = 260m, Stock = 65, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-DIG-004",
+                Tags = "avipattikar, pitta, acid relief, heartburn",
+                TraditionallyUsedFor = "Pitta Balance, Heartburn, Bilious Vomiting",
+                Ingredients = "Trikatu, Triphala, Musta, Vidanga, Cardamom, Tejpatra, Lavanga, Trivrit, Sharkara",
+                HowToUse = "1-2 tablets before meals with cool or room temperature water.",
+                Precautions = "Not suitable for individuals with loose bowels."
+            },
+
+            // 2. Digestive Care -> Herbal Teas
+            new()
+            {
+                Title = "CCF Digestive Detox Tea (Cumin, Coriander, Fennel)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Digestive Care",
+                SubcategoryName = "Herbal Teas",
+                Description = "The revered Ayurvedic tridoshic herbal infusion. Clarifies lymphatic stagnation, debloats, and kindles gentle Agni without heating.",
+                Price = 275m, Mrp = 350m, Stock = 80, Rating = 4.9,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-DIG-005",
+                Tags = "ccf tea, detox, cumin, coriander, fennel",
+                TraditionallyUsedFor = "Gentle Detox, Fluid Balance, Post-Meal Comfort",
+                Ingredients = "Organic Cumin seeds, Coriander seeds, Sweet Fennel seeds",
+                HowToUse = "Steep 1 tea bag or 1 tsp in boiling water for 5-7 minutes. Sip throughout the day.",
+                Precautions = "Safe for daily family consumption.",
+                Variants = new() { ("25 Tea Bags", "25 Bags", 275m, 350m, 50), ("50 Tea Bags Tin", "50 Bags", 495m, 620m, 30) }
+            },
+            new()
+            {
+                Title = "Brahmi Ginger Agni Tisane",
+                Brand = "Himalayan Vana",
+                CategoryName = "Digestive Care",
+                SubcategoryName = "Herbal Teas",
+                Description = "A warming blend of Himalayan dried ginger, whole Brahmi leaves, and sweet licorice root for post-meal digestive serenity.",
+                Price = 310m, Mrp = 390m, Stock = 34, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "HV-DIG-006",
+                Tags = "ginger tea, brahmi, agni, herbal tea",
+                TraditionallyUsedFor = "Slow Metabolism, Post-Prandial Heaviness",
+                Ingredients = "Wild Dry Ginger, Brahmi, Licorice, Cardamom, Holy Basil",
+                HowToUse = "Boil 1 teaspoon in 250ml water for 3 minutes. Strain and enjoy warm.",
+                Precautions = "Licorice is naturally sweet; no extra sweetener required."
+            },
+
+            // 3. Joint & Muscle Care -> Massage Oils
+            new()
+            {
+                Title = "Mahanarayan Muscle & Joint Oil (Classical)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Joint & Muscle Care",
+                SubcategoryName = "Massage Oils",
+                Description = "Authentic classical oil prepared with pure sesame oil base and 30+ botanical extracts including Dashamula, Ashwagandha, and Bala.",
+                Price = 380m, Mrp = 450m, Stock = 55, Rating = 4.9,
+                ImageUrl = "/images/products/mahanarayan.svg", Sku = "TGA-JNT-001",
+                Tags = "mahanarayan, joint oil, massage, arthritis, vata",
+                TraditionallyUsedFor = "Joint Flexibility, Back Comfort, Soothing Sore Muscles",
+                Ingredients = "Sesame oil, Dashamula, Ashwagandha, Bala, Shatavari, Camphor, Cow milk",
+                HowToUse = "Warm slightly in a water bath. Massage into affected areas with circular strokes.",
+                Precautions = "External application only. Do not apply over broken skin.",
+                Variants = new() { ("100ml Bottle", "100ml", 380m, 450m, 35), ("200ml Family Bottle", "200ml", 680m, 820m, 20) },
+                Reviews = new() { (5, "Immediate soothing relief for my knee stiffness. Wonderful natural fragrance.", 18, 14) }
+            },
+            new()
+            {
+                Title = "Kottamchukkadi Thailam Swelling Relief Oil",
+                Brand = "VaidyaRoots",
+                CategoryName = "Joint & Muscle Care",
+                SubcategoryName = "Massage Oils",
+                Description = "Classical Kerala formulation with costus, dry ginger, and calamus in tamarind juice medium. Renowned for relieving inflammation and stiffness.",
+                Price = 360m, Mrp = 425m, Stock = 38, Rating = 4.8,
+                ImageUrl = "/images/products/mahanarayan.svg", Sku = "VR-JNT-002",
+                Tags = "kottamchukkadi, kerala thailam, joint swelling, stiffness",
+                TraditionallyUsedFor = "Localized Swelling, Morning Joint Stiffness, Vata-Kapha Disorders",
+                Ingredients = "Kushta, Sunthi, Vacha, Shigru, Lasuna, Mustard oil, Sesame oil, Tamarind extract",
+                HowToUse = "Apply warm oil generously over swollen joints and follow with warm fomentation.",
+                Precautions = "For external use only. Discontinue if rash develops."
+            },
+
+            // 3. Joint & Muscle Care -> Balms
+            new()
+            {
+                Title = "Rheuma-Cool Herbal Pain Balm",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Joint & Muscle Care",
+                SubcategoryName = "Balms",
+                Description = "Fast-acting topical balm with pure Wintergreen oil (Gandhapura), Eucalyptus, and Bhimseni Camphor in a beeswax base.",
+                Price = 145m, Mrp = 180m, Stock = 120, Rating = 4.7,
+                ImageUrl = "/images/products/mahanarayan.svg", Sku = "TGA-JNT-003",
+                Tags = "balm, pain relief, headache, joint pain",
+                TraditionallyUsedFor = "Headache, Neck Tension, Sudden Muscle Sprains",
+                Ingredients = "Gandhapura taila (Wintergreen), Nilgiri taila (Eucalyptus), Karpura, Pudina Satva, Beeswax base",
+                HowToUse = "Gently apply a thin layer over affected area and massage lightly.",
+                Precautions = "Avoid contact with eyes and mucous membranes.",
+                Variants = new() { ("25g Jar", "25g", 145m, 180m, 80), ("50g Value Pack", "50g", 260m, 320m, 40) }
+            },
+            new()
+            {
+                Title = "Vatagaja Deep-Penetrating Herbal Salve",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Joint & Muscle Care",
+                SubcategoryName = "Balms",
+                Description = "Concentrated herbal salve infused with Shallaki (Boswellia), Guggulu, and Nirgundi oil to comfort deep joints.",
+                Price = 220m, Mrp = 275m, Stock = 40, Rating = 4.6,
+                ImageUrl = "/images/products/mahanarayan.svg", Sku = "DN-JNT-004",
+                Tags = "salve, shallaki, boswellia, guggulu, balm",
+                TraditionallyUsedFor = "Deep Joint Aches, Sciatic Comfort, Cartilage Support",
+                Ingredients = "Boswellia serrata extract, Commiphora mukul, Nirgundi leaf oil, Kokum butter",
+                HowToUse = "Rub gently into joints twice daily.",
+                Precautions = "Wash hands after application."
+            },
+
+            // 3. Joint & Muscle Care -> Supplements
+            new()
+            {
+                Title = "Shallaki & Yograj Guggulu Joint Tablets",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Joint & Muscle Care",
+                SubcategoryName = "Supplements",
+                Description = "Synergistic combination of standardized Boswellia extract and purified classical Yograj Guggulu for cartilage integrity.",
+                Price = 420m, Mrp = 520m, Stock = 60, Rating = 4.8,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "TGA-JNT-005",
+                Tags = "shallaki, guggulu, joint supplements, mobility",
+                TraditionallyUsedFor = "Joint Mobility, Connective Tissue Comfort, Vata Balance",
+                Ingredients = "Standardized Boswellia serrata (65% Boswellic acids), Shuddha Guggulu, Trikatu, Triphala",
+                HowToUse = "1-2 tablets twice daily with warm water after meals.",
+                Precautions = "Not recommended during pregnancy.",
+                Variants = new() { ("60 Tablets", "60 Tabs", 420m, 520m, 60) }
+            },
+            new()
+            {
+                Title = "Asthishrinkhala Bone Density Capsules (Hadjod)",
+                Brand = "VaidyaRoots",
+                CategoryName = "Joint & Muscle Care",
+                SubcategoryName = "Supplements",
+                Description = "Pure Cissus quadrangularis extract, traditionally celebrated as 'Asthisamharaka' (bone-knit) to support bone mineral density.",
+                Price = 380m, Mrp = 460m, Stock = 45, Rating = 4.7,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "VR-JNT-006",
+                Tags = "hadjod, cissus, bone density, fractures, joints",
+                TraditionallyUsedFor = "Bone Mineralization, Tendon Recovery, Fracture Healing Support",
+                Ingredients = "Pure Hadjod (Cissus quadrangularis) stem extract 500mg",
+                HowToUse = "1 capsule twice daily with warm milk.",
+                Precautions = "Safe for long term use under clinical supervision."
+            },
+
+            // 4. Skin Care -> Face Care
+            new()
+            {
+                Title = "Kumkumadi Tailam Miraculous Radiance Oil",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Skin Care",
+                SubcategoryName = "Face Care",
+                Description = "Authentic 26-herb formulation with pure Kashmiri Saffron (Kumkuma), sandalwood, and lotus pollen. Evens skin tone and restores youthful glow.",
+                Price = 850m, Mrp = 1100m, Stock = 40, Rating = 4.9,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "TGA-SKN-001",
+                Tags = "kumkumadi, saffron, face oil, glowing skin, anti-aging",
+                TraditionallyUsedFor = "Skin Complexion, Dark Circles, Fine Lines, Natural Radiance",
+                Ingredients = "Pure Kashmiri Saffron, Red Sandalwood, Manjistha, Yashtimadhu, Ushira, Sesame Oil, Goat milk",
+                HowToUse = "Massage 3-4 drops onto clean, damp face before bedtime. Leave overnight.",
+                Precautions = "For dry to normal skin; use 1-2 drops for oily skin.",
+                Variants = new() { ("15ml Dropper", "15ml", 850m, 1100m, 25), ("30ml Luxury Pack", "30ml", 1550m, 1999m, 15) },
+                Reviews = new() { (5, "Pure luxury. My hyperpigmentation faded dramatically within two weeks.", 29, 9) }
+            },
+            new()
+            {
+                Title = "Kasturi Manjal & Sandalwood Glow Elixir",
+                Brand = "Himalayan Vana",
+                CategoryName = "Skin Care",
+                SubcategoryName = "Face Care",
+                Description = "Aromatic non-staining wild turmeric (Kasturi Manjal) infused in cold-pressed sweet almond oil with genuine Mysore sandalwood extract.",
+                Price = 520m, Mrp = 650m, Stock = 32, Rating = 4.7,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "HV-SKN-002",
+                Tags = "wild turmeric, kasturi manjal, sandalwood, glow, face serum",
+                TraditionallyUsedFor = "Blemish Control, Skin Calming, Sun Exposure Care",
+                Ingredients = "Curcuma aromatica (Kasturi Manjal), Santalum album oil, Sweet Almond oil, Jojoba oil",
+                HowToUse = "Apply 2-3 drops to face and neck every morning.",
+                Precautions = "Patch test before first use."
+            },
+
+            // 4. Skin Care -> Body Care
+            new()
+            {
+                Title = "Nalpamaradi Thailam Skin Brightening Body Oil",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Skin Care",
+                SubcategoryName = "Body Care",
+                Description = "Classical Kerala formulation with the bark of 4 sacred Ficus trees, turmeric, and Indian gooseberry. Renowned as a pre-bridal body brightening treatment.",
+                Price = 440m, Mrp = 550m, Stock = 50, Rating = 4.8,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "TGA-SKN-003",
+                Tags = "nalpamaradi, body oil, brightening, de-tan, ficus",
+                TraditionallyUsedFor = "De-tanning, Skin Texture, Body Glow, Blemish Clearing",
+                Ingredients = "Nalpamara (4 Ficus barks), Turmeric, Triphala, Manjistha, Sesame oil",
+                HowToUse = "Apply all over body 30 minutes before bathing. Wash off with a gentle herbal ubtan.",
+                Precautions = "May stain light-colored clothing due to natural turmeric."
+            },
+            new()
+            {
+                Title = "Satadhauta Ghritha 100-Times Washed Ghee Cream",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Skin Care",
+                SubcategoryName = "Body Care",
+                Description = "A2 Gir cow ghee washed 100 times in a consecrated copper vessel with purified water. Transforms into a velvety cooling cream.",
+                Price = 620m, Mrp = 750m, Stock = 28, Rating = 4.9,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "AS-SKN-004",
+                Tags = "satadhauta ghritha, washed ghee, cooling cream, eczema, burns",
+                TraditionallyUsedFor = "Deep Skin Hydration, Eczema Soothing, Sunburn Relief, Pitta Calming",
+                Ingredients = "Vedic A2 Gir Cow Ghee, Copper-distilled purified water",
+                HowToUse = "Smooth a small quantity over dry or sensitized skin areas.",
+                Precautions = "Completely fragrance and chemical free. Keep refrigerated in hot weather."
+            },
+
+            // 4. Skin Care -> Herbal Soaps & Ubtans
+            new()
+            {
+                Title = "Traditional Tejasvi Bridal Ubtan Cleanser",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Skin Care",
+                SubcategoryName = "Herbal Soaps & Ubtans",
+                Description = "Micro-milled exfoliating powder with gram flour, wild turmeric, sandalwood, orange peel, and rose petals. Replaces chemical body wash.",
+                Price = 290m, Mrp = 360m, Stock = 70, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-SKN-005",
+                Tags = "ubtan, natural cleanser, body scrub, turmeric, rose",
+                TraditionallyUsedFor = "Dead Skin Exfoliation, Silky Softness, Tan Removal",
+                Ingredients = "Besan, Kasturi Turmeric, Rose petal powder, Chandan, Vetiver, Orange peel, Neem",
+                HowToUse = "Mix with raw milk or rose water to form a smooth paste. Massage over skin and rinse.",
+                Precautions = "Store powder dry; use clean spoon."
+            },
+            new()
+            {
+                Title = "Neem & Tulsi Purifying Bathing Bar (Set of 3)",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Skin Care",
+                SubcategoryName = "Herbal Soaps & Ubtans",
+                Description = "Cold-process handmade herbal soap with pure neem oil, crushed tulsi leaves, and coconut oil. Purifies skin without stripping natural lipids.",
+                Price = 240m, Mrp = 300m, Stock = 85, Rating = 4.6,
+                ImageUrl = "/images/products/triphala.svg", Sku = "DN-SKN-006",
+                Tags = "neem soap, tulsi, natural soap, antibacterial",
+                TraditionallyUsedFor = "Daily Hygiene, Acne Prone Skin, Skin Odor Control",
+                Ingredients = "Pure Neem oil, Holy Basil extract, Virgin Coconut oil, Castor oil, Essential oils",
+                HowToUse = "Lather between wet hands and apply over body during bath.",
+                Precautions = "For external use only."
+            },
+
+            // 5. Hair Care -> Hair Oils
+            new()
+            {
+                Title = "Kuntal Care Bhringraj Hair Wellness Oil",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Hair Care",
+                SubcategoryName = "Hair Oils",
+                Description = "Classical Kshirapak method preparation with fresh Bhringraj juice, Amla, and Brahmi boiled in cow milk and virgin sesame oil.",
+                Price = 340m, Mrp = 400m, Stock = 65, Rating = 4.9,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "TGA-HAR-001",
+                Tags = "bhringraj oil, hair fall, keshya, premature greying",
+                TraditionallyUsedFor = "Hair Root Strength, Scalp Cooling, Deep Sleep Induction",
+                Ingredients = "Bhringraj juice, Amalaki, Brahmi, Gunja, Sesame oil, Cow milk",
+                HowToUse = "Gently massage into scalp roots with fingertips. Leave for at least 1 hour or overnight before wash.",
+                Precautions = "External application only.",
+                Variants = new() { ("100ml Bottle", "100ml", 340m, 400m, 40), ("200ml Family Pack", "200ml", 590m, 720m, 25) }
+            },
+            new()
+            {
+                Title = "Neelibhringadi Ayurvedic Scalp Elixir",
+                Brand = "VaidyaRoots",
+                CategoryName = "Hair Care",
+                SubcategoryName = "Hair Oils",
+                Description = "Renowned classical Kerala formulation featuring Indigo (Neeli), Bhringraj, Indian gooseberry, and coconut milk for lustrous dark hair.",
+                Price = 420m, Mrp = 520m, Stock = 40, Rating = 4.8,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "VR-HAR-002",
+                Tags = "neelibhringadi, kerala hair oil, dark hair, dandruff",
+                TraditionallyUsedFor = "Premature Greying, Scalp Nourishment, Hair Density",
+                Ingredients = "Neeli (Indigofera tinctoria), Bhringraj, Amla, Yashtimadhu, Coconut milk, Buffalo milk, Goat milk",
+                HowToUse = "Part hair into sections and massage oil into scalp.",
+                Precautions = "Natural cooling herb; avoid if suffering from acute head cold."
+            },
+
+            // 5. Hair Care -> Shampoos
+            new()
+            {
+                Title = "Shikakai & Reetha Gentle Scalp Cleanser",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Hair Care",
+                SubcategoryName = "Shampoos",
+                Description = "Sulfate-free, pH-balanced hair wash brewed with boiled soapnuts (Reetha), Shikakai pods, Hibiscus flowers, and Fenugreek.",
+                Price = 320m, Mrp = 399m, Stock = 55, Rating = 4.7,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "TGA-HAR-003",
+                Tags = "shikakai shampoo, reetha, sulfate free, herbal shampoo",
+                TraditionallyUsedFor = "Mild Hair Cleansing, Scalp pH Balance, Natural Shine",
+                Ingredients = "Acacia concinna (Shikakai), Sapindus mukorossi (Reetha), Hibiscus rosa-sinensis, Trigonella foenum-graecum",
+                HowToUse = "Apply to wet scalp, massage gently to generate mild natural lather, and rinse thoroughly.",
+                Precautions = "Mild natural lather; avoid contact with eyes.",
+                Variants = new() { ("200ml Pump", "200ml", 320m, 399m, 35), ("400ml Value Size", "400ml", 560m, 699m, 20) }
+            },
+            new()
+            {
+                Title = "Methi & Onion Root Strengthener Hair Wash",
+                Brand = "Himalayan Vana",
+                CategoryName = "Hair Care",
+                SubcategoryName = "Shampoos",
+                Description = "Enriched with cold-pressed Red Onion seed oil and sprouted Fenugreek (Methi) to reduce excessive hair shedding.",
+                Price = 360m, Mrp = 450m, Stock = 35, Rating = 4.6,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "HV-HAR-004",
+                Tags = "onion shampoo, methi, hair fall control, biotin",
+                TraditionallyUsedFor = "Breakage Reduction, Root Fortification, Follicle Stimulation",
+                Ingredients = "Allium cepa extract, Trigonella seed extract, Bhringraj, Aloe vera juice, Plant surfactants",
+                HowToUse = "Massage into wet hair for 2 minutes and rinse.",
+                Precautions = "Color safe; free from parabens and SLS."
+            },
+
+            // 5. Hair Care -> Herbal Powders
+            new()
+            {
+                Title = "Organic Tri-Herb Hair Pack (Amla, Bhringraj, Shikakai)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Hair Care",
+                SubcategoryName = "Herbal Powders",
+                Description = "Sun-dried and triple-sifted 100% pure Ayurvedic powders. Acts as a detoxifying scalp mud mask and natural conditioning pack.",
+                Price = 240m, Mrp = 300m, Stock = 75, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-HAR-005",
+                Tags = "hair pack, amla powder, shikakai, bhringraj, hair mask",
+                TraditionallyUsedFor = "Scalp Detoxification, Hair Root Conditioning, Volume Boost",
+                Ingredients = "Organic Emblica officinalis, Eclipta alba, Acacia concinna",
+                HowToUse = "Mix 2 tablespoons with warm water or yogurt. Apply from roots to ends for 30 minutes, then rinse.",
+                Precautions = "Perform skin test prior to full application."
+            },
+            new()
+            {
+                Title = "Pure Rajasthani Sojat Henna Powder",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Hair Care",
+                SubcategoryName = "Herbal Powders",
+                Description = "Premium high-lawsone content natural henna from Sojat, Rajasthan. Coats hair cuticles in rich conditioning russet tones.",
+                Price = 180m, Mrp = 225m, Stock = 60, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "DN-HAR-006",
+                Tags = "henna, sojat mehendi, hair color, conditioning",
+                TraditionallyUsedFor = "Natural Hair Coloring, Scalp Cooling, Cuticle Protection",
+                Ingredients = "100% Pure Lawsonia inermis (Henna) leaf powder",
+                HowToUse = "Soak in black tea water overnight in an iron vessel. Apply to clean hair for 2-3 hours.",
+                Precautions = "Natural plant dye; wear protective gloves."
+            },
+
+            // 6. Stress, Sleep & Brain -> Ashwagandha
+            new()
+            {
+                Title = "Pure Ashwagandha Root Extract Capsules (500mg)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Stress, Sleep & Brain",
+                SubcategoryName = "Ashwagandha",
+                Description = "Standardized Withania somnifera root extract with 5% Withanolides. Calms cortisol, improves stress resilience, and deepens restful sleep.",
+                Price = 490m, Mrp = 599m, Stock = 80, Rating = 4.9,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "TGA-STR-001",
+                Tags = "ashwagandha, cortisol, stress, sleep, adaptogen",
+                TraditionallyUsedFor = "Stress Resilience, Sound Sleep, Physical Endurance",
+                Ingredients = "Standardized Ashwagandha Root Extract (5% Withanolides) 500mg",
+                HowToUse = "1 capsule twice daily after meals with warm water or milk.",
+                Precautions = "Pregnant women should consult a physician.",
+                Variants = new() { ("60 Veg Capsules", "60 Caps", 490m, 599m, 50), ("120 Veg Capsules Value", "120 Caps", 890m, 1099m, 30) },
+                Reviews = new() { (5, "Remarkable improvement in sleep architecture and morning calm.", 34, 5) }
+            },
+            new()
+            {
+                Title = "Ashwagandharishta Classical Fermented Tonic",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Stress, Sleep & Brain",
+                SubcategoryName = "Ashwagandha",
+                Description = "Classical Ayurvedic nerve tonic prepared by natural fermentation. Relieves nervous exhaustion, mental fatigue, and anxiety symptoms.",
+                Price = 290m, Mrp = 350m, Stock = 45, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "AS-STR-002",
+                Tags = "ashwagandharishta, nerve tonic, anxiety, vitality",
+                TraditionallyUsedFor = "Nervous Exhaustion, Vata Imbalance, General Anxiety",
+                Ingredients = "Ashwagandha, Musali, Manjistha, Haritaki, Haridra, Chandan, Jaggery, Dhataki",
+                HowToUse = "15-20 ml twice daily with equal quantity of water after meals.",
+                Precautions = "Contains naturally occurring alcohol; not suitable during pregnancy."
+            },
+
+            // 6. Stress, Sleep & Brain -> Brahmi
+            new()
+            {
+                Title = "Brahmi Vati Medhya Rasayana Tablets",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Stress, Sleep & Brain",
+                SubcategoryName = "Brahmi",
+                Description = "Classical brain rejuvenator formulation featuring Bacopa monnieri, Shankhpushpi, and Vacha for memory, cognitive acuity, and focus.",
+                Price = 320m, Mrp = 399m, Stock = 50, Rating = 4.8,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "TGA-STR-003",
+                Tags = "brahmi, medhya rasayana, memory, concentration, student focus",
+                TraditionallyUsedFor = "Memory Retention, Focus, Mental Clarity, Speech Fluency",
+                Ingredients = "Bacopa monnieri (Brahmi), Convolvulus pluricaulis (Shankhpushpi), Acorus calamus (Vacha), Swarna Makshika",
+                HowToUse = "1 tablet twice daily with honey or warm milk.",
+                Precautions = "Do not exceed stated dosage."
+            },
+            new()
+            {
+                Title = "Saraswatarishta Memory & Cognitive Elixir",
+                Brand = "VaidyaRoots",
+                CategoryName = "Stress, Sleep & Brain",
+                SubcategoryName = "Brahmi",
+                Description = "The classical elixir dedicated to Goddess Saraswati. Formulated with Brahmi, Gold bhasma, and adaptogens for enhanced intellect.",
+                Price = 380m, Mrp = 460m, Stock = 35, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "VR-STR-004",
+                Tags = "saraswatarishta, intellect, speech, memory, golden tonic",
+                TraditionallyUsedFor = "Cognitive Stamina, Vocal Clarity, Emotional Calm",
+                Ingredients = "Brahmi, Shatavari, Vidari, Abhaya, Usheera, Swarna Bhasma, Honey, Jaggery",
+                HowToUse = "12-24 ml with equal water twice daily after food.",
+                Precautions = "Store bottle tightly closed in a cool place."
+            },
+
+            // 6. Stress, Sleep & Brain -> Sleep Support
+            new()
+            {
+                Title = "Nidra-Shanti Deep Sleep Herbal Infusion",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Stress, Sleep & Brain",
+                SubcategoryName = "Sleep Support",
+                Description = "Botanical bedtime blend of Tagara (Indian Valerian), Jatamansi, Chamomile, and Nutmeg. Promotes deep REM cycles without next-day drowsiness.",
+                Price = 340m, Mrp = 425m, Stock = 50, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-STR-005",
+                Tags = "sleep tea, tagara, jatamansi, insomnia, relaxation",
+                TraditionallyUsedFor = "Restful Sleep Induction, Calming Overactive Mind, Vata Pacification",
+                Ingredients = "Valeriana wallichii (Tagara), Nardostachys jatamansi, Myristica fragrans (Jaiphal), Matricaria chamomilla",
+                HowToUse = "Drink 1 cup 45 minutes before intended sleep time.",
+                Precautions = "Do not drive or operate machinery after consumption."
+            },
+            new()
+            {
+                Title = "Sarpagandha & Jatamansi Calm Tablets",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Stress, Sleep & Brain",
+                SubcategoryName = "Sleep Support",
+                Description = "Potent classical tablets formulated with Rauwolfia serpentina and Jatamansi for balancing heightened Vata in the nervous system.",
+                Price = 280m, Mrp = 350m, Stock = 0, Rating = 4.7, // Realistic out of stock item
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "DN-STR-006",
+                Tags = "sarpagandha, jatamansi, out of stock, blood pressure, calming",
+                TraditionallyUsedFor = "Nervous Restlessness, Healthy Blood Pressure, Sleep Ease",
+                Ingredients = "Rauwolfia serpentina, Nardostachys jatamansi, Khurasani ajwain",
+                HowToUse = "1 tablet under medical supervision at night.",
+                Precautions = "Prescription recommended. Avoid in low blood pressure."
+            },
+
+            // 7. Diabetes & Metabolism Support -> Herbal Juices
+            new()
+            {
+                Title = "Karela & Jamun Pure Botanical Juice",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Diabetes & Metabolism Support",
+                SubcategoryName = "Herbal Juices",
+                Description = "Cold-extracted juice from wild bitter gourd (Karela) and organic Java plum (Jamun) seeds. Traditionally used for regulating glucose metabolism.",
+                Price = 260m, Mrp = 320m, Stock = 70, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-DIA-001",
+                Tags = "karela jamun juice, diabetes, blood sugar, metabolism",
+                TraditionallyUsedFor = "Blood Glucose Balance, Pancreatic Tone, Metabolic Agni",
+                Ingredients = "Momordica charantia (Karela) fruit 50%, Syzygium cumini (Jamun) seeds 50%",
+                HowToUse = "30ml mixed with a glass of water first thing in the morning on an empty stomach.",
+                Precautions = "Monitor blood sugar regularly if taking alongside conventional medication.",
+                Variants = new() { ("1 Litre Bottle", "1L", 260m, 320m, 45), ("2 Litre Twin Pack", "2x1L", 480m, 620m, 25) }
+            },
+            new()
+            {
+                Title = "Amla & Aloe Vera Detox Wellness Juice",
+                Brand = "VaidyaRoots",
+                CategoryName = "Diabetes & Metabolism Support",
+                SubcategoryName = "Herbal Juices",
+                Description = "Fibrous raw Aloe Vera gel combined with wild mountain Amla. Cleanses metabolic toxins (Ama) and balances liver enzymatic function.",
+                Price = 290m, Mrp = 350m, Stock = 45, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "VR-DIA-002",
+                Tags = "aloe amla juice, detox, liver, weight management, digestion",
+                TraditionallyUsedFor = "Liver Detoxification, Acid Neutralization, Metabolism Kindle",
+                Ingredients = "Organic Aloe barbadensis inner leaf gel 60%, Wild Emblica officinalis juice 40%",
+                HowToUse = "25ml diluted with warm water twice daily before meals.",
+                Precautions = "Shake well before use; refrigerate after opening."
+            },
+
+            // 7. Diabetes & Metabolism Support -> Tablets
+            new()
+            {
+                Title = "Madhumeh-Nashini Herbal Tablets",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Diabetes & Metabolism Support",
+                SubcategoryName = "Tablets",
+                Description = "Proprietary formulation of Gudmar (sugar destroyer), Vijaysar bark, Jamun, and Methi seeds to support healthy insulin sensitivity.",
+                Price = 380m, Mrp = 475m, Stock = 60, Rating = 4.8,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "TGA-DIA-003",
+                Tags = "gudmar, vijaysar, blood sugar, diabetic tablets, metabolism",
+                TraditionallyUsedFor = "Sugar Craving Curb, Pancreatic Health, Glucose Absorption",
+                Ingredients = "Gymnema sylvestre (Gudmar), Pterocarpus marsupium (Vijaysar), Syzygium cumini, Trigonella foenum-graecum",
+                HowToUse = "1-2 tablets twice daily 30 minutes before meals with water.",
+                Precautions = "Check fasting and post-meal glucose frequently."
+            },
+            new()
+            {
+                Title = "Chandraprabha Vati Urinary & Metabolic Complex",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Diabetes & Metabolism Support",
+                SubcategoryName = "Tablets",
+                Description = "Celebrated classical medicine described in Sharangadhara Samhita. Clears urinary tract, balances glucose loss in urine, and rejuvenates kidney Agni.",
+                Price = 250m, Mrp = 310m, Stock = 55, Rating = 4.7,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "AS-DIA-004",
+                Tags = "chandraprabha vati, urinary, kidney, diabetes, shilajit",
+                TraditionallyUsedFor = "Urinary Weakness, Glucose Excretion Balance, General Strength",
+                Ingredients = "Shuddha Shilajit, Guggulu, Karpoora, Vacha, Musta, Triphala, Trikatu, Chavya, Vidanga",
+                HowToUse = "2 tablets twice daily with water or milk.",
+                Precautions = "Contains iron bhasma; do not exceed dosage."
+            },
+
+            // 7. Diabetes & Metabolism Support -> Teas
+            new()
+            {
+                Title = "Cinnamon & Vijaysar Herbal Glucose Tea",
+                Brand = "Himalayan Vana",
+                CategoryName = "Diabetes & Metabolism Support",
+                SubcategoryName = "Teas",
+                Description = "A warming infusion of authentic Ceylon Cinnamon bark, heartwood of Vijaysar, and Jamun seed nibs for balanced glycemic control.",
+                Price = 310m, Mrp = 390m, Stock = 40, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "HV-DIA-005",
+                Tags = "cinnamon tea, vijaysar, glucose tea, metabolism",
+                TraditionallyUsedFor = "Post-Meal Glucose Moderation, Circulation Support",
+                Ingredients = "Cinnamomum verum, Pterocarpus marsupium, Syzygium cumini, Gymnema leaf",
+                HowToUse = "Steep 1 tea bag in freshly boiled water for 6 minutes after lunch and dinner.",
+                Precautions = "Safe for daily consumption."
+            },
+            new()
+            {
+                Title = "Triphala Agni Green Tea",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Diabetes & Metabolism Support",
+                SubcategoryName = "Teas",
+                Description = "Whole organic green tea leaves blended with Haritaki, Bibhitaki, and Amalaki for antioxidant defense and fat metabolism.",
+                Price = 275m, Mrp = 340m, Stock = 65, Rating = 4.6,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-DIA-006",
+                Tags = "green tea, triphala, weight balance, antioxidants",
+                TraditionallyUsedFor = "Lipid Metabolism, Cell Protection, Sluggish Digestion",
+                Ingredients = "Camellia sinensis, Terminalia chebula, Terminalia bellirica, Emblica officinalis",
+                HowToUse = "Steep in hot (not boiling) water for 3-4 minutes.",
+                Precautions = "Contains mild natural caffeine."
+            },
+
+            // 8. Women's Wellness -> Cycle Support
+            new()
+            {
+                Title = "Ashokarishta Classical Uterine Tonic",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Women's Wellness",
+                SubcategoryName = "Cycle Support",
+                Description = "Classical formulation prepared with Saraca asoca bark, Dhataki, and restorative herbs. Regulates monthly cycle flow and relieves cramp discomfort.",
+                Price = 275m, Mrp = 330m, Stock = 60, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-WOM-001",
+                Tags = "ashokarishta, cycle support, cramps, uterine tonic, pms",
+                TraditionallyUsedFor = "Menstrual Comfort, Cramp Relief, Uterine Muscular Tone",
+                Ingredients = "Ashoka bark, Dhataki flowers, Musta, Sunthi, Daruharidra, Utpala, Triphala, Jaggery",
+                HowToUse = "15-20ml with equal water twice daily after food.",
+                Precautions = "Do not take during active heavy bleeding days without consulting a doctor."
+            },
+            new()
+            {
+                Title = "Pushyanug Churna Classical Women's Compound",
+                Brand = "VaidyaRoots",
+                CategoryName = "Women's Wellness",
+                SubcategoryName = "Cycle Support",
+                Description = "Revered formulation described in Charaka Samhita. Combines 26 herbs to manage excess secretions, backache, and cycle regularity.",
+                Price = 230m, Mrp = 280m, Stock = 40, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "VR-WOM-002",
+                Tags = "pushyanug churna, leucorrhea, cycle balance, backache",
+                TraditionallyUsedFor = "Vaginal Health, Excessive Flow, Pelvic Discomfort",
+                Ingredients = "Patha, Jambu, Amra, Pashanabheda, Rasanjana, Lodhra, Gairika, Katphala",
+                HowToUse = "1 teaspoon with rice washed water (Tandulodaka) or honey twice daily.",
+                Precautions = "Store in an airtight container."
+            },
+
+            // 8. Women's Wellness -> Pregnancy & Postnatal Care
+            new()
+            {
+                Title = "Jeerakarishta Postnatal Digestive Tonic",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Women's Wellness",
+                SubcategoryName = "Pregnancy & Postnatal Care",
+                Description = "Fermented cumin-based elixir traditionally administered postpartum to rekindle Agni, cleanse the uterus, and support lactation.",
+                Price = 295m, Mrp = 360m, Stock = 35, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "AS-WOM-003",
+                Tags = "jeerakarishta, postpartum, lactation, agni, new mother",
+                TraditionallyUsedFor = "Postnatal Recovery, Breastmilk Supply, Digestive Rekindle",
+                Ingredients = "Jeeraka (Cumin), Dhataki, Sunthi, Jatiphala, Lavanga, Ela, Tejpatra, Jaggery",
+                HowToUse = "15ml twice daily after meals with water.",
+                Precautions = "Use under the guidance of your Ayurvedic physician postpartum."
+            },
+            new()
+            {
+                Title = "Dhanwantharam Thailam Postnatal Massage Oil",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Women's Wellness",
+                SubcategoryName = "Pregnancy & Postnatal Care",
+                Description = "Classical Kerala formulation with Bala, Dashamula, and cow milk. Deeply strengthens abdominal wall, soothes back muscles, and restores pelvic strength.",
+                Price = 420m, Mrp = 510m, Stock = 45, Rating = 4.9,
+                ImageUrl = "/images/products/mahanarayan.svg", Sku = "TGA-WOM-004",
+                Tags = "dhanwantharam thailam, postnatal massage, bala, pelvic strength",
+                TraditionallyUsedFor = "Abdominal Muscle Tone, Pelvic Rejuvenation, Fatigue Relief",
+                Ingredients = "Sida cordifolia (Bala), Dashamula, Cow milk, Sesame oil, 40+ rejuvenating herbs",
+                HowToUse = "Warm the oil and massage gently over body and abdomen, followed by a warm bath.",
+                Precautions = "External application only."
+            },
+
+            // 8. Women's Wellness -> Hormonal Balance
+            new()
+            {
+                Title = "Shatavari Pure Root Extract Capsules (500mg)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Women's Wellness",
+                SubcategoryName = "Hormonal Balance",
+                Description = "Standardized Asparagus racemosus root extract. Celebrated as the ultimate female adaptogen for hormonal harmony, reproductive vitality, and vitality.",
+                Price = 390m, Mrp = 480m, Stock = 70, Rating = 4.9,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "TGA-WOM-005",
+                Tags = "shatavari, hormonal balance, pcos, fertility, women vitality",
+                TraditionallyUsedFor = "Hormonal Harmony, Cooling Hot Flashes, Natural Fertility Support",
+                Ingredients = "Standardized Shatavari Root Extract (20% Saponins) 500mg",
+                HowToUse = "1 capsule twice daily with warm milk or water.",
+                Precautions = "Safe for long-term daily use.",
+                Variants = new() { ("60 Veg Capsules", "60 Caps", 390m, 480m, 45), ("120 Veg Capsules Value", "120 Caps", 720m, 899m, 25) }
+            },
+            new()
+            {
+                Title = "Kanchanar Guggulu Lymph & Thyroid Care",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Women's Wellness",
+                SubcategoryName = "Hormonal Balance",
+                Description = "Classical formulation for clearing Kapha-Medas blockages. Supports healthy thyroid balance, lymphatic drainage, and ovarian health.",
+                Price = 290m, Mrp = 360m, Stock = 50, Rating = 4.7,
+                ImageUrl = "/images/products/ashwagandha.svg", Sku = "DN-WOM-006",
+                Tags = "kanchanar guggulu, thyroid, pcos, lymphatic, kapha",
+                TraditionallyUsedFor = "Thyroid Function Support, PCOD/PCOS Management, Cyst Comfort",
+                Ingredients = "Kanchanar bark, Triphala, Trikatu, Varuna, Cardamom, Cinnamon, Shuddha Guggulu",
+                HowToUse = "2 tablets twice daily with warm water after meals.",
+                Precautions = "Not recommended during pregnancy."
+            },
+
+            // 9. Herbs & Raw Powders -> Single Herbs
+            new()
+            {
+                Title = "Organic Moringa Oleifera Leaf Powder",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Herbs & Raw Powders",
+                SubcategoryName = "Single Herbs",
+                Description = "Shade-dried drumstick leaves rich in bioavailable plant iron, calcium, and vitamins. Nature's complete Ayurvedic superfood.",
+                Price = 210m, Mrp = 260m, Stock = 65, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-HRB-001",
+                Tags = "moringa powder, superfood, iron, vitamins, organic",
+                TraditionallyUsedFor = "Energy Boost, Natural Iron Supplementation, Lactation Support",
+                Ingredients = "100% Certified Organic Moringa oleifera leaf powder",
+                HowToUse = "Mix 1 teaspoon into warm water, smoothies, or lentils daily.",
+                Precautions = "Natural earthy taste."
+            },
+            new()
+            {
+                Title = "Pure Certified Organic Gokshura Powder",
+                Brand = "VaidyaRoots",
+                CategoryName = "Herbs & Raw Powders",
+                SubcategoryName = "Single Herbs",
+                Description = "Finely powdered Tribulus terrestris fruit. Nourishes kidney-bladder channels and supports physical stamina and reproductive health.",
+                Price = 230m, Mrp = 290m, Stock = 45, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "VR-HRB-002",
+                Tags = "gokshura, tribulus, kidney, stamina, urinary",
+                TraditionallyUsedFor = "Kidney Flush, Physical Endurance, Male & Female Reproductive Tone",
+                Ingredients = "100% Pure Tribulus terrestris fruit powder",
+                HowToUse = "1/2 to 1 teaspoon twice daily with warm milk or honey.",
+                Precautions = "Store in a moisture-free container."
+            },
+
+            // 9. Herbs & Raw Powders -> Powders
+            new()
+            {
+                Title = "Pure Organic Amalaki (Amla) Powder",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Herbs & Raw Powders",
+                SubcategoryName = "Powders",
+                Description = "Raw whole wild Amla fruit powder. Packed with natural heat-stable Vitamin C and potent polyphenols for Pitta pacification.",
+                Price = 180m, Mrp = 225m, Stock = 90, Rating = 4.9,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-HRB-003",
+                Tags = "amla powder, vitamin c, immunity, hair, pitta",
+                TraditionallyUsedFor = "Antioxidant Defense, Eye Health, Scalp Nourishment",
+                Ingredients = "100% Raw Wild Emblica officinalis powder",
+                HowToUse = "1 teaspoon in morning with lukewarm water or raw honey.",
+                Precautions = "Naturally tart and astringent."
+            },
+            new()
+            {
+                Title = "Shatavari Root Fine Churna",
+                Brand = "Himalayan Vana",
+                CategoryName = "Herbs & Raw Powders",
+                SubcategoryName = "Powders",
+                Description = "Pure mountain Shatavari root ground to 100-mesh fineness. Rich in natural cooling mucilage for Pitta soothing.",
+                Price = 240m, Mrp = 300m, Stock = 50, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "HV-HRB-004",
+                Tags = "shatavari powder, cooling, pitta soothing, gut lining",
+                TraditionallyUsedFor = "Gastric Mucosa Protection, Natural Hydration, Female Vitality",
+                Ingredients = "100% Organic Asparagus racemosus root powder",
+                HowToUse = "1 teaspoon boiled in a cup of milk with cardamom.",
+                Precautions = "Store away from humidity."
+            },
+
+            // 9. Herbs & Raw Powders -> Seeds & Spices
+            new()
+            {
+                Title = "Wild Forest Black Jeera (Kala Jeera)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Herbs & Raw Powders",
+                SubcategoryName = "Seeds & Spices",
+                Description = "Rare wild Bunium persicum seeds harvested from Himalayan slopes. Superior aroma and profound Agni-stimulating properties.",
+                Price = 320m, Mrp = 400m, Stock = 35, Rating = 4.9,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-HRB-005",
+                Tags = "kala jeera, black cumin, spices, agni, wild spices",
+                TraditionallyUsedFor = "Digestive Rekindle, Respiratory Ease, Culinary Medicine",
+                Ingredients = "Wild harvested Bunium persicum seeds",
+                HowToUse = "Lightly roast and add to warm stews, or chew 1/2 tsp after meals.",
+                Precautions = "A little goes a long way due to concentrated oils."
+            },
+            new()
+            {
+                Title = "Salem First-Grade Turmeric Finger (Haldi)",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Herbs & Raw Powders",
+                SubcategoryName = "Seeds & Spices",
+                Description = "Whole sun-dried Salem turmeric fingers with lab-tested 5.2% natural Curcumin content. Free from polishing agents.",
+                Price = 190m, Mrp = 240m, Stock = 80, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "DN-HRB-006",
+                Tags = "salem haldi, whole turmeric, curcumin, raw spice",
+                TraditionallyUsedFor = "Immunity Cooking, Anti-Inflammatory Golden Milk, Traditional Remedies",
+                Ingredients = "100% Unpolished Curcuma longa rhizomes",
+                HowToUse = "Grate fresh into milk or grind for authentic Ayurvedic cooking.",
+                Precautions = "Natural yellow dye."
+            },
+
+            // 10. Panchakarma & Therapy Kits -> Oils
+            new()
+            {
+                Title = "Anu Thailam Classical Nasya Oil",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Panchakarma & Therapy Kits",
+                SubcategoryName = "Oils",
+                Description = "Classical Nasya formulation described in Charaka Samhita. 28 herbs processed 10 times in sesame oil to clear sinus passages and enhance mental clarity.",
+                Price = 195m, Mrp = 250m, Stock = 75, Rating = 4.9,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "TGA-PAN-001",
+                Tags = "anu thailam, nasya, sinus, migraine, prana, panchakarma",
+                TraditionallyUsedFor = "Sinus Congestion Relief, Allergy Defense, Neck & Shoulder Ease",
+                Ingredients = "Jivanti, Jala, Devadaru, Jalada, Tvak, Sevya, Gopi, Hima, Sesame oil, Goat milk",
+                HowToUse = "Instill 2 drops into each nostril in the morning after gentle facial fomentation.",
+                Precautions = "Do not administer immediately after meals, bathing, or during acute fever.",
+                Reviews = new() { (5, "My chronic morning sinus headaches stopped after 4 days of Nasya. Indispensable.", 26, 11) }
+            },
+            new()
+            {
+                Title = "Karpurasava & Murivenna First-Aid Oil",
+                Brand = "VaidyaRoots",
+                CategoryName = "Panchakarma & Therapy Kits",
+                SubcategoryName = "Oils",
+                Description = "The revered Kerala herbal oil for sprains, muscle injuries, minor cuts, and bruises. Prepared with Betel leaf, Moringa, and Aloe.",
+                Price = 280m, Mrp = 340m, Stock = 50, Rating = 4.8,
+                ImageUrl = "/images/products/mahanarayan.svg", Sku = "VR-PAN-002",
+                Tags = "murivenna, kerala oil, sprains, bruises, wound healing",
+                TraditionallyUsedFor = "Rapid Soft Tissue Recovery, Sprain Relief, Minor Abrasions",
+                Ingredients = "Tambula (Betel leaf), Shigru, Kumari, Paribhadra, Coconut oil base",
+                HowToUse = "Apply gently over sprained joints or minor cuts.",
+                Precautions = "For external application only."
+            },
+
+            // 10. Panchakarma & Therapy Kits -> Basti/Nasya/Abhyanga items
+            new()
+            {
+                Title = "Copper Neti Pot for Jala Neti Cleansing",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Panchakarma & Therapy Kits",
+                SubcategoryName = "Basti/Nasya/Abhyanga items",
+                Description = "Handcrafted pure copper Neti pot with ergonomic spout for traditional nasal irrigation (Jala Neti). Naturally antimicrobial.",
+                Price = 580m, Mrp = 750m, Stock = 40, Rating = 4.9,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "TGA-PAN-003",
+                Tags = "copper neti pot, jala neti, sinus wash, panchakarma accessory",
+                TraditionallyUsedFor = "Nasal Passage Irrigation, Upper Respiratory Cleansing, Prana Clarity",
+                Ingredients = "100% Pure Hand-Spun Copper",
+                HowToUse = "Fill with lukewarm sterile saline water. Lean over sink, tilt head, and pour gently through one nostril.",
+                Precautions = "Always use distilled or boiled sterile water; never tap water."
+            },
+            new()
+            {
+                Title = "Authentic Kansa Vataki Foot Massage Bowl",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Panchakarma & Therapy Kits",
+                SubcategoryName = "Basti/Nasya/Abhyanga items",
+                Description = "Sacred 3-metal bronze alloy (Kansa) bowl. Massaging soles with ghee draws out excess body heat and pacifies fiery Pitta dosha.",
+                Price = 720m, Mrp = 950m, Stock = 30, Rating = 4.9,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "AS-PAN-004",
+                Tags = "kansa bowl, foot massage, pada abhyanga, pitta detox",
+                TraditionallyUsedFor = "Excess Pitta Detox, Deep Sleep Induction, Foot Fatigue Relief",
+                Ingredients = "Vedic Kansa Alloy (80% Copper, 20% Tin)",
+                HowToUse = "Apply ghee or castor oil to soles of feet. Rub the bronze bowl in circular motions for 10-15 minutes.",
+                Precautions = "Skin may darken temporarily during massage as toxins are drawn out; wipe with a warm cloth."
+            },
+
+            // 10. Panchakarma & Therapy Kits -> Accessories
+            new()
+            {
+                Title = "Pure Copper Tongue Cleaner (Scraper)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Panchakarma & Therapy Kits",
+                SubcategoryName = "Accessories",
+                Description = "Wide-contoured, thick-gauge 100% copper scraper for morning Dinacharya. Removes overnight toxic coating (Ama) from the tongue.",
+                Price = 120m, Mrp = 150m, Stock = 150, Rating = 4.8,
+                ImageUrl = "/images/products/triphala.svg", Sku = "TGA-PAN-005",
+                Tags = "copper tongue cleaner, dinacharya, ama detox, oral hygiene",
+                TraditionallyUsedFor = "Morning Ama Removal, Fresh Breath, Digestive Fire Awakening",
+                Ingredients = "Pure Solid Copper",
+                HowToUse = "Hold both ends, place on back of tongue, and gently scrape forward 4-5 times.",
+                Precautions = "Rinse with warm water after use; clean with lemon and salt if tarnished."
+            },
+            new()
+            {
+                Title = "Neem Wood Wide-Tooth De-Tangling Comb",
+                Brand = "Himalayan Vana",
+                CategoryName = "Panchakarma & Therapy Kits",
+                SubcategoryName = "Accessories",
+                Description = "Hand-carved from seasoned medicinal Indian Neem wood. Naturally antistatic, stimulates scalp acupressure points, and inhibits dandruff.",
+                Price = 160m, Mrp = 200m, Stock = 90, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "HV-PAN-006",
+                Tags = "neem comb, wooden comb, scalp massage, antistatic",
+                TraditionallyUsedFor = "Scalp Blood Circulation, Dandruff Prevention, Zero Static",
+                Ingredients = "100% Seasoned Azadirachta indica (Neem) wood",
+                HowToUse = "Gently comb hair from scalp to ends twice daily.",
+                Precautions = "Do not soak in water; wipe clean with a dry cloth."
+            },
+
+            // 11. Yoga & Wellness -> Mats & Props
+            new()
+            {
+                Title = "Organic Hand-Woven Cotton Yoga Mat with Anti-Slip Base",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Yoga & Wellness",
+                SubcategoryName = "Mats & Props",
+                Description = "Loomed by traditional artisans from certified organic cotton, dyed with Ayurvedic herbs (Turmeric & Neem), backed with natural tree rubber.",
+                Price = 1850m, Mrp = 2400m, Stock = 25, Rating = 4.9,
+                ImageUrl = "/images/yoga/surya-namaskar.svg", Sku = "TGA-YOG-001",
+                Tags = "cotton yoga mat, organic mat, natural rubber, herbal dyed",
+                TraditionallyUsedFor = "Grounded Asana Practice, Zero Plastic Living, Sweat Absorption",
+                Ingredients = "Organic Indian Cotton, Herbal dyes, Natural Tree Rubber bottom",
+                HowToUse = "Unroll on flat surface for yoga, pranayama, and meditation practice.",
+                Precautions = "Spot clean with gentle wet sponge; dry in shade.",
+                Variants = new() { ("Forest Green 4mm", "Green 4mm", 1850m, 2400m, 15), ("Earthy Turmeric 4mm", "Gold 4mm", 1850m, 2400m, 10) }
+            },
+            new()
+            {
+                Title = "Buckwheat Hull Organic Meditation Cushion (Zafu)",
+                Brand = "Himalayan Vana",
+                CategoryName = "Yoga & Wellness",
+                SubcategoryName = "Mats & Props",
+                Description = "Ergonomic meditation cushion filled with organic buckwheat hulls. Supports proper pelvic tilt and aligned spine during meditation.",
+                Price = 1290m, Mrp = 1650m, Stock = 20, Rating = 4.8,
+                ImageUrl = "/images/yoga/vrikshasana.svg", Sku = "HV-YOG-002",
+                Tags = "zafu, meditation cushion, buckwheat, yoga prop",
+                TraditionallyUsedFor = "Spinal Alignment, Hip Ease, Prolonged Dhyana Practice",
+                Ingredients = "Heavy cotton canvas outer cover, Organic Buckwheat hull filling",
+                HowToUse = "Sit cross-legged with pelvis raised on cushion.",
+                Precautions = "Cover is machine washable; do not wash buckwheat filling."
+            },
+
+            // 11. Yoga & Wellness -> Books
+            new()
+            {
+                Title = "The Living Ayurveda Handbook: Daily Dinacharya & Food Wisdom",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Yoga & Wellness",
+                SubcategoryName = "Books",
+                Description = "A masterclass hardcover guide translating classical Sanskrit texts into practical daily routines, dosha balancing meals, and home herbal remedies.",
+                Price = 499m, Mrp = 699m, Stock = 45, Rating = 4.9,
+                ImageUrl = "/images/yoga/surya-namaskar.svg", Sku = "TGA-YOG-003",
+                Tags = "ayurveda book, dinacharya, recipes, lifestyle guide",
+                TraditionallyUsedFor = "Self-Healing Knowledge, Dosha Identification, Dietary Wisdom",
+                Ingredients = "FSC Certified Recycled Paper, Hardcover Binding, 280 Full-Color Pages",
+                HowToUse = "Read sequentially or reference seasonal lifestyle chapters.",
+                Precautions = "Comprehensive reference for the modern home."
+            },
+            new()
+            {
+                Title = "Ashtanga Hridaya: Classical Pocket Guide for Modern Life",
+                Brand = "AyurVeda Sanjeevani",
+                CategoryName = "Yoga & Wellness",
+                SubcategoryName = "Books",
+                Description = "Sanskrit slokas with English commentary detailing Vagbhata's eternal core principles of health, digestion, and longevity.",
+                Price = 350m, Mrp = 450m, Stock = 30, Rating = 4.7,
+                ImageUrl = "/images/yoga/vrikshasana.svg", Sku = "AS-YOG-004",
+                Tags = "ashtanga hridaya, vagbhata, classical text, philosophy",
+                TraditionallyUsedFor = "Classical Study, Vaidya Fundamentals, Holistic Philosophy",
+                Ingredients = "Compact paperback edition, 210 pages",
+                HowToUse = "Ideal study companion for wellness enthusiasts.",
+                Precautions = "Educational reference."
+            },
+
+            // 11. Yoga & Wellness -> Aromatherapy
+            new()
+            {
+                Title = "Pure Vetiver (Khus) Essential Oil",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Yoga & Wellness",
+                SubcategoryName = "Aromatherapy",
+                Description = "Hydro-distilled roots of Chrysopogon zizanioides. The quintessential 'Oil of Tranquility' that pacifies agitated Pitta and grounds restless Vata.",
+                Price = 640m, Mrp = 800m, Stock = 35, Rating = 4.8,
+                ImageUrl = "/images/products/hair-oil.svg", Sku = "TGA-YOG-005",
+                Tags = "khus oil, vetiver, essential oil, aromatherapy, pitta cooling",
+                TraditionallyUsedFor = "Deep Grounding, Calming Anger, Night Diffuser Ritual",
+                Ingredients = "100% Pure Steam Distilled Vetiveria zizanioides root oil",
+                HowToUse = "Add 3-4 drops to an ultrasonic diffuser or mix 2 drops with jojoba oil for pulse points.",
+                Precautions = "Never apply undiluted directly to bare skin."
+            },
+            new()
+            {
+                Title = "Temple Camphor & Loban Botanical Incense Cones",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Yoga & Wellness",
+                SubcategoryName = "Aromatherapy",
+                Description = "Charcoal-free dhoop cones crafted with temple flower offerings, pure Bhimseni camphor, and natural Frankincense (Loban) resin.",
+                Price = 180m, Mrp = 230m, Stock = 80, Rating = 4.7,
+                ImageUrl = "/images/yoga/surya-namaskar.svg", Sku = "DN-YOG-006",
+                Tags = "loban, dhoop cones, incense, charcoal free, purification",
+                TraditionallyUsedFor = "Space Cleansing, Meditation Atmosphere, Mosquito Deterrent",
+                Ingredients = "Boswellia serrata resin, Pure Camphor, Sacred wood powders, Essential oils",
+                HowToUse = "Light the tip of the cone, gently blow out flame, and place on heatproof ceramic dish.",
+                Precautions = "Keep burning cones away from flammable curtains."
+            },
+
+            // 12. Honey, Ghee & Natural Foods -> Honey
+            new()
+            {
+                Title = "Wild Forest Multi-Flora Raw Honey",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Honey, Ghee & Natural Foods",
+                SubcategoryName = "Honey",
+                Description = "Ethically collected raw honey from untouched Himalayan forests. Unheated, unpasteurized, and rich in natural pollen, enzymes, and Yogavahi power.",
+                Price = 380m, Mrp = 460m, Stock = 65, Rating = 4.9,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "TGA-FOD-001",
+                Tags = "raw honey, forest honey, wild honey, yogavahi, unheated",
+                TraditionallyUsedFor = "Anupana (Herbal Vehicle), Throat Comfort, Kapha Scraping",
+                Ingredients = "100% Raw Multi-Flora Wild Forest Honey",
+                HowToUse = "1 teaspoon daily with room temperature water or herbal churnas.",
+                Precautions = "Never cook or add honey to boiling hot liquids above 40°C as per Ayurvedic Charaka injunctions.",
+                Variants = new() { ("500g Glass Jar", "500g", 380m, 460m, 40), ("1kg Glass Jar", "1kg", 690m, 850m, 25) },
+                Reviews = new() { (5, "You can smell the wild flora. True raw honey that crystallizes naturally.", 21, 6) }
+            },
+            new()
+            {
+                Title = "Kashmir Acacia Mono-Floral Raw Honey",
+                Brand = "Himalayan Vana",
+                CategoryName = "Honey, Ghee & Natural Foods",
+                SubcategoryName = "Honey",
+                Description = "Water-clear, light floral raw honey collected exclusively during spring Robinia pseudoacacia blooms in Kashmir valleys.",
+                Price = 520m, Mrp = 650m, Stock = 30, Rating = 4.8,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "HV-FOD-002",
+                Tags = "acacia honey, mono floral, kashmir honey, delicate",
+                TraditionallyUsedFor = "Gentle Sweetener, Delicate Digestion, Children's Tonic",
+                Ingredients = "100% Pure Acacia raw honey",
+                HowToUse = "Add to lukewarm tisanes or drizzle over fruit.",
+                Precautions = "Do not give honey to infants under 12 months."
+            },
+
+            // 12. Honey, Ghee & Natural Foods -> Cow Ghee
+            new()
+            {
+                Title = "Vedic A2 Gir Cow Bilona Ghee",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Honey, Ghee & Natural Foods",
+                SubcategoryName = "Cow Ghee",
+                Description = "Prepared strictly according to the traditional Vedic 5-step Bilona method: Grass-fed Gir cow milk cultured into whole curd, then hand-churned in wooden pots and slow-simmered.",
+                Price = 1150m, Mrp = 1450m, Stock = 45, Rating = 5.0,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "TGA-FOD-003",
+                Tags = "a2 ghee, gir cow, bilona ghee, ojas, grass fed",
+                TraditionallyUsedFor = "Ojas Vitality, Agni Kindle, Deep Brain Tissue Nourishment",
+                Ingredients = "100% Pure Clarified Butter from Vedic Gir Cow Cultured Curd",
+                HowToUse = "Add 1-2 teaspoons over warm rotis, steamed rice, or consume 1 tsp with warm water upon waking.",
+                Precautions = "Gold standard Rasayana; store at room temperature.",
+                Variants = new() { ("500ml Glass Jar", "500ml", 1150m, 1450m, 30), ("1 Litre Glass Jar", "1L", 2150m, 2750m, 15) },
+                Reviews = new() { (5, "Grainy golden texture with irresistible nutty aroma. The best ghee in India.", 42, 2) },
+                Faqs = new() { ("Is this made from cultured curd or cream?", "Strictly made from whole cultured A2 curd, never directly from cream.", "Ananya M.") }
+            },
+            new()
+            {
+                Title = "Brahmi-Infused Medhya Ghritha",
+                Brand = "VaidyaRoots",
+                CategoryName = "Honey, Ghee & Natural Foods",
+                SubcategoryName = "Cow Ghee",
+                Description = "Pure A2 cow ghee slow-cooked with fresh Brahmi juice and Shankhpushpi decoction. Crosses the blood-brain barrier to nourish mental faculties.",
+                Price = 780m, Mrp = 950m, Stock = 25, Rating = 4.9,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "VR-FOD-004",
+                Tags = "brahmi ghee, medhya ghritha, cognitive food, kids memory",
+                TraditionallyUsedFor = "Mental Stamina, Memory Retention, Calming Vata Agitation",
+                Ingredients = "A2 Cow Ghee, Bacopa monnieri fresh herb, Convolvulus pluricaulis, Licorice",
+                HowToUse = "1 teaspoon melted into warm milk on empty stomach in morning.",
+                Precautions = "Suitable for students and working professionals."
+            },
+
+            // 12. Honey, Ghee & Natural Foods -> Herbal Sweeteners
+            new()
+            {
+                Title = "Organic Kolhapur Block Jaggery (Gur)",
+                Brand = "Great Ayurveda Labs",
+                CategoryName = "Honey, Ghee & Natural Foods",
+                SubcategoryName = "Herbal Sweeteners",
+                Description = "Traditional unrefined sugarcane jaggery prepared without chemical bleaches or synthetic sulfur. Rich in natural bioavailable minerals and plant iron.",
+                Price = 140m, Mrp = 175m, Stock = 80, Rating = 4.8,
+                ImageUrl = "/images/products/chyawanprash.svg", Sku = "TGA-FOD-005",
+                Tags = "jaggery, organic gur, iron rich, unrefined sugar, mineral rich",
+                TraditionallyUsedFor = "Digestive Tonic After Meals, Natural Iron, Healthy Sweetener",
+                Ingredients = "100% Certified Organic Sugarcane Juice",
+                HowToUse = "Consume a small piece after meals to aid digestion, or use in traditional herbal preparations.",
+                Precautions = "Keep in an airtight jar to prevent moisture absorption."
+            },
+            new()
+            {
+                Title = "Mishri (Unrefined Rock Sugar Crystals)",
+                Brand = "Dhanwantari Naturals",
+                CategoryName = "Honey, Ghee & Natural Foods",
+                SubcategoryName = "Herbal Sweeteners",
+                Description = "Authentic Dhaga Mishri (threaded rock sugar) formed by natural slow evaporation. Considered inherently cooling and tridoshic in classical pharmacopoeia.",
+                Price = 160m, Mrp = 200m, Stock = 60, Rating = 4.7,
+                ImageUrl = "/images/products/triphala.svg", Sku = "DN-FOD-006",
+                Tags = "mishri, dhaga mishri, rock sugar, cooling, throat soothe",
+                TraditionallyUsedFor = "Throat Comfort with Saunf, Pitta Soothing, Energy Drink",
+                Ingredients = "100% Natural Crystallized Cane Sugar (Threaded)",
+                HowToUse = "Powder and combine with fennel seeds (Saunf) as a post-meal palate cleanser.",
+                Precautions = "Pure crystallized sugar; consume in moderation."
+            }
+        };
     }
 }

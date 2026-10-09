@@ -1,0 +1,128 @@
+@model Ayurveda.Application.ViewModels.CompareViewModel
+@{
+    ViewData["Title"] = "Compare Ayurvedic Formulations";
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-success text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" class="text-success text-decoration-none">Store</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Compare Formulations</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1" style="font-family: var(--tga-font-heading);">Side-by-Side Product Comparison</h1>
+            <p class="text-muted small mb-0">Evaluate ingredients, classical uses, and customer ratings</p>
+        </div>
+        <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-success btn-sm rounded-pill">
+            <i class="bi bi-arrow-left me-1"></i> Back to Store
+        </a>
+    </div>
+
+    @if (Model.Products != null && Model.Products.Any())
+    {
+        <div class="table-responsive bg-white rounded-4 shadow-sm border p-3">
+            <table class="table table-bordered align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 20%;" class="bg-light fw-bold">Features</th>
+                        @foreach (var p in Model.Products)
+                        {
+                            <th style="width: @(80 / Model.Products.Count)%;" class="text-center">
+                                <img src="@(string.IsNullOrEmpty(p.ImageUrl) ? "/images/products/chyawanprash.svg" : p.ImageUrl)" 
+                                     alt="@p.Title" class="img-fluid mb-2" style="max-height: 120px; object-fit: contain;" />
+                                <div class="fw-bold text-dark">@p.Title</div>
+                                <div class="small text-muted mb-2">@p.Brand</div>
+                                <div class="fs-5 fw-bold text-success">₹@p.Price.ToString("N0")</div>
+                                @if (p.Mrp > p.Price)
+                                {
+                                    <div class="small text-muted text-decoration-line-through mb-2">MRP ₹@p.Mrp.ToString("N0")</div>
+                                }
+                                <a asp-controller="Shop" asp-action="Details" asp-route-id="@p.Id" class="btn btn-tga-primary btn-sm rounded-pill w-100">
+                                    View Formulation
+                                </a>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="fw-bold bg-light">Category</td>
+                        @foreach (var p in Model.Products)
+                        {
+                            <td class="text-center"><span class="badge bg-light text-dark border">@p.CategoryName</span></td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="fw-bold bg-light">Customer Rating</td>
+                        @foreach (var p in Model.Products)
+                        {
+                            <td class="text-center">
+                                <span class="text-warning"><i class="bi bi-star-fill"></i></span>
+                                <span class="fw-bold text-dark">@p.AverageRating.ToString("0.0")</span>
+                            </td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="fw-bold bg-light">Traditionally Used For</td>
+                        @foreach (var p in Model.Products)
+                        {
+                            <td class="small text-secondary">@p.TraditionallyUsedFor</td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="fw-bold bg-light">Key Ingredients</td>
+                        @foreach (var p in Model.Products)
+                        {
+                            <td class="small text-secondary">@p.Ingredients</td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="fw-bold bg-light">Dosage & Administration</td>
+                        @foreach (var p in Model.Products)
+                        {
+                            <td class="small text-secondary">@p.HowToUse</td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="fw-bold bg-light">Precautions</td>
+                        @foreach (var p in Model.Products)
+                        {
+                            <td class="small text-danger">@p.Precautions</td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="fw-bold bg-light">Stock Status</td>
+                        @foreach (var p in Model.Products)
+                        {
+                            <td class="text-center">
+                                @if (p.Stock > 0)
+                                {
+                                    <span class="badge bg-success-subtle text-success">In Stock (@p.Stock)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-subtle text-danger">Out of Stock</span>
+                                }
+                            </td>
+                        }
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 bg-white rounded-4 border shadow-sm">
+            <i class="bi bi-intersect text-muted display-4 mb-3 d-block"></i>
+            <h4 class="fw-bold text-dark">No products selected for comparison</h4>
+            <p class="text-muted small">Select up to 3 formulations from the store to compare them side by side.</p>
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-primary btn-sm rounded-pill px-4">
+                Browse Store
+            </a>
+        </div>
+    }
+</div>

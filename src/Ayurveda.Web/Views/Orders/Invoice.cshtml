@@ -1,0 +1,161 @@
+@model Ayurveda.Application.ViewModels.OrderDetailViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tax Invoice - @Model.OrderNumber | The Great Ayurveda</title>
+    <link rel="stylesheet" href="/css/site.css" />
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: #fff;
+            color: #1a1a1a;
+            padding: 40px;
+            font-size: 14px;
+        }
+        .invoice-box {
+            max-width: 850px;
+            margin: auto;
+            border: 1px solid #e5e7eb;
+            padding: 30px;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            line-height: inherit;
+            text-align: left;
+            border-collapse: collapse;
+        }
+        table th {
+            background: #f9fafb;
+            padding: 10px;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 13px;
+        }
+        table td {
+            padding: 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .text-end { text-align: right; }
+        .text-center { text-align: center; }
+        .fw-bold { font-weight: 700; }
+        @@media print {
+            body { padding: 0; }
+            .invoice-box { border: none; padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+        <!-- Print Button Header -->
+        <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+            <button onclick="window.print()" style="background: #0C6258; color: white; border: none; padding: 8px 18px; border-radius: 20px; cursor: pointer; font-weight: 600;">
+                Print / Save as PDF
+            </button>
+        </div>
+
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid #0C6258; padding-bottom: 20px;">
+            <div>
+                <h2 style="margin: 0; color: #0C6258; font-family: Georgia, serif;">THE GREAT AYURVEDA</h2>
+                <div style="font-size: 12px; color: #666; margin-top: 4px;">Authentic Classical Pharmacopoeia & Tele-consultations</div>
+                <div style="font-size: 12px; color: #666;">AYUSH GMP License: AY-DL-2024-8841 | GSTIN: 07AAACT0921P1Z5</div>
+                <div style="font-size: 12px; color: #666;">Plot 14, Health Sanctuary Marg, New Delhi 110001, India</div>
+            </div>
+            <div style="text-align: right;">
+                <h3 style="margin: 0; color: #111;">TAX INVOICE</h3>
+                <div style="font-size: 13px; margin-top: 5px;"><strong>Invoice #:</strong> @Model.OrderNumber</div>
+                <div style="font-size: 13px;"><strong>Date:</strong> @Model.OrderDate.ToString("dd MMM yyyy")</div>
+                <div style="font-size: 13px;"><strong>Status:</strong> @Model.PaymentStatus (@Model.PaymentMethod)</div>
+            </div>
+        </div>
+
+        <!-- Shipping & Billing Details -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+            <div style="width: 48%;">
+                <div style="font-weight: bold; margin-bottom: 5px; color: #0C6258;">BILLED & SHIPPED TO:</div>
+                <div style="color: #333; line-height: 1.5;">@Model.ShippingAddress</div>
+            </div>
+            <div style="width: 48%; text-align: right;">
+                <div style="font-weight: bold; margin-bottom: 5px; color: #0C6258;">DISPATCH & LOGISTICS:</div>
+                <div>Courier: @(Model.CourierName ?? "BlueDart Healthcare Logistics")</div>
+                <div>Waybill / Tracking: @(Model.TrackingNumber ?? "Standard Dispatch")</div>
+                <div>Delivery Type: @Model.DeliveryType</div>
+            </div>
+        </div>
+
+        <!-- Ordered Items Table -->
+        <table style="margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th style="width: 10px;">#</th>
+                    <th>Herbal Formulation</th>
+                    <th class="text-center" style="width: 80px;">Qty</th>
+                    <th class="text-end" style="width: 110px;">Rate (₹)</th>
+                    <th class="text-end" style="width: 120px;">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Items.Count; i++)
+                {
+                    var item = Model.Items[i];
+                    <tr>
+                        <td>@(i + 1)</td>
+                        <td>
+                            <div class="fw-bold">@item.Title</div>
+                            <div style="font-size: 11px; color: #666;">HSN / SAC: 30049011 (Ayurvedic Medicaments)</div>
+                        </td>
+                        <td class="text-center">@item.Quantity</td>
+                        <td class="text-end">₹@item.UnitPrice.ToString("N2")</td>
+                        <td class="text-end">₹@item.TotalPrice.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Totals Breakdown -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
+            <div style="width: 320px;">
+                <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                    <span style="color: #666;">Taxable Subtotal:</span>
+                    <span>₹@Model.Subtotal.ToString("N2")</span>
+                </div>
+                @if (Model.DiscountAmount > 0)
+                {
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #0C6258;">
+                        <span>Promotional Discount:</span>
+                        <span>-₹@Model.DiscountAmount.ToString("N2")</span>
+                    </div>
+                }
+                <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                    <span style="color: #666;">Shipping & Handling:</span>
+                    <span>@(Model.DeliveryFee == 0 ? "FREE" : $"₹{Model.DeliveryFee:N2}")</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                    <span style="color: #666;">CGST (2.5%):</span>
+                    <span>₹@(Math.Round(Model.TaxAmount / 2, 2).ToString("N2"))</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                    <span style="color: #666;">SGST (2.5%):</span>
+                    <span>₹@(Math.Round(Model.TaxAmount / 2, 2).ToString("N2"))</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 2px solid #0C6258; margin-top: 5px; font-weight: bold; font-size: 16px; color: #0C6258;">
+                    <span>Grand Total:</span>
+                    <span>₹@Model.TotalAmount.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Declaration & Footer -->
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; font-size: 11px; color: #666; line-height: 1.5;">
+            <div><strong>Declaration:</strong> This is a computer-generated invoice and requires no physical signature. Goods sold are manufactured in GMP-certified facilities according to classical pharmacopoeia.</div>
+            <div style="margin-top: 4px;">Thank you for trusting The Great Ayurveda with your holistic health and wellness journey.</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -23,6 +23,7 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+    public DbSet<ProductQuestion> ProductQuestions => Set<ProductQuestion>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<Order> Orders => Set<Order>();
@@ -168,6 +169,19 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
             entity.HasOne(pv => pv.Product)
                   .WithMany(p => p.Variants)
                   .HasForeignKey(pv => pv.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ProductQuestion
+        modelBuilder.Entity<ProductQuestion>(entity =>
+        {
+            entity.ToTable("ProductQuestions");
+            entity.Property(q => q.QuestionText).IsRequired().HasMaxLength(500);
+            entity.Property(q => q.AnswerText).IsRequired();
+
+            entity.HasOne(q => q.Product)
+                  .WithMany(p => p.Questions)
+                  .HasForeignKey(q => q.ProductId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -17,6 +17,11 @@ public class Order
     public string? TrackingNumber { get; set; }
     public string? CourierName { get; set; }
     public DateTime? DeliveryDate { get; set; }
+    public string DeliveryType { get; set; } = "Standard"; // Standard, Express
+    public string? CancellationReason { get; set; }
+    public string? ReturnReason { get; set; }
+    public string? ReturnStatus { get; set; } // None, Requested, Approved, Refunded
+    public string? IdempotencyKey { get; set; }
 
     public virtual ApplicationUser? User { get; set; }
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
