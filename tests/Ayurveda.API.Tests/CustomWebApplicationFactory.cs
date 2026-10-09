@@ -11,7 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Ayurveda.API.Tests;
 
-public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public class CustomWebApplicationFactory : WebApplicationFactory<Ayurveda.API.Program>
 {
     public const string TestJwtKey = "DevelopmentSecureSecretKey2026_AtLeast32BytesLongForHmacSha256!";
     private readonly string _dbName = "TestAyurvedaDb_" + Guid.NewGuid().ToString("N");

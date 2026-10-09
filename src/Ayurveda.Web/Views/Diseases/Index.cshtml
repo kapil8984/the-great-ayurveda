@@ -1,0 +1,74 @@
+@model Ayurveda.Application.ViewModels.DiseaseSearchViewModel
+@{
+    ViewData["Title"] = "Ayurvedic Home Remedies & Traditional Wellness";
+}
+
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <span class="text-success fw-bold text-uppercase small">Wisdom of the ancients</span>
+        <h1 class="display-6 fw-bold" style="font-family: Georgia, serif;">Ayurvedic Remedies & Health Concerns</h1>
+        <p class="text-muted">Explore traditional dietetic principles (Ahara) and botanical herbs traditionally used to support balance.</p>
+        
+        <form method="get" class="mx-auto mt-4" style="max-width: 600px;">
+            <div class="input-group">
+                <input type="text" name="query" class="form-control" placeholder="Search by concern: digestion, immunity, joints, sleep..." value="@Model.Query" />
+                <button type="submit" class="btn btn-tga-primary px-4">Search</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Medical Disclaimer -->
+    <div class="medical-disclaimer-banner mb-5 text-center">
+        <i class="bi bi-info-circle me-1"></i> <strong>Traditional Knowledge Notice:</strong> Remedies listed below represent classical Ayurvedic home recommendations traditionally used for lifestyle support and dosha pacification. They do not claim to treat, cure, or diagnose clinical diseases. Always consult an AYUSH physician for persistent symptoms.
+    </div>
+
+    <div class="row g-4">
+        @if (Model.Remedies != null && Model.Remedies.Any())
+        {
+            @foreach (var remedy in Model.Remedies)
+            {
+                <div class="col-lg-6">
+                    <div class="card p-4 shadow-sm border-0 rounded-4 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h4 class="fw-bold text-dark mb-0">@remedy.ConcernTitle</h4>
+                            @if (!string.IsNullOrEmpty(remedy.SanskritName))
+                            {
+                                <span class="badge bg-success-subtle text-success">@remedy.SanskritName</span>
+                            }
+                        </div>
+                        <p class="small text-muted mb-3">@remedy.TraditionalDescription</p>
+
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-success small mb-2"><i class="bi bi-cup-hot me-1"></i> Traditional Kitchen & Herbal Tips:</h6>
+                            <ul class="list-unstyled small text-muted d-flex flex-column gap-1 mb-0">
+                                @foreach (var tip in remedy.TraditionalRemedies)
+                                {
+                                    <li><i class="bi bi-check2 text-success me-1"></i> @tip</li>
+                                }
+                            </ul>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-dark small mb-2"><i class="bi bi-flower1 me-1 text-warning"></i> Traditionally Supportive Herbs:</h6>
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var herb in remedy.SuitableHerbs)
+                                {
+                                    <span class="badge bg-light text-dark border">@herb</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mt-auto pt-3 border-top d-flex gap-2">
+                            <a asp-controller="Shop" asp-action="Index" asp-route-query="@remedy.ConcernTitle" class="btn btn-outline-success btn-sm flex-fill rounded-pill">
+                                View Herbs
+                            </a>
+                            <a asp-controller="Doctors" asp-action="Index" class="btn btn-tga-primary btn-sm flex-fill rounded-pill">
+                                Consult Specialist
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>

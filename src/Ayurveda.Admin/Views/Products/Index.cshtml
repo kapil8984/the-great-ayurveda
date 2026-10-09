@@ -1,0 +1,58 @@
+@model List<Ayurveda.Domain.Entities.Product>
+@{
+    ViewData["Title"] = "Manage Products & Inventory";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Products & Inventory</h2>
+        <p class="text-muted small mb-0">Manage catalog formulations, stock levels, and pricing</p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Rating</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var prod in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="@(string.IsNullOrEmpty(prod.ImageUrl) ? "/images/products/chyawanprash.svg" : prod.ImageUrl)" 
+                                     alt="@prod.Title" width="40" height="40" class="rounded border p-1" style="object-fit: contain;" />
+                                <div>
+                                    <div class="fw-bold text-dark">@prod.Title</div>
+                                    <div class="small text-muted">@prod.Brand</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>@(prod.Category?.Name ?? "General")</td>
+                        <td class="fw-bold text-success">₹@prod.Price.ToString("N2")</td>
+                        <td>
+                            <span class="badge @(prod.Stock > 10 ? "bg-success" : prod.Stock > 0 ? "bg-warning text-dark" : "bg-danger")">
+                                @prod.Stock in stock
+                            </span>
+                        </td>
+                        <td><i class="bi bi-star-fill text-warning"></i> @prod.AverageRating.ToString("0.0")</td>
+                        <td>
+                            <span class="badge @(prod.IsActive ? "bg-success-subtle text-success" : "bg-secondary")">
+                                @(prod.IsActive ? "Active" : "Archived")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

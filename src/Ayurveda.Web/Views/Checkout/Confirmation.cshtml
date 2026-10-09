@@ -1,0 +1,42 @@
+@model Ayurveda.Application.ViewModels.OrderDetailViewModel
+@{
+    ViewData["Title"] = "Order Confirmed";
+}
+
+<div class="container py-5 text-center">
+    <div class="card p-5 shadow-sm border-0 rounded-4 mx-auto" style="max-width: 650px;">
+        <div class="text-success mb-3">
+            <i class="bi bi-check-circle-fill display-3"></i>
+        </div>
+        <h2 class="fw-bold mb-2" style="font-family: Georgia, serif;">Order Successfully Placed!</h2>
+        <p class="text-muted">Thank you for choosing authentic Ayurvedic wellness. We are preparing your botanical order with utmost care.</p>
+        
+        <div class="bg-light p-3 rounded-3 text-start my-4">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Order Number:</span>
+                <span class="fw-bold">@Model.OrderNumber</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Total Paid / Payable:</span>
+                <span class="fw-bold text-success">₹@Model.TotalAmount.ToString("N2")</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Payment Mode:</span>
+                <span>@Model.PaymentMethod (@Model.PaymentStatus)</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Shipping Destination:</span>
+                <span class="text-end" style="max-width: 280px;">@Model.ShippingAddress</span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+            <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.OrderId" class="btn btn-tga-primary rounded-pill px-4">
+                Track Order Status
+            </a>
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                Continue Shopping
+            </a>
+        </div>
+    </div>
+</div>

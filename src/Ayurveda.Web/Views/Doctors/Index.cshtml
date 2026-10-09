@@ -1,0 +1,59 @@
+@model List<Ayurveda.Application.ViewModels.DoctorCardViewModel>
+@{
+    ViewData["Title"] = "Certified Ayurvedic Doctors Consultation";
+}
+
+<div class="container py-4">
+    <!-- Header banner -->
+    <div class="p-4 p-md-5 mb-4 rounded-4 text-white" style="background: linear-gradient(135deg, #143F27, #1F5E3B);">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-warning text-dark mb-2 px-3 py-1">AYUSH Registered Physicians</span>
+                <h1 class="display-6 fw-bold mb-2" style="font-family: Georgia, serif;">Consult Certified Ayurvedic Specialists</h1>
+                <p class="lead mb-0 text-light-emphasis" style="font-size: 1.1rem;">
+                    Personalized dosha assessment, chronic disorder management, and root-cause holistic treatment plans from the comfort of your home.
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="badge bg-white text-dark p-3 rounded-3 shadow text-start">
+                    <div class="fw-bold text-success"><i class="bi bi-shield-check"></i> 100% Confidential</div>
+                    <div class="small text-muted">Encrypted audio & video sessions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Emergency Banner -->
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <div class="small">
+            <strong>Emergency Notice:</strong> Online consultations are suitable for non-urgent chronic care and holistic health guidance. For acute, sudden, or life-threatening symptoms, immediately visit your nearest emergency room or dial your local national emergency services.
+        </div>
+    </div>
+
+    <!-- Doctor Grid -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0" style="font-family: Georgia, serif;">Available Ayurvedic Physicians</h4>
+        <span class="small text-muted">Showing @(Model?.Count ?? 0) verified doctors</span>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var doc in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <partial name="_DoctorCard" model="doc" />
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 bg-white rounded-4 border shadow-sm">
+            <i class="bi bi-person-x text-muted display-4 mb-3"></i>
+            <h5 class="fw-bold">No physicians currently available</h5>
+            <p class="text-muted small">Please check back shortly or explore our classical herbal store.</p>
+        </div>
+    }
+</div>

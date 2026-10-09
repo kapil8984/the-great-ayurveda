@@ -220,5 +220,7 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-// Expose Program for WebApplicationFactory in integration tests
-public partial class Program { }
+namespace Ayurveda.API
+{
+    public partial class Program { }
+}

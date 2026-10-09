@@ -1,0 +1,116 @@
+@model Ayurveda.Application.ViewModels.BookAppointmentViewModel
+@{
+    ViewData["Title"] = $"Book Consultation with Dr. {Model.DoctorName}";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4">
+                <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+                    <div>
+                        <h2 class="h4 fw-bold mb-1" style="font-family: Georgia, serif;">Book Consultation</h2>
+                        <div class="text-muted small">Consulting Dr. @Model.DoctorName • @Model.SpecializationName</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="small text-muted">Consultation Fee</div>
+                        <div class="fs-4 fw-bold text-success">₹@Model.ConsultationFee.ToString("N0")</div>
+                    </div>
+                </div>
+
+                <form asp-action="BookPost" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="DoctorId" />
+                    <input type="hidden" asp-for="DoctorName" />
+                    <input type="hidden" asp-for="ConsultationFee" />
+                    <input type="hidden" asp-for="SpecializationName" />
+
+                    <!-- 1. Date & Slot -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">1. Select Consultation Date & Time Slot</label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Date:</label>
+                                <input asp-for="SelectedDate" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" value="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="SelectedDate" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Time Slot:</label>
+                                <select asp-for="SelectedTimeSlot" class="form-select" required>
+                                    <option value="">-- Choose Slot --</option>
+                                    <option value="10:00 AM - 10:30 AM">10:00 AM - 10:30 AM (Morning)</option>
+                                    <option value="11:30 AM - 12:00 PM">11:30 AM - 12:00 PM (Morning)</option>
+                                    <option value="02:30 PM - 03:00 PM">02:30 PM - 03:00 PM (Afternoon)</option>
+                                    <option value="04:00 PM - 04:30 PM">04:00 PM - 04:30 PM (Evening)</option>
+                                    <option value="06:00 PM - 06:30 PM">06:00 PM - 06:30 PM (Evening)</option>
+                                </select>
+                                <span asp-validation-for="SelectedTimeSlot" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Consultation Mode -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">2. Preferred Mode</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check p-3 border rounded flex-fill">
+                                <input class="form-check-input" type="radio" asp-for="ConsultationType" value="Video" id="modeVideo" checked />
+                                <label class="form-check-label fw-semibold" for="modeVideo">
+                                    <i class="bi bi-camera-video text-success me-1"></i> Video Call (Recommended)
+                                </label>
+                            </div>
+                            <div class="form-check p-3 border rounded flex-fill">
+                                <input class="form-check-input" type="radio" asp-for="ConsultationType" value="Audio" id="modeAudio" />
+                                <label class="form-check-label fw-semibold" for="modeAudio">
+                                    <i class="bi bi-telephone text-success me-1"></i> Audio Call
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Patient Details -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">3. Patient Information</label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Patient Full Name *</label>
+                                <input asp-for="PatientName" class="form-control" required placeholder="Full Name" />
+                                <span asp-validation-for="PatientName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Contact Mobile *</label>
+                                <input asp-for="PatientContact" class="form-control" required placeholder="10-digit mobile" />
+                                <span asp-validation-for="PatientContact" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Age:</label>
+                                <input asp-for="PatientAge" type="number" class="form-control" min="1" max="120" placeholder="e.g. 35" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Gender:</label>
+                                <select asp-for="PatientGender" class="form-select">
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-muted">Primary Health Concern or Symptoms:</label>
+                                <textarea asp-for="HealthConcern" class="form-control" rows="3" placeholder="Briefly describe your health goals or symptoms (e.g. chronic acidity, joint stiffness, sleep trouble)..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medical Disclaimer Notice -->
+                    <div class="medical-disclaimer-banner mb-4">
+                        <i class="bi bi-info-circle me-1"></i> <strong>Medical Notice:</strong> Your information is shared only with your consulting Ayurvedic physician under doctor-patient confidentiality.
+                    </div>
+
+                    <button type="submit" class="btn btn-tga-gold w-100 py-3 fs-5 rounded-pill shadow">
+                        Confirm & Pay ₹@Model.ConsultationFee.ToString("N0")
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

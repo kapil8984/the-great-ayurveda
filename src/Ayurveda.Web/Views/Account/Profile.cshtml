@@ -1,0 +1,70 @@
+@model Ayurveda.Application.ViewModels.UserProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container py-4">
+    <h1 class="h3 fw-bold mb-4" style="font-family: Georgia, serif;">Account Settings & Addresses</h1>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card p-4 shadow-sm border-0 rounded-4 text-center">
+                <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                    <i class="bi bi-person"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">@Model.FullName</h5>
+                <p class="small text-muted mb-3">@Model.Email</p>
+
+                <div class="list-group list-group-flush text-start small border-top pt-2">
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Contact:</span>
+                        <span class="fw-medium">@(Model.ContactNumber ?? "Not set")</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Total Orders:</span>
+                        <span class="fw-bold text-success">@Model.TotalOrders</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span class="text-muted">Consultations:</span>
+                        <span class="fw-bold text-success">@Model.TotalAppointments</span>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a asp-controller="Orders" asp-action="Index" class="btn btn-outline-success w-100 btn-sm rounded-pill mb-2">View Orders</a>
+                    <a asp-controller="Doctors" asp-action="MyAppointments" class="btn btn-outline-secondary w-100 btn-sm rounded-pill">View Consultations</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Saved Delivery Addresses</h5>
+                </div>
+
+                @if (Model.Addresses != null && Model.Addresses.Any())
+                {
+                    <div class="row g-3">
+                        @foreach (var addr in Model.Addresses)
+                        {
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded-3 bg-light position-relative">
+                                    <div class="fw-bold">@addr.RecipientName @(addr.IsDefault ? "(Default)" : "")</div>
+                                    <div class="small text-muted mb-1">@addr.Phone</div>
+                                    <div class="small text-dark">
+                                        @addr.AddressLine1, @addr.City, @addr.State - @addr.PostalCode
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">No saved addresses yet. Addresses are saved automatically when you complete checkout.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

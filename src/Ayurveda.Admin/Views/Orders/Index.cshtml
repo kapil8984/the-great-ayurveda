@@ -1,0 +1,63 @@
+@model List<Ayurveda.Domain.Entities.Order>
+@{
+    ViewData["Title"] = "Customer Orders";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Orders & Dispatch</h2>
+        <p class="text-muted small mb-0">Track customer purchases and update shipping fulfillment status</p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td class="fw-bold">@order.OrderNumber</td>
+                        <td>@order.OrderDate.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <div>@(order.User?.FullName ?? "Customer")</div>
+                            <div class="small text-muted">@(order.User?.Email ?? "")</div>
+                        </td>
+                        <td class="fw-bold text-success">₹@order.TotalAmount.ToString("N2")</td>
+                        <td>
+                            <span class="badge bg-light text-dark border">@order.PaymentMethod</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success fs-6">@order.Status</span>
+                        </td>
+                        <td>
+                            <form asp-action="UpdateStatus" method="post" class="d-flex gap-2 m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="orderId" value="@order.Id" />
+                                <select name="status" class="form-select form-select-sm" style="width: 140px;">
+                                    <option value="Placed" selected="@(order.Status == "Placed")">Placed</option>
+                                    <option value="Packed" selected="@(order.Status == "Packed")">Packed</option>
+                                    <option value="Shipped" selected="@(order.Status == "Shipped")">Shipped</option>
+                                    <option value="Delivered" selected="@(order.Status == "Delivered")">Delivered</option>
+                                    <option value="Cancelled" selected="@(order.Status == "Cancelled")">Cancelled</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

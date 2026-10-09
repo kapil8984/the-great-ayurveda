@@ -1,0 +1,53 @@
+@model Ayurveda.Application.ViewModels.YogaDetailsViewModel
+@{
+    ViewData["Title"] = Model.YogaName;
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">Yoga & Wellness</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.YogaName</li>
+        </ol>
+    </nav>
+
+    <div class="row g-5 mb-5">
+        <div class="col-lg-5">
+            <div class="p-4 bg-white rounded-4 border text-center shadow-sm">
+                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/yoga/surya-namaskar.svg" : Model.ImageUrl)" 
+                     alt="@Model.YogaName" class="img-fluid" style="max-height: 340px; object-fit: contain;" />
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <span class="badge bg-success-subtle text-success mb-2">@Model.CategoryName</span>
+            <h1 class="h2 fw-bold text-dark mb-3" style="font-family: Georgia, serif;">@Model.YogaName</h1>
+            <p class="lead text-muted fs-6">@Model.Description</p>
+
+            <div class="card p-4 bg-light border-0 rounded-4 mb-4">
+                <h5 class="fw-bold text-success mb-3"><i class="bi bi-list-check me-2"></i> Step-by-Step Instructions</h5>
+                <p class="text-secondary small mb-0" style="white-space: pre-line; line-height: 1.7;">@Model.Instructions</p>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="p-3 bg-white border rounded-3 h-100">
+                        <h6 class="fw-bold text-success mb-2"><i class="bi bi-heart-pulse me-1"></i> Key Benefits</h6>
+                        <ul class="list-unstyled small text-muted d-flex flex-column gap-1 mb-0">
+                            @foreach (var b in Model.Benefits)
+                            {
+                                <li><i class="bi bi-check2 text-success me-1"></i> @b</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 bg-white border rounded-3 h-100">
+                        <h6 class="fw-bold text-danger mb-2"><i class="bi bi-shield-exclamation me-1"></i> Precautions</h6>
+                        <p class="small text-muted mb-0">@(string.IsNullOrEmpty(Model.Precautions) ? "Practice on an empty stomach. If experiencing spinal disc or cardiac conditions, consult an expert instructor before performing." : Model.Precautions)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

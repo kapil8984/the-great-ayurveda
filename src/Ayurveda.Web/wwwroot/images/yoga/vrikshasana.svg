@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 240" width="300" height="240">
+  <rect width="300" height="240" rx="16" fill="#EBF4EE" />
+  <circle cx="150" cy="100" r="45" fill="#E3A72F" opacity="0.25" />
+  <path d="M 150,50 C 130,90 120,130 150,160 C 180,130 170,90 150,50 Z" fill="#1F5E3B" />
+  <circle cx="150" cy="40" r="14" fill="#1F5E3B" />
+  <text x="150" y="205" font-family="sans-serif" font-size="13" font-weight="600" fill="#1B2A22" text-anchor="middle">VRIKSHASANA</text>
+</svg>

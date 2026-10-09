@@ -1,0 +1,252 @@
+@model Ayurveda.Application.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Authentic Ayurveda Care & Consultation";
+}
+
+<!-- Hero Section -->
+<section class="py-5" style="background: linear-gradient(135deg, #143F27 0%, #1F5E3B 60%, #2C7E50 100%); color: #FBF6EA;">
+    <div class="container py-4">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <span class="badge bg-warning text-dark mb-3 px-3 py-2 fw-semibold">
+                    <i class="bi bi-patch-check-fill me-1"></i> AYUSH Certified Practice
+                </span>
+                <h1 class="display-4 fw-bold mb-3" style="font-family: Georgia, serif; line-height: 1.15;">
+                    Harmonize Mind, Body & Vitality with Classical Ayurveda
+                </h1>
+                <p class="lead mb-4 text-light-emphasis" style="max-width: 620px;">
+                    Experience ancient wisdom through certified AYUSH doctor consultations, pure herbal formulations, and personalized dinacharya routines.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mb-4">
+                    <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-gold btn-lg px-4 shadow">
+                        <i class="bi bi-bag-heart me-1"></i> Explore Medicines
+                    </a>
+                    <a asp-controller="Doctors" asp-action="Index" class="btn btn-outline-light btn-lg px-4 shadow">
+                        <i class="bi bi-camera-video me-1"></i> Consult a Doctor
+                    </a>
+                </div>
+                
+                <!-- Trust Stats -->
+                <div class="row g-3 pt-3 border-top border-success-subtle text-light">
+                    <div class="col-4">
+                        <div class="fs-4 fw-bold text-warning">25,000+</div>
+                        <div class="small text-white-50">Happy Patients</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-4 fw-bold text-warning">150+</div>
+                        <div class="small text-white-50">Verified Doctors</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-4 fw-bold text-warning">100%</div>
+                        <div class="small text-white-50">Pure Herbal Formulations</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prakriti Interactive Mini Quiz Card -->
+            <div class="col-lg-5">
+                <div class="card bg-white text-dark shadow-lg border-0 rounded-4 p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-bold mb-0 text-success"><i class="bi bi-flower1 me-2 text-warning"></i> Find Your Prakriti</h5>
+                        <span class="badge bg-success-subtle text-success">Quick Assessment</span>
+                    </div>
+                    <p class="small text-muted mb-3">
+                        Answer 3 simple physical questions to discover your dominant Ayurvedic dosha (Vata, Pitta, or Kapha).
+                    </p>
+                    
+                    <form id="prakritiQuizForm" onsubmit="calculateDosha(event)">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">1. Your Body Frame & Metabolism:</label>
+                            <select class="form-select form-select-sm" id="quizQ1" required>
+                                <option value="vata">Slender, light bones, irregular appetite</option>
+                                <option value="pitta">Medium build, good muscle tone, strong hunger</option>
+                                <option value="kapha">Solid, broad build, slow but steady digestion</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">2. Skin Tendency:</label>
+                            <select class="form-select form-select-sm" id="quizQ2" required>
+                                <option value="vata">Dry, thin, tends to feel cold easily</option>
+                                <option value="pitta">Warm, sensitive, prone to flushing or redness</option>
+                                <option value="kapha">Soft, smooth, well-hydrated, cool</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">3. Sleep & Stress Reaction:</label>
+                            <select class="form-select form-select-sm" id="quizQ3" required>
+                                <option value="vata">Light or interrupted sleep, prone to worry</option>
+                                <option value="pitta">Moderate sleep, intense dreams, sharp focus</option>
+                                <option value="kapha">Deep, heavy sleep, generally calm and patient</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-tga-primary w-100 btn-sm rounded-pill">
+                            Discover My Dosha
+                        </button>
+                    </form>
+
+                    <div id="prakritiResult" class="mt-3 p-3 bg-light rounded text-center d-none">
+                        <h6 class="fw-bold mb-1 text-success" id="doshaTitle">Dominant Dosha: Pitta-Vata</h6>
+                        <p class="small text-muted mb-2" id="doshaDesc">Cooling herbs, grounding routine, and balanced hydration may support your natural equilibrium.</p>
+                        <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-success btn-sm rounded-pill">Explore Harmonizing Formulations</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Shop by Category Grid -->
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex align-items-end justify-content-between mb-4">
+            <div>
+                <span class="text-success fw-bold text-uppercase small">Rooted in Tradition</span>
+                <h2 class="fw-bold mb-0" style="font-family: Georgia, serif;">Curated Botanical Categories</h2>
+            </div>
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-link text-success text-decoration-none fw-semibold">
+                View All Categories <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="row g-3">
+            @if (Model.Categories != null && Model.Categories.Any())
+            {
+                @foreach (var cat in Model.Categories.Take(8))
+                {
+                    <div class="col-6 col-md-3">
+                        <a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@cat.Id" class="text-decoration-none">
+                            <div class="card h-100 border text-center p-3 tga-card">
+                                <img src="@cat.ImageUrl" class="mx-auto mb-2" alt="@cat.Name" width="64" height="64" />
+                                <h6 class="fw-bold text-dark mb-1">@cat.Name</h6>
+                                <span class="small text-muted">@cat.Description</span>
+                            </div>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Featured Classical Products -->
+<section class="py-5 bg-white border-top border-bottom">
+    <div class="container">
+        <div class="d-flex align-items-end justify-content-between mb-4">
+            <div>
+                <span class="text-success fw-bold text-uppercase small">Time-Tested Wellness</span>
+                <h2 class="fw-bold mb-0" style="font-family: Georgia, serif;">Featured Formulations</h2>
+            </div>
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-link text-success text-decoration-none fw-semibold">
+                Explore Full Apothecary <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="row g-4">
+            @if (Model.FeaturedProducts != null && Model.FeaturedProducts.Any())
+            {
+                @foreach (var prod in Model.FeaturedProducts)
+                {
+                    <div class="col-6 col-lg-3">
+                        <partial name="_ProductCard" model="prod" />
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Consult Verified AYUSH Doctors -->
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex align-items-end justify-content-between mb-4">
+            <div>
+                <span class="text-success fw-bold text-uppercase small">Holistic Consultations</span>
+                <h2 class="fw-bold mb-0" style="font-family: Georgia, serif;">Consult Certified Doctors</h2>
+            </div>
+            <a asp-controller="Doctors" asp-action="Index" class="btn btn-link text-success text-decoration-none fw-semibold">
+                Browse All Doctors <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="row g-4">
+            @if (Model.TopDoctors != null && Model.TopDoctors.Any())
+            {
+                @foreach (var doc in Model.TopDoctors.Take(3))
+                {
+                    <div class="col-md-4">
+                        <partial name="_DoctorCard" model="doc" />
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Timeline -->
+<section class="py-5 bg-light border-top">
+    <div class="container text-center py-2">
+        <span class="text-success fw-bold text-uppercase small">Your Wellness Journey</span>
+        <h2 class="fw-bold mb-5" style="font-family: Georgia, serif;">How The Great Ayurveda Works</h2>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="p-4 bg-white rounded-4 shadow-sm h-100">
+                    <div class="fs-1 text-success mb-3"><i class="bi bi-calendar-heart"></i></div>
+                    <h5 class="fw-bold">1. Book Consultation</h5>
+                    <p class="small text-muted mb-0">Select your preferred date, time and consultation mode (video or audio) with verified AYUSH practitioners.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 bg-white rounded-4 shadow-sm h-100">
+                    <div class="fs-1 text-warning mb-3"><i class="bi bi-journal-medical"></i></div>
+                    <h5 class="fw-bold">2. Tailored Plan</h5>
+                    <p class="small text-muted mb-0">Receive comprehensive lifestyle, dietary (Ahara), daily routine (Dinacharya), and classical herbal guidance.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 bg-white rounded-4 shadow-sm h-100">
+                    <div class="fs-1 text-success mb-3"><i class="bi bi-box2-heart"></i></div>
+                    <h5 class="fw-bold">3. Pure Herbs at Home</h5>
+                    <p class="small text-muted mb-0">Authentic lab-tested medicines delivered safely across India with complete usage instructions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+function calculateDosha(event) {
+    event.preventDefault();
+    const q1 = document.getElementById("quizQ1").value;
+    const q2 = document.getElementById("quizQ2").value;
+    const q3 = document.getElementById("quizQ3").value;
+
+    const counts = { vata: 0, pitta: 0, kapha: 0 };
+    counts[q1]++;
+    counts[q2]++;
+    counts[q3]++;
+
+    let dominant = "vata";
+    if (counts.pitta >= counts.vata && counts.pitta >= counts.kapha) dominant = "pitta";
+    if (counts.kapha > counts.vata && counts.kapha > counts.pitta) dominant = "kapha";
+
+    const resultBox = document.getElementById("prakritiResult");
+    const title = document.getElementById("doshaTitle");
+    const desc = document.getElementById("doshaDesc");
+
+    if (dominant === "vata") {
+        title.innerText = "Dominant Dosha: Vata (Air & Space)";
+        desc.innerText = "Warm, nourishing foods, regular sleep schedules, and grounding massage oils (Abhyanga) traditionally support Vata equilibrium.";
+    } else if (dominant === "pitta") {
+        title.innerText = "Dominant Dosha: Pitta (Fire & Water)";
+        desc.innerText = "Cooling herbs like Amalaki and Shatavari, moderate hydration, and calming meditation traditionally support Pitta balance.";
+    } else {
+        title.innerText = "Dominant Dosha: Kapha (Earth & Water)";
+        desc.innerText = "Warm spices like Ginger and Trikatu, invigorating movement, and light wholesome meals traditionally support Kapha vitality.";
+    }
+
+    resultBox.classList.remove("d-none");
+}
+</script>
+}

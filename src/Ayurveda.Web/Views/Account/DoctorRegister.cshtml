@@ -1,0 +1,98 @@
+@model Ayurveda.Application.ViewModels.DoctorRegisterViewModel
+@{
+    ViewData["Title"] = "Physician Registration & Onboarding";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="rounded-circle bg-success-subtle text-success p-3 fs-3">
+                        <i class="bi bi-hospital"></i>
+                    </div>
+                    <div>
+                        <h2 class="h4 fw-bold mb-1" style="font-family: Georgia, serif;">Join Our Panel of AYUSH Physicians</h2>
+                        <div class="text-muted small">Expand your clinical reach and provide authentic holistic care across India.</div>
+                    </div>
+                </div>
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger py-2 small" role="alert">
+                        <div asp-validation-summary="All"></div>
+                    </div>
+                }
+
+                <form asp-action="DoctorRegister" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <h6 class="fw-bold text-success mb-3">1. Account & Contact Credentials</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Doctor Full Name *</label>
+                            <input asp-for="FullName" class="form-control" placeholder="Dr. Firstname Lastname" required />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Official Email Address *</label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="doctor@clinic.com" required />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Mobile Number *</label>
+                            <input asp-for="ContactNumber" class="form-control" placeholder="10-digit mobile" required />
+                            <span asp-validation-for="ContactNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Password *</label>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="Min 8 characters" required />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-success mb-3">2. Professional & Council Credentials</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Degree / Qualification *</label>
+                            <input asp-for="Qualification" class="form-control" placeholder="e.g. BAMS, MD (Kayachikitsa)" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">AYUSH Registration Number *</label>
+                            <input asp-for="RegistrationNumber" class="form-control" placeholder="e.g. CCIM/12345/2015" required />
+                            <span asp-validation-for="RegistrationNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">State / Central Registration Council *</label>
+                            <input asp-for="RegistrationCouncil" class="form-control" placeholder="e.g. Delhi Bharatiya Chikitsa Parishad" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Years of Clinical Experience *</label>
+                            <input asp-for="ExperienceYears" type="number" class="form-control" min="1" max="50" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Consultation Fee (₹ INR) *</label>
+                            <input asp-for="ConsultationFee" type="number" class="form-control" min="100" max="5000" step="50" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Languages Spoken</label>
+                            <input asp-for="Languages" class="form-control" placeholder="e.g. English, Hindi, Sanskrit" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Professional Bio & Approach</label>
+                            <textarea asp-for="Bio" class="form-control" rows="3" placeholder="Describe your clinical training, areas of focus, and patient philosophy..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small" role="alert">
+                        <i class="bi bi-info-circle me-1"></i> <strong>Verification Process:</strong> Upon registration, all physician accounts undergo credentials verification by the Medical Board before consultations open to patients.
+                    </div>
+
+                    <button type="submit" class="btn btn-tga-primary w-100 py-3 rounded-pill fw-semibold shadow">
+                        Submit Physician Application for Review
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

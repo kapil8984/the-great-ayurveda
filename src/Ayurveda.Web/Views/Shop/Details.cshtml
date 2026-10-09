@@ -1,0 +1,145 @@
+@model Ayurveda.Application.ViewModels.ProductDetailsViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-success text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" class="text-success text-decoration-none">Shop</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
+        </ol>
+    </nav>
+
+    <div class="row g-5 mb-5">
+        <!-- Col 1: Images -->
+        <div class="col-lg-5">
+            <div class="p-4 bg-white rounded-4 border text-center shadow-sm">
+                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/products/chyawanprash.svg" : Model.ImageUrl)" 
+                     alt="@Model.Title" 
+                     class="img-fluid" 
+                     style="max-height: 380px; object-fit: contain;" />
+            </div>
+        </div>
+
+        <!-- Col 2: Product Info & Actions -->
+        <div class="col-lg-7">
+            <div class="text-uppercase small text-muted fw-semibold">@Model.Brand • @Model.CategoryName</div>
+            <h1 class="h2 fw-bold text-dark mt-1 mb-2" style="font-family: Georgia, serif;">@Model.Title</h1>
+
+            <!-- Ratings -->
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="tga-rating">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+                <span class="fw-bold">@Model.AverageRating.ToString("0.0")</span>
+                <span class="text-muted small">(@Model.ReviewCount ratings & verified reviews)</span>
+            </div>
+
+            <!-- Price Strip -->
+            <div class="d-flex align-items-baseline gap-3 p-3 bg-light rounded-3 mb-4">
+                <span class="fs-2 fw-bold text-success">₹@Model.Price.ToString("N0")</span>
+                @if (Model.Mrp > Model.Price)
+                {
+                    <span class="text-muted text-decoration-line-through">MRP ₹@Model.Mrp.ToString("N0")</span>
+                    <span class="badge bg-danger">@Model.DiscountPercent% OFF</span>
+                }
+                <span class="small text-muted ms-auto">Inclusive of all taxes</span>
+            </div>
+
+            <p class="text-secondary mb-4">@Model.Description</p>
+
+            <!-- Traditionally Used For -->
+            @if (!string.IsNullOrEmpty(Model.TraditionallyUsedFor))
+            {
+                <div class="mb-3">
+                    <span class="small fw-bold text-uppercase text-muted">Traditionally Used For:</span>
+                    <div class="fw-medium text-dark">@Model.TraditionallyUsedFor</div>
+                </div>
+            }
+
+            <!-- Add to Cart Form -->
+            <form asp-controller="Cart" asp-action="AddToCart" method="post" class="mb-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="productId" value="@Model.Id" />
+                <div class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label class="form-label small fw-semibold mb-0">Quantity:</label>
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="quantity" class="form-control" value="1" min="1" max="@Math.Max(1, Model.Stock)" style="width: 80px;" />
+                    </div>
+                    <div class="col">
+                        @if (Model.IsInStock)
+                        {
+                            <button type="submit" class="btn btn-tga-primary px-4 shadow">
+                                <i class="bi bi-cart-plus me-1"></i> Add to Cart
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-secondary px-4" disabled>Out of Stock</button>
+                        }
+                    </div>
+                </div>
+            </form>
+
+            <!-- Highlights -->
+            <div class="row g-2 border-top pt-3 small text-muted">
+                <div class="col-6"><i class="bi bi-truck text-success me-1"></i> Fast delivery across India</div>
+                <div class="col-6"><i class="bi bi-shield-check text-success me-1"></i> 100% Genuine Ayurvedic Herbs</div>
+                <div class="col-6"><i class="bi bi-arrow-repeat text-success me-1"></i> Easy 7-day returns on sealed items</div>
+                <div class="col-6"><i class="bi bi-cash-stack text-success me-1"></i> Cash on Delivery Available</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Detailed Information Tabs / Sections -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="p-4 bg-white rounded-4 border shadow-sm">
+                <h4 class="fw-bold mb-3" style="font-family: Georgia, serif;">Herbal Profile & Pharmacopoeia</h4>
+                
+                @if (!string.IsNullOrEmpty(Model.Ingredients))
+                {
+                    <h6 class="fw-bold text-success mt-3 mb-1">Key Botanical Ingredients</h6>
+                    <p class="text-muted small">@Model.Ingredients</p>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.HowToUse))
+                {
+                    <h6 class="fw-bold text-success mt-3 mb-1">Traditional Dosage & Method of Use (Anupana)</h6>
+                    <p class="text-muted small">@Model.HowToUse</p>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.Precautions))
+                {
+                    <h6 class="fw-bold text-danger mt-3 mb-1">Precautions & Sensitivities</h6>
+                    <p class="text-muted small">@Model.Precautions</p>
+                }
+
+                <!-- Medical Disclaimer Alert -->
+                <div class="medical-disclaimer-banner mt-4">
+                    <strong><i class="bi bi-info-circle me-1"></i> Medical Disclaimer:</strong>
+                    This formulation is traditionally prepared for dosha balance and general vitality. It is not intended to cure or replace medical advice. If you have chronic conditions or are pregnant, consult an AYUSH physician prior to use.
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Consult a doctor prompt -->
+        <div class="col-lg-4">
+            <div class="p-4 bg-white rounded-4 border shadow-sm text-center">
+                <img src="/images/doctor-avatar.svg" width="72" height="72" class="mb-3" alt="Doctor" />
+                <h5 class="fw-bold">Unsure if this fits your Dosha?</h5>
+                <p class="small text-muted">
+                    Book a direct 1-on-1 video or audio consultation with a certified Ayurvedic doctor for tailored guidance.
+                </p>
+                <a asp-controller="Doctors" asp-action="Index" class="btn btn-tga-gold w-100 rounded-pill">
+                    <i class="bi bi-calendar-check me-1"></i> Consult a Doctor Now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

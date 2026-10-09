@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Physician Application Pending";
+}
+
+<div class="container py-5 text-center">
+    <div class="card p-5 shadow-sm border-0 rounded-4 mx-auto" style="max-width: 600px;">
+        <div class="text-warning mb-3">
+            <i class="bi bi-clock-history display-3"></i>
+        </div>
+        <h2 class="fw-bold mb-2" style="font-family: Georgia, serif;">Application Under Verification</h2>
+        <p class="text-muted">
+            Thank you for registering with The Great Ayurveda. Your AYUSH council credentials and qualifications are currently undergoing verification by our Medical Review Board.
+        </p>
+        <div class="bg-light p-3 rounded-3 text-start small text-muted my-3">
+            <ul class="mb-0 ps-3">
+                <li>Credential verification typically takes 24 to 48 business hours.</li>
+                <li>Once approved, you will receive an email confirmation and patient booking slots will automatically activate.</li>
+            </ul>
+        </div>
+        <div>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                Return to Storefront
+            </a>
+        </div>
+    </div>
+</div>

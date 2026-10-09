@@ -1,0 +1,105 @@
+@model Ayurveda.Application.ViewModels.CatalogListViewModel
+@{
+    ViewData["Title"] = "Ayurvedic Medicines & Formulations";
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-success text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Shop Medicines</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold mb-1" style="font-family: Georgia, serif;">Authentic Ayurvedic Formulations</h1>
+            <p class="text-muted small mb-0">Showing @Model.TotalCount lab-verified herbal preparations</p>
+        </div>
+
+        <!-- Sort Control -->
+        <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+            <label class="small text-muted text-nowrap">Sort by:</label>
+            <form method="get" id="sortForm">
+                <input type="hidden" name="categoryId" value="@Model.SelectedCategoryId" />
+                <input type="hidden" name="query" value="@Model.SearchQuery" />
+                <select name="sort" class="form-select form-select-sm" onchange="document.getElementById('sortForm').submit()">
+                    <option value="popular" selected="@(Model.SelectedSort == "popular")">Most Popular</option>
+                    <option value="price_asc" selected="@(Model.SelectedSort == "price_asc")">Price: Low to High</option>
+                    <option value="price_desc" selected="@(Model.SelectedSort == "price_desc")">Price: High to Low</option>
+                    <option value="rating" selected="@(Model.SelectedSort == "rating")">Highest Rated</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Sidebar Filters -->
+        <div class="col-lg-3">
+            <div class="p-3 bg-white rounded-3 border shadow-sm">
+                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-funnel me-1 text-success"></i> Categories</h6>
+                <div class="list-group list-group-flush small mb-4">
+                    <a asp-action="Index" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(Model.SelectedCategoryId == null ? "active bg-success border-success" : "")">
+                        <span>All Categories</span>
+                        <span class="badge @(Model.SelectedCategoryId == null ? "bg-white text-success" : "bg-light text-dark") rounded-pill">@Model.TotalCount</span>
+                    </a>
+                    @foreach (var cat in Model.Categories)
+                    {
+                        <a asp-action="Index" asp-route-categoryId="@cat.Id" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(Model.SelectedCategoryId == cat.Id ? "active bg-success border-success" : "")">
+                            <span>@cat.Name</span>
+                            <span class="badge @(Model.SelectedCategoryId == cat.Id ? "bg-white text-success" : "bg-light text-dark") rounded-pill">@cat.ProductCount</span>
+                        </a>
+                    }
+                </div>
+
+                <div class="p-3 bg-light rounded text-center">
+                    <i class="bi bi-patch-check text-success fs-3"></i>
+                    <h6 class="fw-bold mt-2 mb-1">AYUSH Quality Guarantee</h6>
+                    <p class="small text-muted mb-0" style="font-size: 0.75rem;">All herbal products are free from adulterants and manufactured in GMP-certified facilities.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="col-lg-9">
+            @if (Model.Products != null && Model.Products.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var product in Model.Products)
+                    {
+                        <div class="col-6 col-md-4">
+                            <partial name="_ProductCard" model="product" />
+                        </div>
+                    }
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="mt-4 pt-3 border-top" aria-label="Catalog pages">
+                        <ul class="pagination justify-content-center">
+                            @for (int i = 1; i <= Model.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-categoryId="@Model.SelectedCategoryId" asp-route-sort="@Model.SelectedSort">@i</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5 bg-white rounded-3 border">
+                    <i class="bi bi-search text-muted fs-1 mb-3"></i>
+                    <h5 class="fw-bold">No formulations found</h5>
+                    <p class="text-muted small">Try selecting a different category or clearing your search filters.</p>
+                    <a asp-action="Index" class="btn btn-tga-primary btn-sm rounded-pill">Browse All Products</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>

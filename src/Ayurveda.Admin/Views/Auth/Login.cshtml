@@ -1,0 +1,91 @@
+@model Ayurveda.Application.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Admin Security Authentication";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Sign In | The Great Ayurveda</title>
+    <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <style>
+        body {
+            background-color: #0F1612;
+            color: #E2E8F0;
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .admin-login-card {
+            background: #18221D;
+            border: 1px solid #28392F;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            max-width: 420px;
+            width: 100%;
+        }
+        .form-control {
+            background-color: #121A15;
+            border: 1px solid #2C3E34;
+            color: #FFFFFF;
+        }
+        .form-control:focus {
+            background-color: #121A15;
+            border-color: #2C7E50;
+            color: #FFFFFF;
+            box-shadow: 0 0 0 0.25rem rgba(44, 126, 80, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-card p-4 p-md-5">
+        <div class="text-center mb-4">
+            <img src="/images/logo.svg" alt="The Great Ayurveda" height="38" style="filter: brightness(0) invert(1);" />
+            <h5 class="fw-bold mt-3 mb-1 text-white">Administrative Portal</h5>
+            <span class="badge bg-warning text-dark small fw-semibold">RESTRICTED ACCESS</span>
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger py-2 small" role="alert">
+                <div asp-validation-summary="All"></div>
+            </div>
+        }
+
+        <form asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div class="mb-3">
+                <label class="form-label small text-white-50">Admin Email</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-white-50"><i class="bi bi-shield-lock"></i></span>
+                    <input asp-for="Email" class="form-control" type="email" placeholder="admin@thegreatayurveda.com" required autofocus />
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small text-white-50">Security Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-white-50"><i class="bi bi-key"></i></span>
+                    <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" required />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 py-2 rounded-pill fw-semibold shadow" style="background-color: #2C7E50; border: none;">
+                Authenticate & Enter
+            </button>
+        </form>
+
+        <div class="mt-4 pt-3 border-top border-secondary text-center small text-white-50" style="font-size: 0.75rem;">
+            <i class="bi bi-lock me-1"></i> Authorized Personnel Only. All logins are audited with timestamp & IP.
+        </div>
+    </div>
+</body>
+</html>

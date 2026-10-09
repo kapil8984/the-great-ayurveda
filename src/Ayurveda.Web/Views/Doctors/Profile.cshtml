@@ -1,0 +1,90 @@
+@model Ayurveda.Application.ViewModels.DoctorDetailsViewModel
+@{
+    ViewData["Title"] = $"Dr. {Model.DoctorName}";
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">Doctors</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Dr. @Model.DoctorName</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4 mb-5">
+        <!-- Col 1: Bio & Details -->
+        <div class="col-lg-8">
+            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
+                <div class="d-flex align-items-center gap-4 mb-4">
+                    <img src="@(string.IsNullOrEmpty(Model.ProfileImage) ? "/images/doctor-avatar.svg" : Model.ProfileImage)" 
+                         alt="@Model.DoctorName" class="rounded-circle border" width="100" height="100" style="object-fit: cover; background: #EAF4EE;" />
+                    <div>
+                        <h2 class="h3 fw-bold mb-1 text-dark" style="font-family: Georgia, serif;">Dr. @Model.DoctorName</h2>
+                        <div class="badge bg-success-subtle text-success fs-6 mb-2">@Model.SpecializationName</div>
+                        <div class="small text-muted">
+                            <i class="bi bi-patch-check-fill text-success"></i> Reg No: @(Model.RegistrationNumber ?? "AYUSH-REG-VERIFIED") • Council: @(Model.RegistrationCouncil ?? "Central Council of Indian Medicine")
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 py-3 border-top border-bottom mb-4 text-center">
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold text-success">@Model.ExperienceYears+ Years</div>
+                        <div class="small text-muted">Clinical Experience</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold text-dark">@(Model.Qualification ?? "BAMS, MD Ayurveda")</div>
+                        <div class="small text-muted">Degree / Qualification</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold text-warning"><i class="bi bi-star-fill"></i> @Model.Rating.ToString("0.0")</div>
+                        <div class="small text-muted">(@Model.ReviewCount Reviews)</div>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-2">About Dr. @Model.DoctorName</h5>
+                <p class="text-secondary">
+                    @(string.IsNullOrEmpty(Model.Bio) ? "Experienced Ayurvedic physician dedicated to constitutional diagnosis, pulse reading principles (Nadi Pariksha), and evidence-supported holistic wellness plans." : Model.Bio)
+                </p>
+
+                @if (!string.IsNullOrEmpty(Model.Languages))
+                {
+                    <div class="mt-2">
+                        <span class="small fw-bold text-dark">Languages Spoken:</span>
+                        <span class="small text-muted ms-1">@Model.Languages</span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.ClinicAddress))
+                {
+                    <div class="mt-2">
+                        <span class="small fw-bold text-dark">Affiliated Clinic:</span>
+                        <span class="small text-muted ms-1">@Model.ClinicAddress</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Col 2: Booking Card -->
+        <div class="col-lg-4">
+            <div class="card p-4 shadow-sm border-0 rounded-4 sticky-top" style="top: 100px;">
+                <h5 class="fw-bold mb-3">Consultation Overview</h5>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-3">
+                    <span class="text-muted">Consultation Fee:</span>
+                    <span class="fs-4 fw-bold text-success">₹@Model.ConsultationFee.ToString("N0")</span>
+                </div>
+
+                <ul class="list-unstyled small text-muted d-flex flex-column gap-2 mb-4">
+                    <li><i class="bi bi-check2 text-success me-2"></i> 20-30 Minute Private Audio/Video Session</li>
+                    <li><i class="bi bi-check2 text-success me-2"></i> Comprehensive Ahara (Diet) & Dinacharya Plan</li>
+                    <li><i class="bi bi-check2 text-success me-2"></i> Digital Prescription with Direct Basket Add</li>
+                </ul>
+
+                <a asp-action="Book" asp-route-id="@Model.Id" class="btn btn-tga-gold w-100 py-2 fs-6 rounded-pill shadow">
+                    Book Appointment Now <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

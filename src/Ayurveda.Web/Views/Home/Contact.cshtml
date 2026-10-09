@@ -1,0 +1,68 @@
+@{
+    ViewData["Title"] = "Contact Customer Care & Clinics";
+}
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <span class="text-success fw-bold text-uppercase small">Here to Assist You</span>
+        <h1 class="display-6 fw-bold" style="font-family: Georgia, serif;">Get in Touch With Our Care Team</h1>
+        <p class="text-muted">Questions regarding orders, herbal formulations, or doctor consultations? We are here to support your journey.</p>
+    </div>
+
+    <div class="row g-5">
+        <div class="col-lg-5">
+            <div class="p-4 bg-white rounded-4 shadow-sm border h-100">
+                <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-info-circle me-2 text-success"></i> Central Assistance</h5>
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <strong>Ayurvedic Consultation Support:</strong>
+                        <div class="text-muted">doctors@thegreatayurveda.com</div>
+                    </div>
+                    <div>
+                        <strong>Order & Delivery Inquiries:</strong>
+                        <div class="text-muted">support@thegreatayurveda.com</div>
+                    </div>
+                    <div>
+                        <strong>Helpline (India):</strong>
+                        <div class="text-muted">+91 11 4000 7890 (Mon-Sat, 9 AM - 7 PM IST)</div>
+                    </div>
+                    <div>
+                        <strong>Registered Clinic Office:</strong>
+                        <div class="text-muted">National Heritage Health Complex, Sector 12, AYUSH Boulevard, New Delhi 110001, India</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="p-4 bg-white rounded-4 shadow-sm border">
+                <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-envelope-paper me-2 text-success"></i> Send an Inquiry</h5>
+                <form method="post" onsubmit="event.preventDefault(); alert('Thank you! Your message has been received by our Ayurvedic Care Team.');">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Your Name</label>
+                            <input type="text" class="form-control" required placeholder="Full Name" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Email Address</label>
+                            <input type="email" class="form-control" required placeholder="email@example.com" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Subject / Concern</label>
+                            <input type="text" class="form-control" required placeholder="e.g. Order Tracking or Herbal Guidance" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Your Message</label>
+                            <textarea class="form-control" rows="4" required placeholder="How can our wellness guides assist you today?"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-tga-primary px-4 rounded-pill">
+                                Submit Inquiry
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

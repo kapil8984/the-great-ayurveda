@@ -1,0 +1,81 @@
+<footer class="tga-footer mt-auto">
+    <div class="container pb-5">
+        <div class="row g-4">
+            <!-- Col 1: About & Trust -->
+            <div class="col-lg-4 col-md-6">
+                <div class="mb-3">
+                    <img src="/images/logo.svg" alt="The Great Ayurveda" height="40" style="filter: brightness(0) invert(1);" />
+                </div>
+                <p class="small text-light-emphasis pe-lg-4">
+                    The Great Ayurveda is India's dedicated holistic healthcare platform connecting patients with certified AYUSH doctors and laboratory-tested classical Ayurvedic formulations.
+                </p>
+                <div class="d-flex gap-3 fs-5 mt-3">
+                    <a href="#" class="text-light" title="Facebook"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="text-light" title="Instagram"><i class="bi bi-instagram"></i></a>
+                    <a href="#" class="text-light" title="YouTube"><i class="bi bi-youtube"></i></a>
+                    <a href="#" class="text-light" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+                </div>
+            </div>
+
+            <!-- Col 2: Quick Links -->
+            <div class="col-lg-2 col-md-6">
+                <h6 class="text-white fw-bold mb-3">Shop & Wellness</h6>
+                <ul class="list-unstyled small d-flex flex-column gap-2">
+                    <li><a asp-controller="Shop" asp-action="Index">All Medicines</a></li>
+                    <li><a asp-controller="Doctors" asp-action="Index">Consult Doctors</a></li>
+                    <li><a asp-controller="Diseases" asp-action="Index">Home Remedies</a></li>
+                    <li><a asp-controller="Yoga" asp-action="Index">Yoga Asanas</a></li>
+                    <li><a asp-controller="Shop" asp-action="Index" asp-route-concern="Immunity">Immunity & Rasayana</a></li>
+                    <li><a asp-controller="Shop" asp-action="Index" asp-route-concern="Digestion">Digestive Care</a></li>
+                </ul>
+            </div>
+
+            <!-- Col 3: Customer Care & Policies -->
+            <div class="col-lg-3 col-md-6">
+                <h6 class="text-white fw-bold mb-3">Customer Support</h6>
+                <ul class="list-unstyled small d-flex flex-column gap-2">
+                    <li><a asp-controller="Orders" asp-action="Index">Track Order</a></li>
+                    <li><a asp-controller="Account" asp-action="Profile">My Account</a></li>
+                    <li><a asp-controller="Home" asp-action="About">Our Story & Philosophy</a></li>
+                    <li><a asp-controller="Home" asp-action="Contact">Contact & Clinic Locations</a></li>
+                    <li><a asp-controller="Home" asp-action="Faq">Frequently Asked Questions</a></li>
+                    <li><a asp-controller="Home" asp-action="Privacy">Privacy Policy & Terms</a></li>
+                </ul>
+            </div>
+
+            <!-- Col 4: Reach Us -->
+            <div class="col-lg-3 col-md-6">
+                <h6 class="text-white fw-bold mb-3">Verified Clinic & Support</h6>
+                <div class="small text-light-emphasis d-flex flex-column gap-2">
+                    <div><i class="bi bi-geo-alt me-2 text-warning"></i> National Heritage Health Complex, AYUSH Boulevard, New Delhi, India</div>
+                    <div><i class="bi bi-telephone me-2 text-warning"></i> +91 11 4000 7890 (Mon-Sat, 9 AM - 7 PM)</div>
+                    <div><i class="bi bi-envelope me-2 text-warning"></i> care@thegreatayurveda.com</div>
+                    <div class="mt-2 pt-2 border-top border-secondary">
+                        <span class="badge bg-success-subtle text-success me-1">GMP Certified</span>
+                        <span class="badge bg-warning-subtle text-warning me-1">AYUSH Standard</span>
+                        <span class="badge bg-info-subtle text-info">100% Herbal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mandatory Medical Disclaimer -->
+    <div class="medical-disclaimer-footer">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-9">
+                    <p class="mb-1 fw-bold text-light">
+                        <i class="bi bi-exclamation-octagon me-1 text-warning"></i> STATUTORY MEDICAL DISCLAIMER
+                    </p>
+                    <p class="mb-0">
+                        The statements and herbal products presented on this platform have not been evaluated by the FDA and are based strictly on traditional Ayurvedic texts and AYUSH pharmacopeias. Content on this website is for educational and holistic lifestyle purposes only and is not intended to diagnose, cure, mitigate, treat, or prevent any medical condition or disease. Consult a qualified Ayurvedic physician or medical professional prior to commencing any wellness or herbal regimen, especially during pregnancy, nursing, or if you have pre-existing medical conditions.
+                    </p>
+                </div>
+                <div class="col-lg-3 text-lg-end mt-3 mt-lg-0">
+                    <p class="mb-0 text-white-50">© @DateTime.UtcNow.Year The Great Ayurveda.<br />All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>

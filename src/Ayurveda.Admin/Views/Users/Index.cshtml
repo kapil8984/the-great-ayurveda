@@ -1,0 +1,43 @@
+@model List<Ayurveda.Domain.Entities.ApplicationUser>
+@{
+    ViewData["Title"] = "Patient & User Accounts";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Registered Patients & Users</h2>
+        <p class="text-muted small mb-0">Platform registered patient accounts</p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email Address</th>
+                    <th>Contact</th>
+                    <th>Joined</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td class="fw-bold">@user.FullName</td>
+                        <td>@user.Email</td>
+                        <td>@(user.ContactNumber ?? "N/A")</td>
+                        <td>@user.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <span class="badge @(user.IsActive ? "bg-success-subtle text-success" : "bg-danger")">
+                                @(user.IsActive ? "Active" : "Suspended")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,156 @@
+@model Ayurveda.Application.ViewModels.CartViewModel
+@{
+    ViewData["Title"] = "Your Ayurvedic Basket";
+}
+
+<div class="container py-4">
+    <h1 class="h3 fw-bold mb-4" style="font-family: Georgia, serif;">Your Wellness Basket</h1>
+
+    @if (Model.Items != null && Model.Items.Any())
+    {
+        <!-- Free Shipping Progress -->
+        <div class="card p-3 mb-4 bg-light border-0 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-1 small fw-semibold">
+                <span>
+                    @if (Model.AmountNeededForFreeShipping > 0)
+                    {
+                        <span><i class="bi bi-truck text-success me-1"></i> Add <strong>₹@Model.AmountNeededForFreeShipping.ToString("N0")</strong> more for <strong>FREE DELIVERY</strong></span>
+                    }
+                    else
+                    {
+                        <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> You've qualified for <strong>FREE DELIVERY</strong>!</span>
+                    }
+                </span>
+                <span>Threshold: ₹@Model.FreeShippingThreshold.ToString("N0")</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+                @{
+                    var progress = Math.Min(100, (int)((Model.Subtotal / Model.FreeShippingThreshold) * 100));
+                }
+                <div class="progress-bar bg-success" role="progressbar" style="width: @progress%" aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Items Table -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Price</th>
+                                    <th style="width: 140px;">Quantity</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" 
+                                                     alt="@item.Title" width="60" height="60" class="rounded border p-1" style="object-fit: contain;" />
+                                                <div>
+                                                    <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId" class="fw-bold text-dark text-decoration-none">
+                                                        @item.Title
+                                                    </a>
+                                                    <div class="small text-muted">@item.Brand</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">₹@item.UnitPrice.ToString("N0")</div>
+                                        </td>
+                                        <td>
+                                            <form asp-action="UpdateQuantity" method="post" class="d-flex align-items-center gap-2">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="cartItemId" value="@item.CartItemId" />
+                                                <input type="number" name="quantity" value="@item.Quantity" min="1" max="@Math.Max(1, item.Stock)" class="form-control form-control-sm text-center" style="width: 65px;" onchange="this.form.submit()" />
+                                            </form>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-success">₹@item.TotalPrice.ToString("N0")</div>
+                                        </td>
+                                        <td>
+                                            <form asp-action="RemoveItem" method="post" class="m-0">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="cartItemId" value="@item.CartItemId" />
+                                                <button type="submit" class="btn btn-link text-danger p-0" title="Remove item">
+                                                    <i class="bi bi-trash fs-5"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Continue Shopping
+                    </a>
+                </div>
+            </div>
+
+            <!-- Price Summary Box -->
+            <div class="col-lg-4">
+                <div class="card p-4 shadow-sm border-0 rounded-3">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">Order Price Summary</h5>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal (@Model.Items.Sum(i => i.Quantity) items)</span>
+                        <span class="fw-semibold">₹@Model.Subtotal.ToString("N2")</span>
+                    </div>
+
+                    @if (Model.DiscountAmount > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>Promotional Discount</span>
+                            <span>-₹@Model.DiscountAmount.ToString("N2")</span>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Estimated Delivery Fee</span>
+                        <span>@(Model.DeliveryFee == 0 ? "FREE" : $"₹{Model.DeliveryFee:N2}")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">GST (5% Ayurvedic Goods)</span>
+                        <span>₹@Model.TaxAmount.ToString("N2")</span>
+                    </div>
+
+                    <div class="border-top pt-3 d-flex justify-content-between mb-4">
+                        <span class="fs-5 fw-bold text-dark">Grand Total</span>
+                        <span class="fs-5 fw-bold text-success">₹@Model.GrandTotal.ToString("N2")</span>
+                    </div>
+
+                    <a asp-controller="Checkout" asp-action="Index" class="btn btn-tga-primary w-100 py-2 fs-6 rounded-pill shadow">
+                        Proceed to Checkout <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+
+                    <div class="mt-3 text-center small text-muted">
+                        <i class="bi bi-shield-lock-fill text-success me-1"></i> Safe & Encrypted Checkout
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 bg-white rounded-4 border shadow-sm">
+            <i class="bi bi-cart-x text-muted display-3 mb-3"></i>
+            <h4 class="fw-bold">Your basket is currently empty</h4>
+            <p class="text-muted">Explore authentic classical Ayurvedic medicines and self-care essentials.</p>
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-primary px-4 rounded-pill mt-2">
+                Browse Medicines
+            </a>
+        </div>
+    }
+</div>

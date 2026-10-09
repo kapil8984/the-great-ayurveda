@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ayurveda.Admin/Ayurveda.Admin.csproj" />
+    <Project Path="src/Ayurveda.Api/Ayurveda.Api.csproj" />
+    <Project Path="src/Ayurveda.Application/Ayurveda.Application.csproj" />
+    <Project Path="src/Ayurveda.Domain/Ayurveda.Domain.csproj" />
+    <Project Path="src/Ayurveda.Infrastructure/Ayurveda.Infrastructure.csproj" />
+    <Project Path="src/Ayurveda.Web/Ayurveda.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ayurveda.API.Tests/Ayurveda.API.Tests.csproj" />
+  </Folder>
+  <Project Path="Ayurveda.API/Ayurveda.API.csproj" />
+</Solution>

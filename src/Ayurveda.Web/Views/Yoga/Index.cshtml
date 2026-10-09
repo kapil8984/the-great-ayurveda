@@ -1,0 +1,38 @@
+@model List<Ayurveda.Application.ViewModels.YogaCardViewModel>
+@{
+    ViewData["Title"] = "Yoga & Holistic Asanas";
+}
+
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <span class="text-success fw-bold text-uppercase small">Mind & Body Union</span>
+        <h1 class="display-6 fw-bold" style="font-family: Georgia, serif;">Classical Yoga Asanas & Pranayama</h1>
+        <p class="text-muted">Align your breath, vital force (Prana), and muscular balance with time-tested postures.</p>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var yoga in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 tga-card border-0 shadow-sm overflow-hidden">
+                        <img src="@(string.IsNullOrEmpty(yoga.ImageUrl) ? "/images/yoga/surya-namaskar.svg" : yoga.ImageUrl)" 
+                             class="card-img-top p-3" alt="@yoga.YogaName" style="height: 220px; object-fit: contain; background: #EAF4EE;" />
+                        <div class="card-body p-4 d-flex flex-column">
+                            <span class="badge bg-success-subtle text-success w-auto align-self-start mb-2">@yoga.CategoryName</span>
+                            <h5 class="fw-bold mb-2 text-dark">@yoga.YogaName</h5>
+                            <p class="small text-muted mb-3">@yoga.Description</p>
+                            
+                            <div class="mt-auto">
+                                <a asp-action="Details" asp-route-id="@yoga.Id" class="btn btn-tga-outline w-100 btn-sm rounded-pill">
+                                    View Step-by-Step Guide
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

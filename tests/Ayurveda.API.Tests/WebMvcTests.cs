@@ -1,0 +1,150 @@
+using System.Net;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Ayurveda.Domain.Entities;
+using Ayurveda.Infrastructure.Data;
+using Xunit;
+
+namespace Ayurveda.API.Tests;
+
+public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
+{
+    private readonly string _dbName = "WebMvcTestDb_" + Guid.NewGuid().ToString("N");
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Development");
+
+        builder.ConfigureServices(services =>
+        {
+            var descriptorsToRemove = services.Where(d =>
+                d.ServiceType == typeof(DbContextOptions<AyurvedaDbContext>) ||
+                d.ServiceType == typeof(DbContextOptions) ||
+                d.ServiceType == typeof(AyurvedaDbContext) ||
+                d.ServiceType.FullName?.Contains("EntityFrameworkCore") == true ||
+                d.ServiceType.Name.Contains("DbContextOptionsConfiguration")).ToList();
+
+            foreach (var d in descriptorsToRemove)
+            {
+                services.Remove(d);
+            }
+
+            services.AddDbContext<AyurvedaDbContext>(options =>
+            {
+                options.UseInMemoryDatabase(_dbName);
+                options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+            });
+        });
+    }
+}
+
+public class AdminMvcFactory : WebApplicationFactory<Ayurveda.Admin.Program>
+{
+    private readonly string _dbName = "AdminMvcTestDb_" + Guid.NewGuid().ToString("N");
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Development");
+
+        builder.ConfigureServices(services =>
+        {
+            var descriptorsToRemove = services.Where(d =>
+                d.ServiceType == typeof(DbContextOptions<AyurvedaDbContext>) ||
+                d.ServiceType == typeof(DbContextOptions) ||
+                d.ServiceType == typeof(AyurvedaDbContext) ||
+                d.ServiceType.FullName?.Contains("EntityFrameworkCore") == true ||
+                d.ServiceType.Name.Contains("DbContextOptionsConfiguration")).ToList();
+
+            foreach (var d in descriptorsToRemove)
+            {
+                services.Remove(d);
+            }
+
+            services.AddDbContext<AyurvedaDbContext>(options =>
+            {
+                options.UseInMemoryDatabase(_dbName);
+                options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+            });
+        });
+    }
+}
+
+public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcFactory>
+{
+    private readonly WebMvcFactory _webFactory;
+    private readonly AdminMvcFactory _adminFactory;
+
+    public WebMvcTests(WebMvcFactory webFactory, AdminMvcFactory adminFactory)
+    {
+        _webFactory = webFactory;
+        _adminFactory = adminFactory;
+    }
+
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/Shop")]
+    [InlineData("/Doctors")]
+    [InlineData("/Yoga")]
+    [InlineData("/Diseases")]
+    [InlineData("/Home/About")]
+    [InlineData("/Home/Contact")]
+    [InlineData("/Home/Faq")]
+    [InlineData("/Home/Privacy")]
+    [InlineData("/Account/Login")]
+    [InlineData("/Account/Register")]
+    public async Task PublicRoutes_ReturnSuccessAndHtml(string url)
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.Contains("The Great Ayurveda", content);
+        Assert.Contains("STATUTORY MEDICAL DISCLAIMER", content);
+    }
+
+    [Fact]
+    public async Task SearchSuggestEndpoint_ReturnsJsonGroupedSuggestions()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/search/suggest?q=triphala");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("query", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminPortal_UnauthenticatedUser_RedirectsToAdminLogin()
+    {
+        var client = _adminFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/Dashboard");
+
+        // Protected route must redirect to Admin Login (/Auth/Login)
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Auth/Login", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task AdminLogin_RendersSecureAdminPage()
+    {
+        var client = _adminFactory.CreateClient();
+        var response = await client.GetAsync("/Auth/Login");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Administrative Portal", content);
+        Assert.Contains("RESTRICTED ACCESS", content);
+    }
+}
