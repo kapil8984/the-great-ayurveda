@@ -1,98 +1,392 @@
 @model Ayurveda.Application.ViewModels.DoctorRegisterViewModel
 @{
-    ViewData["Title"] = "Physician Registration & Onboarding";
+    ViewData["Title"] = "Certified Vaidya Registration Wizard";
+    var specializations = ViewBag.Specializations as List<Ayurveda.Domain.Entities.Category> ?? new List<Ayurveda.Domain.Entities.Category>();
 }
 
-<div class="container py-5">
+<div class="container py-5 my-auto">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
-                    <div class="rounded-circle bg-success-subtle text-success p-3 fs-3">
-                        <i class="bi bi-hospital"></i>
+        <div class="col-lg-10 col-xl-9">
+            <!-- Doctor Wizard Container -->
+            <div class="card shadow-xl border-0 rounded-4 overflow-hidden bg-white">
+                <!-- Clinical Teal Header Banner -->
+                <div class="p-4 p-md-5 text-white position-relative" style="background: linear-gradient(135deg, #094038 0%, #0C6258 50%, #14B8A6 100%);">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase">
+                            <i class="bi bi-hospital me-1"></i> AYUSH Physician Onboarding
+                        </div>
+                        <img src="/images/logo-dark.svg" alt="The Great Ayurveda" height="34" />
                     </div>
-                    <div>
-                        <h2 class="h4 fw-bold mb-1" style="font-family: Georgia, serif;">Join Our Panel of AYUSH Physicians</h2>
-                        <div class="text-muted small">Expand your clinical reach and provide authentic holistic care across India.</div>
+                    <h2 class="display-6 fw-bold font-serif mb-2">Join India's Leading Vaidya Tele-Health Network</h2>
+                    <p class="text-light opacity-90 small mb-0" style="max-width: 650px;">
+                        Expand your classical Ayurvedic practice. Connect with thousands of verified patients across India for HD video consultations and integrated herbal dispensary fulfillment.
+                    </p>
+
+                    <!-- Wizard Step Indicator -->
+                    <div class="row g-2 mt-4 text-center">
+                        <div class="col">
+                            <div class="wizard-step-pill active" id="stepPill1">
+                                <span class="step-num">1</span> <span class="d-none d-md-inline">Account</span>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="wizard-step-pill" id="stepPill2">
+                                <span class="step-num">2</span> <span class="d-none d-md-inline">Credentials</span>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="wizard-step-pill" id="stepPill3">
+                                <span class="step-num">3</span> <span class="d-none d-md-inline">Documents</span>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="wizard-step-pill" id="stepPill4">
+                                <span class="step-num">4</span> <span class="d-none d-md-inline">Schedule</span>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="wizard-step-pill" id="stepPill5">
+                                <span class="step-num">5</span> <span class="d-none d-md-inline">Review</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                @if (!ViewData.ModelState.IsValid)
-                {
-                    <div class="alert alert-danger py-2 small" role="alert">
-                        <div asp-validation-summary="All"></div>
-                    </div>
-                }
+                <!-- Wizard Body -->
+                <div class="p-4 p-md-5">
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-4" role="alert">
+                            <div asp-validation-summary="All"></div>
+                        </div>
+                    }
 
-                <form asp-action="DoctorRegister" method="post">
-                    @Html.AntiForgeryToken()
+                    <form asp-action="DoctorRegister" method="post" enctype="multipart/form-data" id="doctorWizardForm">
+                        @Html.AntiForgeryToken()
 
-                    <h6 class="fw-bold text-success mb-3">1. Account & Contact Credentials</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Doctor Full Name *</label>
-                            <input asp-for="FullName" class="form-control" placeholder="Dr. Firstname Lastname" required />
-                            <span asp-validation-for="FullName" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Official Email Address *</label>
-                            <input asp-for="Email" type="email" class="form-control" placeholder="doctor@clinic.com" required />
-                            <span asp-validation-for="Email" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Mobile Number *</label>
-                            <input asp-for="ContactNumber" class="form-control" placeholder="10-digit mobile" required />
-                            <span asp-validation-for="ContactNumber" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Password *</label>
-                            <input asp-for="Password" type="password" class="form-control" placeholder="Min 8 characters" required />
-                            <span asp-validation-for="Password" class="text-danger small"></span>
-                        </div>
-                    </div>
+                        <!-- STEP 1: ACCOUNT CREDENTIALS -->
+                        <div class="wizard-step" id="wizardStep1">
+                            <h4 class="fw-bold font-serif text-dark mb-1">Step 1: Account &amp; Contact Credentials</h4>
+                            <p class="text-muted small mb-4">Set up your secure login credentials for the Doctor Clinical Desk.</p>
 
-                    <h6 class="fw-bold text-success mb-3">2. Professional & Council Credentials</h6>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Degree / Qualification *</label>
-                            <input asp-for="Qualification" class="form-control" placeholder="e.g. BAMS, MD (Kayachikitsa)" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">AYUSH Registration Number *</label>
-                            <input asp-for="RegistrationNumber" class="form-control" placeholder="e.g. CCIM/12345/2015" required />
-                            <span asp-validation-for="RegistrationNumber" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">State / Central Registration Council *</label>
-                            <input asp-for="RegistrationCouncil" class="form-control" placeholder="e.g. Delhi Bharatiya Chikitsa Parishad" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Years of Clinical Experience *</label>
-                            <input asp-for="ExperienceYears" type="number" class="form-control" min="1" max="50" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Consultation Fee (₹ INR) *</label>
-                            <input asp-for="ConsultationFee" type="number" class="form-control" min="100" max="5000" step="50" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Languages Spoken</label>
-                            <input asp-for="Languages" class="form-control" placeholder="e.g. English, Hindi, Sanskrit" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold">Professional Bio & Approach</label>
-                            <textarea asp-for="Bio" class="form-control" rows="3" placeholder="Describe your clinical training, areas of focus, and patient philosophy..."></textarea>
-                        </div>
-                    </div>
+                            <div class="mb-3">
+                                <label asp-for="FullName" class="form-label small fw-semibold">Doctor Full Legal Name *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted">Dr.</span>
+                                    <input asp-for="FullName" class="form-control border-start-0 ps-0" placeholder="e.g. Ananya Sharma" required />
+                                </div>
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
 
-                    <div class="alert alert-info small" role="alert">
-                        <i class="bi bi-info-circle me-1"></i> <strong>Verification Process:</strong> Upon registration, all physician accounts undergo credentials verification by the Medical Board before consultations open to patients.
-                    </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Email" class="form-label small fw-semibold">Professional Email Address *</label>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="doctor@clinic.com" required autocomplete="email" />
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ContactNumber" class="form-label small fw-semibold">Mobile Number (for Consultation Alerts) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted">+91</span>
+                                        <input asp-for="ContactNumber" class="form-control border-start-0 ps-0" placeholder="9876543210" required />
+                                    </div>
+                                    <span asp-validation-for="ContactNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
 
-                    <button type="submit" class="btn btn-tga-primary w-100 py-3 rounded-pill fw-semibold shadow">
-                        Submit Physician Application for Review
-                    </button>
-                </form>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="Password" class="form-label small fw-semibold">Password *</label>
+                                    <input asp-for="Password" type="password" class="form-control" id="docPasswordInput" placeholder="Min 8 characters" required />
+                                    <span asp-validation-for="Password" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ConfirmPassword" class="form-label small fw-semibold">Confirm Password *</label>
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Re-enter password" required />
+                                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-teal text-white px-4 rounded-pill" onclick="nextWizardStep(1, 2)">
+                                    Next: Professional Details <i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2: PROFESSIONAL DETAILS -->
+                        <div class="wizard-step d-none" id="wizardStep2">
+                            <h4 class="fw-bold font-serif text-dark mb-1">Step 2: AYUSH Academic &amp; Clinical Credentials</h4>
+                            <p class="text-muted small mb-4">Verified by our medical board against state council registries.</p>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label asp-for="Qualification" class="form-label small fw-semibold">Medical Degree *</label>
+                                    <select asp-for="Qualification" class="form-select" required>
+                                        <option value="BAMS">BAMS (Bachelor of Ayurvedic Medicine &amp; Surgery)</option>
+                                        <option value="MD (Ayurveda)">MD (Ayurveda) / MS (Ayurveda)</option>
+                                        <option value="BAMS, PhD (Ayu)">BAMS, PhD (Ayurveda)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="RegistrationNumber" class="form-label small fw-semibold">State / NCISM Reg. Number *</label>
+                                    <input asp-for="RegistrationNumber" class="form-control" placeholder="e.g. AYU-DL-2018-9841" required />
+                                    <span asp-validation-for="RegistrationNumber" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="RegistrationCouncil" class="form-label small fw-semibold">Registration Council *</label>
+                                    <input asp-for="RegistrationCouncil" class="form-control" placeholder="e.g. Delhi Bharatiya Chikitsa Parishad" required />
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label asp-for="SpecializationId" class="form-label small fw-semibold">Primary Specialization *</label>
+                                    <select asp-for="SpecializationId" class="form-select" required>
+                                        @foreach (var spec in specializations)
+                                        {
+                                            <option value="@spec.Id">@spec.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="ExperienceYears" class="form-label small fw-semibold">Years of Clinical Experience *</label>
+                                    <input asp-for="ExperienceYears" type="number" min="1" max="60" class="form-control" value="5" required />
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="ConsultationFee" class="form-label small fw-semibold">Consultation Fee (₹ INR) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light text-muted">₹</span>
+                                        <input asp-for="ConsultationFee" type="number" min="99" max="5000" class="form-control" value="499" required />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Languages" class="form-label small fw-semibold">Languages Spoken *</label>
+                                    <input asp-for="Languages" class="form-control" placeholder="English, Hindi, Sanskrit, Kannada" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ClinicAddress" class="form-label small fw-semibold">Clinic / Hospital Location</label>
+                                    <input asp-for="ClinicAddress" class="form-control" placeholder="City, State" />
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Bio" class="form-label small fw-semibold">Physician Professional Bio</label>
+                                <textarea asp-for="Bio" class="form-control" rows="3" placeholder="Describe your clinical approach, Nadi Pariksha expertise, and key treatment methodologies."></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" onclick="nextWizardStep(2, 1)">
+                                    <i class="bi bi-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-teal text-white px-4 rounded-pill" onclick="nextWizardStep(2, 3)">
+                                    Next: Document Verification <i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: DOCUMENT UPLOAD -->
+                        <div class="wizard-step d-none" id="wizardStep3">
+                            <h4 class="fw-bold font-serif text-dark mb-1">Step 3: Upload Verification Documents</h4>
+                            <p class="text-muted small mb-4">High-resolution PDF, PNG, or JPG (max 10MB). Encrypted and accessible only by the chief medical compliance officer.</p>
+
+                            <div class="mb-3 p-3 bg-light rounded-3 border">
+                                <label class="form-label small fw-semibold text-dark mb-1">
+                                    <i class="bi bi-file-earmark-medical text-teal me-1"></i> 1. Medical Degree Certificate (BAMS / MD) *
+                                </label>
+                                <input asp-for="DegreeCertificate" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg" required />
+                                <div class="text-xs text-muted mt-1">Clear copy of university degree certificate.</div>
+                            </div>
+
+                            <div class="mb-3 p-3 bg-light rounded-3 border">
+                                <label class="form-label small fw-semibold text-dark mb-1">
+                                    <i class="bi bi-award text-teal me-1"></i> 2. State Medical Council Registration Certificate *
+                                </label>
+                                <input asp-for="CouncilCertificate" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg" />
+                                <div class="text-xs text-muted mt-1">Valid registration certificate displaying registration number and valid renewal date.</div>
+                            </div>
+
+                            <div class="mb-4 p-3 bg-light rounded-3 border">
+                                <label class="form-label small fw-semibold text-dark mb-1">
+                                    <i class="bi bi-person-badge text-teal me-1"></i> 3. Government Photo Identity Proof (Aadhaar / Passport) *
+                                </label>
+                                <input asp-for="IdProof" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg" />
+                                <div class="text-xs text-muted mt-1">Front and back copy for physician identity authentication.</div>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" onclick="nextWizardStep(3, 2)">
+                                    <i class="bi bi-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-teal text-white px-4 rounded-pill" onclick="nextWizardStep(3, 4)">
+                                    Next: Schedule &amp; Slots <i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 4: SCHEDULE & SLOTS -->
+                        <div class="wizard-step d-none" id="wizardStep4">
+                            <h4 class="fw-bold font-serif text-dark mb-1">Step 4: Availability &amp; Weekly Practice Hours</h4>
+                            <p class="text-muted small mb-4">Set your active video consultation time windows. You can customize daily slots in your dashboard.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Consultation Days *</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach (var day in new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" })
+                                    {
+                                        <div class="form-check form-check-inline border rounded px-3 py-1 bg-light">
+                                            <input class="form-check-input" type="checkbox" id="day_@day" checked />
+                                            <label class="form-check-label small" for="day_@day">@day</label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Active Windows *</label>
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="winMorning" checked />
+                                            <label class="form-check-label small" for="winMorning">Morning (09:00 AM – 01:00 PM)</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="winEvening" checked />
+                                            <label class="form-check-label small" for="winEvening">Evening (04:00 PM – 08:00 PM)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="MaxConsultationsPerDay" class="form-label small fw-semibold">Max Daily Patients</label>
+                                    <input asp-for="MaxConsultationsPerDay" type="number" min="2" max="30" class="form-control" value="10" />
+                                    <div class="text-xs text-muted mt-1">Prevents overbooking and ensures thorough 20-30 min consultations.</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" onclick="nextWizardStep(4, 3)">
+                                    <i class="bi bi-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-teal text-white px-4 rounded-pill" onclick="prepareReviewStep(); nextWizardStep(4, 5);">
+                                    Next: Review &amp; Submit <i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 5: REVIEW & FINAL SUBMISSION -->
+                        <div class="wizard-step d-none" id="wizardStep5">
+                            <h4 class="fw-bold font-serif text-dark mb-1">Step 5: Review &amp; Affirmation</h4>
+                            <p class="text-muted small mb-4">Please verify all submitted clinical credentials before final submission for compliance verification.</p>
+
+                            <div class="card p-3 bg-light border-0 rounded-3 mb-4 text-start">
+                                <div class="row g-3 small">
+                                    <div class="col-md-6">
+                                        <div class="text-muted">Physician Name:</div>
+                                        <div class="fw-bold text-dark" id="revName">—</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="text-muted">Degree &amp; Council:</div>
+                                        <div class="fw-bold text-dark" id="revQual">—</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="text-muted">Registration Number:</div>
+                                        <div class="fw-bold text-dark" id="revRegNo">—</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="text-muted">Consultation Fee:</div>
+                                        <div class="fw-bold text-success" id="revFee">—</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-4">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Physician Affirmation:</strong> I hereby declare that the medical degrees and council registration certificates provided are authentic and valid under the National Commission for Indian System of Medicine (NCISM) Act.
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" onclick="nextWizardStep(5, 4)">
+                                    <i class="bi bi-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="submit" class="btn btn-teal text-white px-4 py-2 rounded-pill fw-bold shadow">
+                                    <i class="bi bi-check2-circle me-1"></i> Submit Application for Verification
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .btn-teal {
+        background-color: #0C6258;
+        border-color: #0C6258;
+    }
+    .btn-teal:hover {
+        background-color: #084841;
+        border-color: #084841;
+    }
+    .text-teal {
+        color: #0C6258 !important;
+    }
+    .wizard-step-pill {
+        background: rgba(255, 255, 255, 0.15);
+        color: #FFFFFF;
+        padding: 6px 12px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .wizard-step-pill.active {
+        background: #E3A72F;
+        color: #094038;
+    }
+    .wizard-step-pill .step-num {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        line-height: 18px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 50%;
+        margin-right: 4px;
+    }
+</style>
+
+@section Scripts {
+<script>
+    function nextWizardStep(current, next) {
+        document.querySelectorAll(".wizard-step").forEach(s => s.classList.add("d-none"));
+        const target = document.getElementById("wizardStep" + next);
+        if (target) target.classList.remove("d-none");
+
+        document.querySelectorAll(".wizard-step-pill").forEach((pill, idx) => {
+            if (idx + 1 === next) {
+                pill.classList.add("active");
+            } else {
+                pill.classList.remove("active");
+            }
+        });
+        window.scrollTo({ top: 120, behavior: "smooth" });
+    }
+
+    function prepareReviewStep() {
+        const name = document.querySelector('input[name="FullName"]')?.value || "";
+        const qual = document.querySelector('select[name="Qualification"]')?.value || "";
+        const council = document.querySelector('input[name="RegistrationCouncil"]')?.value || "";
+        const regNo = document.querySelector('input[name="RegistrationNumber"]')?.value || "";
+        const fee = document.querySelector('input[name="ConsultationFee"]')?.value || "499";
+
+        document.getElementById("revName").innerText = "Dr. " + name;
+        document.getElementById("revQual").innerText = qual + " (" + council + ")";
+        document.getElementById("revRegNo").innerText = regNo;
+        document.getElementById("revFee").innerText = "₹" + fee + " per session";
+    }
+</script>
+}

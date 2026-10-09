@@ -1,74 +1,260 @@
 @model Ayurveda.Application.ViewModels.RegisterViewModel
 @{
-    ViewData["Title"] = "Create Account";
+    ViewData["Title"] = "Create Patient Account";
 }
 
-<div class="container py-5">
+<div class="container py-5 my-auto">
     <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4">
-                <h2 class="fw-bold text-dark mb-1" style="font-family: Georgia, serif;">Join The Great Ayurveda</h2>
-                <p class="text-muted small mb-4">Create your patient profile for seamless consultations and orders</p>
+        <div class="col-lg-10 col-xl-9">
+            <div class="card shadow-xl border-0 rounded-4 overflow-hidden">
+                <div class="row g-0">
+                    <!-- Left: Illustration & Benefits Panel -->
+                    <div class="col-md-5 d-none d-md-flex flex-column justify-content-between p-5 text-white position-relative"
+                         style="background: linear-gradient(135deg, #0E2B1B 0%, #143F27 50%, #1F5E3B 100%);">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-4">
+                                <img src="/images/logo-dark.svg" alt="The Great Ayurveda" height="42" />
+                            </div>
 
-                @if (!ViewData.ModelState.IsValid)
-                {
-                    <div class="alert alert-danger py-2 small" role="alert">
-                        <div asp-validation-summary="All"></div>
-                    </div>
-                }
+                            <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase mb-3">
+                                <i class="bi bi-patch-check-fill me-1"></i> Patient Privileges
+                            </span>
+                            <h3 class="fw-bold font-serif mb-3">Begin Your Vedic Wellness Journey</h3>
+                            <p class="text-light opacity-90 small" style="line-height: 1.6;">
+                                Create an account to unlock tailored Dosha health regimens, confidential HD video appointments, and laboratory-tested Shastriya formulations delivered across India.
+                            </p>
 
-                <form asp-action="Register" method="post">
-                    @Html.AntiForgeryToken()
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Full Name *</label>
-                        <input asp-for="FullName" class="form-control" placeholder="e.g. Aarav Sharma" required />
-                        <span asp-validation-for="FullName" class="text-danger small"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Email Address *</label>
-                        <input asp-for="Email" type="email" class="form-control" placeholder="aarav@example.com" required />
-                        <span asp-validation-for="Email" class="text-danger small"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Mobile Number *</label>
-                        <input asp-for="ContactNumber" class="form-control" placeholder="10-digit mobile number" required />
-                        <span asp-validation-for="ContactNumber" class="text-danger small"></span>
-                    </div>
-
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Password *</label>
-                            <input asp-for="Password" type="password" class="form-control" placeholder="Min 8 characters" required />
-                            <span asp-validation-for="Password" class="text-danger small"></span>
+                            <div class="d-flex flex-column gap-3 mt-4">
+                                <div class="d-flex align-items-start gap-2 small text-light opacity-90">
+                                    <i class="bi bi-check-circle-fill text-warning mt-1"></i>
+                                    <span>Personalized Prakriti Ahara (diet) &amp; Dinacharya plans</span>
+                                </div>
+                                <div class="d-flex align-items-start gap-2 small text-light opacity-90">
+                                    <i class="bi bi-check-circle-fill text-warning mt-1"></i>
+                                    <span>Prescriptions verified by state-licensed BAMS/MD Vaidyas</span>
+                                </div>
+                                <div class="d-flex align-items-start gap-2 small text-light opacity-90">
+                                    <i class="bi bi-check-circle-fill text-warning mt-1"></i>
+                                    <span>100% Shastriya purity with zero heavy-metal adulteration</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Confirm Password *</label>
-                            <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Re-enter password" required />
-                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+
+                        <div class="border-top border-white border-opacity-20 pt-3 small text-white-50">
+                            <i class="bi bi-shield-lock-fill text-warning me-1"></i> Ministry of AYUSH Guidelines Compliant
                         </div>
                     </div>
 
-                    <div class="form-check mb-4">
-                        <input class="form-check-input" type="checkbox" asp-for="AgreeToTerms" id="agreeTerms" required />
-                        <label class="form-check-label small text-muted" for="agreeTerms">
-                            I agree to the <a asp-controller="Home" asp-action="Privacy" target="_blank" class="text-success">Terms of Service & Medical Disclaimer</a>.
-                        </label>
-                        <span asp-validation-for="AgreeToTerms" class="text-danger small d-block"></span>
-                    </div>
+                    <!-- Right: Registration Form -->
+                    <div class="col-md-7 p-4 p-md-5 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h2 class="fw-bold font-serif text-dark mb-1">Create Account</h2>
+                                <p class="text-muted small mb-0">Join India's dedicated Ayurvedic healthcare network</p>
+                            </div>
+                            <img src="/images/logo-mark.svg" alt="" width="36" height="36" class="opacity-75" />
+                        </div>
 
-                    <button type="submit" class="btn btn-tga-primary w-100 py-2 rounded-pill fw-semibold shadow">
-                        Create My Account
-                    </button>
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3" role="alert">
+                                <div asp-validation-summary="All"></div>
+                            </div>
+                        }
 
-                    <div class="text-center mt-4 small text-muted">
-                        Already have an account? 
-                        <a asp-action="Login" class="text-success fw-bold text-decoration-none">Sign In</a>
+                        <form asp-action="Register" method="post" id="registerForm">
+                            @Html.AntiForgeryToken()
+
+                            <div class="mb-3">
+                                <label asp-for="FullName" class="form-label small fw-semibold">Full Legal Name *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                    <input asp-for="FullName" class="form-control border-start-0 ps-0" placeholder="e.g. Aarav Sharma" required />
+                                </div>
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Email" class="form-label small fw-semibold">Email Address *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                                        <input asp-for="Email" type="email" class="form-control border-start-0 ps-0" placeholder="aarav@example.com" required autocomplete="email" />
+                                    </div>
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ContactNumber" class="form-label small fw-semibold">Mobile Number *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted">+91</span>
+                                        <input asp-for="ContactNumber" class="form-control border-start-0 ps-0" placeholder="9876543210" required />
+                                    </div>
+                                    <span asp-validation-for="ContactNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <!-- Password with Live Strength Meter -->
+                            <div class="mb-3">
+                                <label asp-for="Password" class="form-label small fw-semibold">Password *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                                    <input asp-for="Password" type="password" class="form-control border-start-0 border-end-0 ps-0" id="regPasswordInput" placeholder="Minimum 8 characters" required />
+                                    <button type="button" class="input-group-text bg-light border-start-0 text-muted" id="toggleRegPasswordBtn" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye" id="toggleRegPasswordIcon"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+
+                                <!-- Live Strength Meter Bar -->
+                                <div class="mt-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-xs text-muted">Password Strength:</span>
+                                        <span class="text-xs fw-bold" id="strengthLabel">Enter password</span>
+                                    </div>
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar bg-danger" id="strengthBar" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Password Requirements Checklist -->
+                                <div class="row g-1 mt-2 text-xs text-muted" id="pwdCriteria">
+                                    <div class="col-6" id="critLength"><i class="bi bi-circle me-1"></i> 8+ characters</div>
+                                    <div class="col-6" id="critUpper"><i class="bi bi-circle me-1"></i> Uppercase letter</div>
+                                    <div class="col-6" id="critNumber"><i class="bi bi-circle me-1"></i> At least 1 number</div>
+                                    <div class="col-6" id="critSpecial"><i class="bi bi-circle me-1"></i> Special character</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label small fw-semibold">Confirm Password *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock-fill"></i></span>
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control border-start-0 ps-0" placeholder="Re-enter password" required />
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Live Caps Lock Alert -->
+                            <div id="capsLockAlertReg" class="alert alert-warning py-1 px-2 text-xs d-none my-2 rounded-2" role="alert">
+                                <i class="bi bi-capslock-fill me-1"></i> <strong>Caps Lock is ON</strong>
+                            </div>
+
+                            <div class="mb-4 form-check">
+                                <input asp-for="AgreeToTerms" class="form-check-input" id="agreeTermsCheck" required />
+                                <label class="form-check-label small text-muted" for="agreeTermsCheck">
+                                    I agree to the <a asp-controller="Home" asp-action="Privacy" class="text-success text-decoration-none">Terms of Service</a> &amp; <a asp-controller="Home" asp-action="Privacy" class="text-success text-decoration-none">Privacy Policy</a>
+                                </label>
+                                <span asp-validation-for="AgreeToTerms" class="text-danger small d-block"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-tga-gold text-dark fw-bold w-100 py-2 rounded-pill mb-3">
+                                <i class="bi bi-person-check-fill me-1"></i> Register &amp; Verify Email
+                            </button>
+
+                            <div class="text-center pt-2 border-top">
+                                <div class="small text-muted mb-2">
+                                    Already have an account?
+                                    <a asp-action="Login" class="fw-bold text-success text-decoration-none ms-1">Sign In</a>
+                                </div>
+                                <div class="small text-muted">
+                                    Are you a practicing Ayurvedic Doctor?
+                                    <a href="/doctor/register" class="fw-bold text-dark text-decoration-none ms-1"><i class="bi bi-hospital me-1"></i>Apply as Certified Vaidya →</a>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+    // Password Visibility Toggle
+    const toggleBtn = document.getElementById("toggleRegPasswordBtn");
+    const pwdInput = document.getElementById("regPasswordInput");
+    const pwdIcon = document.getElementById("toggleRegPasswordIcon");
+
+    if (toggleBtn && pwdInput && pwdIcon) {
+        toggleBtn.addEventListener("click", () => {
+            const isPassword = pwdInput.getAttribute("type") === "password";
+            pwdInput.setAttribute("type", isPassword ? "text" : "password");
+            pwdIcon.className = isPassword ? "bi bi-eye-slash" : "bi bi-eye";
+        });
+    }
+
+    // Caps Lock Detection
+    const capsAlert = document.getElementById("capsLockAlertReg");
+    if (pwdInput && capsAlert) {
+        pwdInput.addEventListener("keyup", function (e) {
+            if (e.getModifierState && e.getModifierState("CapsLock")) {
+                capsAlert.classList.remove("d-none");
+            } else {
+                capsAlert.classList.add("d-none");
+            }
+        });
+    }
+
+    // Live Password Strength Meter & Checklist
+    const bar = document.getElementById("strengthBar");
+    const label = document.getElementById("strengthLabel");
+    const cLength = document.getElementById("critLength");
+    const cUpper = document.getElementById("critUpper");
+    const cNumber = document.getElementById("critNumber");
+    const cSpecial = document.getElementById("critSpecial");
+
+    if (pwdInput && bar && label) {
+        pwdInput.addEventListener("input", function () {
+            const val = pwdInput.value;
+            let score = 0;
+
+            const hasLength = val.length >= 8;
+            const hasUpper = /[A-Z]/.test(val);
+            const hasNumber = /[0-9]/.test(val);
+            const hasSpecial = /[^A-Za-z0-9]/.test(val);
+
+            updateCriterion(cLength, hasLength);
+            updateCriterion(cUpper, hasUpper);
+            updateCriterion(cNumber, hasNumber);
+            updateCriterion(cSpecial, hasSpecial);
+
+            if (hasLength) score += 25;
+            if (hasUpper) score += 25;
+            if (hasNumber) score += 25;
+            if (hasSpecial) score += 25;
+
+            bar.style.width = score + "%";
+
+            if (score <= 25) {
+                bar.className = "progress-bar bg-danger";
+                label.innerText = "Weak";
+                label.className = "text-xs fw-bold text-danger";
+            } else if (score <= 50) {
+                bar.className = "progress-bar bg-warning";
+                label.innerText = "Fair";
+                label.className = "text-xs fw-bold text-warning";
+            } else if (score <= 75) {
+                bar.className = "progress-bar bg-info";
+                label.innerText = "Good";
+                label.className = "text-xs fw-bold text-info";
+            } else {
+                bar.className = "progress-bar bg-success";
+                label.innerText = "Excellent";
+                label.className = "text-xs fw-bold text-success";
+            }
+        });
+    }
+
+    function updateCriterion(el, pass) {
+        if (!el) return;
+        if (pass) {
+            el.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i> ${el.innerText.trim()}`;
+            el.className = el.className.replace("text-muted", "text-success");
+        } else {
+            el.innerHTML = `<i class="bi bi-circle me-1"></i> ${el.innerText.trim()}`;
+            el.className = el.className.replace("text-success", "text-muted");
+        }
+    }
+</script>
+}

@@ -1,78 +1,164 @@
 @model Ayurveda.Application.ViewModels.LoginViewModel
 @{
-    ViewData["Title"] = "Sign In";
+    var isDoc = Model.IsDoctorLogin;
+    ViewData["Title"] = isDoc ? "Doctor Clinical Desk Sign In" : "Patient Account Sign In";
 }
 
-<div class="container py-5">
+<div class="container py-5 my-auto">
     <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+        <div class="col-lg-10 col-xl-9">
+            <div class="card shadow-xl border-0 rounded-4 overflow-hidden">
                 <div class="row g-0">
-                    <!-- Left: Benefit Panel -->
-                    <div class="col-md-5 d-none d-md-flex flex-column justify-content-between p-5 text-white" 
-                         style="background: linear-gradient(135deg, #143F27, #1F5E3B);">
+                    <!-- Left: Luxury / Clinical Illustration Panel -->
+                    <div class="col-md-5 d-none d-md-flex flex-column justify-content-between p-5 text-white position-relative" 
+                         style="@(isDoc 
+                            ? "background: linear-gradient(135deg, #094038 0%, #0C6258 50%, #14B8A6 100%);" 
+                            : "background: linear-gradient(135deg, #0E2B1B 0%, #143F27 50%, #1F5E3B 100%);")">
+                        
                         <div>
-                            <img src="/images/logo-dark.svg" alt="The Great Ayurveda" height="44" class="mb-4" />
-                            <h3 class="fw-bold mb-3" style="font-family: Georgia, serif;">Welcome to Holistic Wellbeing</h3>
-                            <p class="text-light-emphasis small">
-                                Sign in to manage your Ayurvedic prescriptions, review your medical consults, and order pure lab-tested herbal formulations.
-                            </p>
+                            <div class="d-flex align-items-center gap-2 mb-4">
+                                <img src="/images/logo-dark.svg" alt="The Great Ayurveda" height="42" />
+                            </div>
+
+                            @if (isDoc)
+                            {
+                                <div class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase mb-3">
+                                    <i class="bi bi-hospital me-1"></i> Doctor Portal
+                                </div>
+                                <h3 class="fw-bold font-serif mb-3">Vaidya Clinical Desk</h3>
+                                <p class="text-light opacity-90 small" style="line-height: 1.6;">
+                                    Secure, encrypted platform for certified Ayurvedic physicians. Conduct HD video consultations, issue digital Shastriya prescriptions, and monitor patient Dosha recovery.
+                                </p>
+                            }
+                            else
+                            {
+                                <div class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase mb-3">
+                                    <i class="bi bi-person-heart me-1"></i> Patient Portal
+                                </div>
+                                <h3 class="fw-bold font-serif mb-3">Holistic Healing Awaits</h3>
+                                <p class="text-light opacity-90 small" style="line-height: 1.6;">
+                                    Sign in to track your classical formulation orders, review doctor consultation summaries, and view your custom Nadi Pariksha Ahara charts.
+                                </p>
+                            }
+
+                            <!-- Rotating Benefit Quotes -->
+                            <div class="p-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-15 mt-4">
+                                <div class="small fst-italic text-light opacity-90">
+                                    <i class="bi bi-quote text-warning fs-5"></i>
+                                    @(isDoc 
+                                        ? "“Swasthyasya swasthya rakshanam, aturasya vikara prashamanam cha.” — Charaka Samhita" 
+                                        : "“When diet is wrong, medicine is of no use. When diet is correct, medicine is of no need.” — Ayurvedic Proverb")
+                                </div>
+                            </div>
                         </div>
-                        <div class="border-top border-success-subtle pt-3 small text-white-50">
-                            <i class="bi bi-shield-check text-warning me-1"></i> 100% Encrypted & AYUSH Compliant
+
+                        <div class="border-top border-white border-opacity-20 pt-3 small text-white-50 d-flex align-items-center justify-content-between">
+                            <span><i class="bi bi-shield-check text-warning me-1"></i> 256-Bit Encrypted</span>
+                            <span>AYUSH Standards</span>
                         </div>
                     </div>
 
-                    <!-- Right: Form -->
+                    <!-- Right: Form Card -->
                     <div class="col-md-7 p-4 p-md-5 bg-white">
-                        <h2 class="fw-bold text-dark mb-1" style="font-family: Georgia, serif;">Sign In</h2>
-                        <p class="text-muted small mb-4">Enter your credentials to access your account</p>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 class="fw-bold font-serif text-dark mb-1">
+                                    @(isDoc ? "Vaidya Sign In" : "Patient Sign In")
+                                </h2>
+                                <p class="text-muted small mb-0">Enter your credentials to access your portal</p>
+                            </div>
+                            <img src="/images/logo-mark.svg" alt="" width="36" height="36" class="opacity-75" />
+                        </div>
 
                         @if (!ViewData.ModelState.IsValid)
                         {
-                            <div class="alert alert-danger py-2 small" role="alert">
+                            <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3" role="alert">
                                 <div asp-validation-summary="All"></div>
                             </div>
                         }
 
-                        <form asp-action="Login" method="post">
+                        <form asp-action="Login" method="post" id="loginForm">
                             @Html.AntiForgeryToken()
                             <input type="hidden" asp-for="ReturnUrl" />
+                            <input type="hidden" asp-for="IsDoctorLogin" />
 
                             <div class="mb-3">
-                                <label class="form-label small fw-semibold">Email Address</label>
-                                <input asp-for="Email" class="form-control" type="email" placeholder="name@example.com" required autofocus />
+                                <label asp-for="Email" class="form-label small fw-semibold">Email Address *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                                    <input asp-for="Email" type="email" class="form-control border-start-0 ps-0" placeholder="name@example.com" required autocomplete="email" />
+                                </div>
                                 <span asp-validation-for="Email" class="text-danger small"></span>
                             </div>
 
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <label class="form-label small fw-semibold mb-0">Password</label>
-                                    <a asp-action="ForgotPassword" class="small text-success text-decoration-none">Forgot password?</a>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <label asp-for="Password" class="form-label small fw-semibold">Password *</label>
+                                    <a asp-action="ForgotPassword" class="small text-decoration-none text-success">Forgot password?</a>
                                 </div>
-                                <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" required />
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                                    <input asp-for="Password" type="password" class="form-control border-start-0 border-end-0 ps-0" id="loginPasswordInput" placeholder="••••••••" required autocomplete="current-password" />
+                                    <button type="button" class="input-group-text bg-light border-start-0 text-muted" id="toggleLoginPasswordBtn" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye" id="toggleLoginPasswordIcon"></i>
+                                    </button>
+                                </div>
                                 <span asp-validation-for="Password" class="text-danger small"></span>
                             </div>
 
-                            <div class="form-check mb-4">
-                                <input class="form-check-input" type="checkbox" asp-for="RememberMe" id="rememberMeCheck" />
-                                <label class="form-check-label small text-muted" for="rememberMeCheck">
-                                    Keep me signed in
-                                </label>
+                            <!-- Live Caps Lock Alert -->
+                            <div id="capsLockAlert" class="alert alert-warning py-1 px-2 text-xs d-none my-2 rounded-2" role="alert">
+                                <i class="bi bi-capslock-fill me-1"></i> <strong>Caps Lock is ON</strong>
                             </div>
 
-                            <button type="submit" class="btn btn-tga-primary w-100 py-2 rounded-pill fw-semibold shadow">
-                                Sign In
+                            <div class="mb-4 d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input asp-for="RememberMe" class="form-check-input" id="rememberMeCheck" />
+                                    <label class="form-check-label small text-muted" for="rememberMeCheck">Keep me signed in for 14 days</label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn w-100 py-2 fw-bold rounded-pill mb-3 @(isDoc ? "btn-teal text-white shadow-sm" : "btn-tga-gold text-dark")">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> @(isDoc ? "Sign In to Clinical Desk" : "Sign In to Account")
                             </button>
 
-                            <div class="text-center mt-4 small text-muted">
-                                Don't have an account? 
-                                <a asp-action="Register" class="text-success fw-bold text-decoration-none">Create Account</a>
-                            </div>
+                            <!-- Optional Google Sign-In (Shown only if configured) -->
+                            @if (ViewBag.GoogleSignInEnabled == true)
+                            {
+                                <div class="text-center my-3 position-relative">
+                                    <hr class="text-muted" />
+                                    <span class="position-absolute top-50 start-50 translate-middle bg-white px-2 small text-muted">or continue with</span>
+                                </div>
+                                <a href="/Account/ExternalLogin?provider=Google" class="btn btn-outline-secondary w-100 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-2 mb-3">
+                                    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+                                    Sign in with Google
+                                </a>
+                            }
 
-                            <div class="text-center mt-2 small text-muted">
-                                Are you a Doctor? 
-                                <a asp-action="DoctorRegister" class="text-primary fw-semibold text-decoration-none">Register as Physician</a>
+                            <!-- Cross-role Navigation -->
+                            <div class="text-center pt-2 border-top">
+                                @if (isDoc)
+                                {
+                                    <div class="small text-muted mb-2">
+                                        Looking to order medicines or book a consult?
+                                        <a href="/account/login" class="fw-bold text-success text-decoration-none ms-1">Patient Sign In →</a>
+                                    </div>
+                                    <div class="small text-muted">
+                                        Not yet registered as a Vaidya?
+                                        <a href="/doctor/register" class="fw-bold text-teal text-decoration-none ms-1">Join as Certified Doctor</a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="small text-muted mb-2">
+                                        Don't have an account?
+                                        <a asp-action="Register" class="fw-bold text-success text-decoration-none ms-1">Create Account</a>
+                                    </div>
+                                    <div class="small text-muted">
+                                        Are you a certified Ayurvedic doctor?
+                                        <a href="/doctor/login" class="fw-bold text-dark text-decoration-none ms-1"><i class="bi bi-hospital me-1"></i>Doctor Clinical Desk →</a>
+                                    </div>
+                                }
                             </div>
                         </form>
                     </div>
@@ -81,3 +167,46 @@
         </div>
     </div>
 </div>
+
+<style>
+    .btn-teal {
+        background-color: #0C6258;
+        border-color: #0C6258;
+    }
+    .btn-teal:hover {
+        background-color: #084841;
+        border-color: #084841;
+    }
+    .text-teal {
+        color: #0C6258 !important;
+    }
+</style>
+
+@section Scripts {
+<script>
+    // Password Show/Hide Toggle
+    const toggleBtn = document.getElementById("toggleLoginPasswordBtn");
+    const pwdInput = document.getElementById("loginPasswordInput");
+    const pwdIcon = document.getElementById("toggleLoginPasswordIcon");
+
+    if (toggleBtn && pwdInput && pwdIcon) {
+        toggleBtn.addEventListener("click", () => {
+            const isPassword = pwdInput.getAttribute("type") === "password";
+            pwdInput.setAttribute("type", isPassword ? "text" : "password");
+            pwdIcon.className = isPassword ? "bi bi-eye-slash" : "bi bi-eye";
+        });
+    }
+
+    // Caps Lock Detection
+    const capsAlert = document.getElementById("capsLockAlert");
+    if (pwdInput && capsAlert) {
+        pwdInput.addEventListener("keyup", function (e) {
+            if (e.getModifierState && e.getModifierState("CapsLock")) {
+                capsAlert.classList.remove("d-none");
+            } else {
+                capsAlert.classList.add("d-none");
+            }
+        });
+    }
+</script>
+}

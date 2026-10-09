@@ -1,4 +1,4 @@
-@model Ayurveda.Application.ViewModels.LoginViewModel
+@model Ayurveda.Application.ViewModels.AdminLoginViewModel
 @{
     ViewData["Title"] = "Admin Security Authentication";
     Layout = null;
@@ -33,9 +33,9 @@
         .admin-login-card {
             background: #18221D;
             border: 1px solid #28392F;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-            max-width: 420px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            max-width: 440px;
             width: 100%;
         }
         .form-control {
@@ -55,44 +55,98 @@
     <div class="admin-login-card p-4 p-md-5">
         <div class="text-center mb-4">
             <img src="/images/admin-logo-full.svg" alt="The Great Ayurveda Admin Portal" height="46" class="img-fluid" />
-            <div class="mt-2 text-muted small">RESTRICTED ACCESS • AUTHORIZED PERSONNEL ONLY</div>
+            <div class="mt-2 text-warning small fw-bold letter-spacing-1">
+                RESTRICTED ACCESS • AUTHORIZED PERSONNEL ONLY
+            </div>
         </div>
 
         @if (!ViewData.ModelState.IsValid)
         {
-            <div class="alert alert-danger py-2 small" role="alert">
+            <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3" role="alert">
                 <div asp-validation-summary="All"></div>
             </div>
         }
 
-        <form asp-action="Login" method="post">
+        <form asp-action="Login" method="post" id="adminLoginForm">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="ReturnUrl" />
 
             <div class="mb-3">
-                <label class="form-label small text-white-50">Admin Email</label>
+                <label asp-for="Email" class="form-label small text-light opacity-75">Admin Email *</label>
                 <div class="input-group">
-                    <span class="input-group-text bg-dark border-secondary text-white-50"><i class="bi bi-shield-lock"></i></span>
-                    <input asp-for="Email" class="form-control" type="email" placeholder="admin@thegreatayurveda.com" required autofocus />
+                    <span class="input-group-text bg-dark border-secondary text-muted border-end-0"><i class="bi bi-shield-lock"></i></span>
+                    <input asp-for="Email" type="email" class="form-control border-start-0 ps-0" placeholder="admin@thegreatayurveda.com" required autocomplete="email" />
                 </div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
 
-            <div class="mb-4">
-                <label class="form-label small text-white-50">Security Password</label>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label small text-light opacity-75">Master Password *</label>
                 <div class="input-group">
-                    <span class="input-group-text bg-dark border-secondary text-white-50"><i class="bi bi-key"></i></span>
-                    <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" required />
+                    <span class="input-group-text bg-dark border-secondary text-muted border-end-0"><i class="bi bi-key"></i></span>
+                    <input asp-for="Password" type="password" class="form-control border-start-0 border-end-0 ps-0" id="adminPwdInput" placeholder="••••••••" required autocomplete="current-password" />
+                    <button type="button" class="input-group-text bg-dark border-secondary text-muted border-start-0" id="toggleAdminPwdBtn" aria-label="Toggle password visibility">
+                        <i class="bi bi-eye" id="toggleAdminPwdIcon"></i>
+                    </button>
                 </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
             </div>
 
-            <button type="submit" class="btn btn-success w-100 py-2 rounded-pill fw-semibold shadow" style="background-color: #2C7E50; border: none;">
-                Authenticate & Enter
+            <!-- TOTP 2FA Authenticator Code Input -->
+            <div class="mb-3">
+                <label asp-for="TotpCode" class="form-label small text-light opacity-75">
+                    Authenticator Code (2FA) <span class="text-muted">(Optional if not enabled)</span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-muted border-end-0"><i class="bi bi-phone"></i></span>
+                    <input asp-for="TotpCode" type="text" maxlength="6" class="form-control border-start-0 ps-0" placeholder="6-digit TOTP code" inputmode="numeric" />
+                </div>
+                <span asp-validation-for="TotpCode" class="text-danger small"></span>
+            </div>
+
+            <!-- Caps Lock Alert -->
+            <div id="adminCapsLockAlert" class="alert alert-warning py-1 px-2 text-xs d-none my-2 rounded-2" role="alert">
+                <i class="bi bi-capslock-fill me-1"></i> <strong>Caps Lock is ON</strong>
+            </div>
+
+            <div class="mb-4 form-check">
+                <input asp-for="RememberMe" class="form-check-input" id="adminRememberCheck" />
+                <label class="form-check-label small text-light opacity-75" for="adminRememberCheck">Keep session active</label>
+            </div>
+
+            <button type="submit" class="btn btn-warning text-dark fw-bold w-100 py-2 rounded-pill shadow mb-3">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Authenticate Administrative Session
             </button>
         </form>
 
-        <div class="mt-4 pt-3 border-top border-secondary text-center small text-white-50" style="font-size: 0.75rem;">
-            <i class="bi bi-lock me-1"></i> Authorized Personnel Only. All logins are audited with timestamp & IP.
+        <div class="border-top border-secondary pt-3 text-center text-xs text-muted">
+            <i class="bi bi-shield-shaded me-1"></i> All administrative access attempts are IP logged &amp; monitored.
         </div>
     </div>
+
+    <script>
+        const aToggle = document.getElementById("toggleAdminPwdBtn");
+        const aPwd = document.getElementById("adminPwdInput");
+        const aIcon = document.getElementById("toggleAdminPwdIcon");
+        const aCaps = document.getElementById("adminCapsLockAlert");
+
+        if (aToggle && aPwd && aIcon) {
+            aToggle.addEventListener("click", () => {
+                const isPwd = aPwd.getAttribute("type") === "password";
+                aPwd.setAttribute("type", isPwd ? "text" : "password");
+                aIcon.className = isPwd ? "bi bi-eye-slash" : "bi bi-eye";
+            });
+        }
+
+        if (aPwd && aCaps) {
+            aPwd.addEventListener("keyup", function (e) {
+                if (e.getModifierState && e.getModifierState("CapsLock")) {
+                    aCaps.classList.remove("d-none");
+                } else {
+                    aCaps.classList.add("d-none");
+                }
+            });
+        }
+    </script>
 </body>
 </html>

@@ -21,8 +21,31 @@ public class DoctorPortalController : Controller
     }
 
     [AllowAnonymous]
-    public IActionResult PendingApproval()
+    public async Task<IActionResult> PendingApproval()
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                var doctor = await _context.Doctors
+                    .Include(d => d.DoctorDetail)
+                    .FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || d.Email == user.Email);
+
+                if (doctor?.DoctorDetail != null)
+                {
+                    if (doctor.DoctorDetail.Status == 1)
+                    {
+                        return RedirectToAction(nameof(Dashboard));
+                    }
+
+                    ViewBag.Status = doctor.DoctorDetail.Status;
+                    ViewBag.RejectionReason = doctor.DoctorDetail.RejectionReason;
+                    ViewBag.DoctorName = doctor.DoctorName;
+                    ViewBag.SubmittedAt = doctor.CreatedAt;
+                }
+            }
+        }
         return View();
     }
 

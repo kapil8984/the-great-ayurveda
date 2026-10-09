@@ -261,4 +261,117 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Content.Headers.ContentLength > 0);
     }
+
+    [Fact]
+    public async Task Auth_CustomerLogin_RendersSplitScreenAndControls()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/account/login");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Patient Sign In", html);
+        Assert.Contains("id=\"toggleLoginPasswordBtn\"", html);
+        Assert.Contains("id=\"capsLockAlert\"", html);
+        Assert.Contains("RememberMe", html);
+        Assert.Contains("Forgot password?", html);
+        Assert.Contains("/doctor/login", html);
+    }
+
+    [Fact]
+    public async Task Auth_CustomerRegister_RendersSplitScreenAndStrengthMeter()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/account/register");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Begin Your Vedic Wellness Journey", html);
+        Assert.Contains("id=\"strengthBar\"", html);
+        Assert.Contains("id=\"strengthLabel\"", html);
+        Assert.Contains("id=\"critLength\"", html);
+        Assert.Contains("id=\"capsLockAlertReg\"", html);
+        Assert.Contains("/doctor/register", html);
+    }
+
+    [Fact]
+    public async Task Auth_VerifyEmailOtp_RendersSixBoxesAndCountdown()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/account/verify-otp?email=patient@example.com");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Verify Your Email", html);
+        Assert.Contains("patient@example.com", html);
+        Assert.Contains("class=\"form-control text-center fw-bold fs-4 otp-box", html);
+        Assert.Contains("id=\"countdownTimer\"", html);
+        Assert.Contains("id=\"resendOtpBtn\"", html);
+    }
+
+    [Fact]
+    public async Task Auth_DoctorLogin_RendersClinicalTealTheme()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/doctor/login");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Vaidya Clinical Desk", html);
+        Assert.Contains("Vaidya Sign In", html);
+        Assert.Contains("btn-teal", html);
+    }
+
+    [Fact]
+    public async Task Auth_DoctorRegisterWizard_RendersMultiStepOnboarding()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/doctor/register");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Join India's Leading Vaidya Tele-Health Network", html);
+        Assert.Contains("id=\"wizardStep1\"", html);
+        Assert.Contains("id=\"wizardStep2\"", html);
+        Assert.Contains("id=\"wizardStep3\"", html);
+        Assert.Contains("id=\"wizardStep4\"", html);
+        Assert.Contains("id=\"wizardStep5\"", html);
+        Assert.Contains("Medical Degree Certificate", html);
+    }
+
+    [Fact]
+    public async Task Auth_DoctorPendingApproval_RendersVerificationTimeline()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/doctorportal/pendingapproval");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Credentials Under Verification", html);
+        Assert.Contains("Medical Council Registry Verification", html);
+    }
+
+    [Fact]
+    public async Task Auth_AdminLogin_RendersTotp2FaAndZeroRegisterLinks()
+    {
+        var client = _adminFactory.CreateClient();
+        var response = await client.GetAsync("/auth/login");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("RESTRICTED ACCESS", html);
+        Assert.Contains("TotpCode", html);
+        Assert.Contains("id=\"toggleAdminPwdBtn\"", html);
+        Assert.Contains("id=\"adminCapsLockAlert\"", html);
+        // Rule: Admin portal must have ZERO registration links
+        Assert.DoesNotContain("Register", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Sign Up", html, StringComparison.OrdinalIgnoreCase);
+    }
 }

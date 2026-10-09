@@ -1,26 +1,105 @@
 @{
-    ViewData["Title"] = "Physician Application Pending";
+    ViewData["Title"] = "Physician Verification Status";
+    var isRejected = ViewBag.Status != null && (int)ViewBag.Status == 2;
+    var reason = ViewBag.RejectionReason as string;
+    var doctorName = ViewBag.DoctorName as string ?? "Physician";
+    var submittedAt = ViewBag.SubmittedAt as DateTime? ?? DateTime.UtcNow;
 }
 
-<div class="container py-5 text-center">
-    <div class="card p-5 shadow-sm border-0 rounded-4 mx-auto" style="max-width: 600px;">
-        <div class="text-warning mb-3">
-            <i class="bi bi-clock-history display-3"></i>
-        </div>
-        <h2 class="fw-bold mb-2" style="font-family: Georgia, serif;">Application Under Verification</h2>
-        <p class="text-muted">
-            Thank you for registering with The Great Ayurveda. Your AYUSH council credentials and qualifications are currently undergoing verification by our Medical Review Board.
-        </p>
-        <div class="bg-light p-3 rounded-3 text-start small text-muted my-3">
-            <ul class="mb-0 ps-3">
-                <li>Credential verification typically takes 24 to 48 business hours.</li>
-                <li>Once approved, you will receive an email confirmation and patient booking slots will automatically activate.</li>
-            </ul>
-        </div>
-        <div>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
-                Return to Storefront
-            </a>
+<div class="container py-5 my-auto">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card p-4 p-md-5 shadow-xl border-0 rounded-4 bg-white text-center">
+                @if (isRejected)
+                {
+                    <!-- Rejection Alert & Re-submit Flow -->
+                    <div class="d-inline-flex p-3 rounded-circle bg-danger-subtle text-danger fs-1 mb-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h2 class="fw-bold font-serif text-danger mb-2">Application Needs Revision</h2>
+                    <p class="text-muted small">
+                        Dear Dr. @doctorName, our Medical Review Board reviewed your credentials and found an issue requiring your update.
+                    </p>
+
+                    <div class="alert alert-danger py-3 px-4 text-start rounded-3 mb-4 border-0">
+                        <h6 class="fw-bold text-danger mb-1"><i class="bi bi-x-circle me-1"></i> Medical Compliance Notice:</h6>
+                        <p class="small mb-0">@(string.IsNullOrEmpty(reason) ? "Document resolution unclear or council registration expired. Please provide updated certificates." : reason)</p>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        <a href="/doctor/register" class="btn btn-teal text-white fw-bold px-4 rounded-pill">
+                            <i class="bi bi-pencil-square me-1"></i> Update Credentials &amp; Re-Submit
+                        </a>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary px-4 rounded-pill">
+                            Return to Storefront
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <!-- Pending Review Timeline Flow -->
+                    <div class="d-inline-flex p-3 rounded-circle bg-warning-subtle text-warning fs-1 mb-3">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <h2 class="fw-bold font-serif text-dark mb-2">Credentials Under Verification</h2>
+                    <p class="text-muted small">
+                        Welcome, Dr. @doctorName. Your application has been logged on @submittedAt.ToString("dd MMM yyyy").
+                    </p>
+
+                    <!-- Clinical Verification Status Steps -->
+                    <div class="card p-3 bg-light border-0 rounded-3 text-start mb-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            <div>
+                                <div class="fw-bold small text-dark">Step 1: Application &amp; Degrees Submitted</div>
+                                <div class="text-xs text-muted">BAMS/MD credentials and state council details received.</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                            <div>
+                                <div class="fw-bold small text-warning">Step 2: Medical Council Registry Verification</div>
+                                <div class="text-xs text-muted">Currently in progress with State Ayurvedic Board (24–48 hours).</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi bi-circle text-muted fs-5"></i>
+                            <div>
+                                <div class="fw-bold small text-muted">Step 3: Clinical Desk &amp; Patient Video Slots Activated</div>
+                                <div class="text-xs text-muted">Live appointments will activate immediately upon verification.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-4 text-start">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Need urgent verification support? Contact our clinical compliance desk at <a href="mailto:compliance@thegreatayurveda.com" class="fw-bold text-dark">compliance@thegreatayurveda.com</a>.
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-3">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary px-4 rounded-pill">
+                            Return to Storefront
+                        </a>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-link text-danger text-decoration-none small">
+                                Sign Out
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .btn-teal {
+        background-color: #0C6258;
+        border-color: #0C6258;
+    }
+    .btn-teal:hover {
+        background-color: #084841;
+        border-color: #084841;
+    }
+</style>

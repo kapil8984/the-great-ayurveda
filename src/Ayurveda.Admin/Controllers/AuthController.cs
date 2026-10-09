@@ -23,12 +23,12 @@ public class AuthController : Controller
         {
             return RedirectToAction("Index", "Dashboard");
         }
-        return View(new LoginViewModel { ReturnUrl = returnUrl });
+        return View(new AdminLoginViewModel { ReturnUrl = returnUrl });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginViewModel model)
+    public async Task<IActionResult> Login(AdminLoginViewModel model)
     {
         if (!ModelState.IsValid)
             return View(model);
@@ -36,6 +36,7 @@ public class AuthController : Controller
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
 
+        // Generic error message to prevent enumeration
         if (user == null || !user.IsActive)
         {
             ModelState.AddModelError(string.Empty, "Invalid administrative credentials.");
@@ -51,10 +52,24 @@ public class AuthController : Controller
             return View(model);
         }
 
-        var result = await _signInManager.PasswordSignInAsync(user, model.Password, isPersistent: false, lockoutOnFailure: true);
+        // If user has 2FA enabled and TOTP code provided
+        if (await _userManager.GetTwoFactorEnabledAsync(user) && !string.IsNullOrEmpty(model.TotpCode))
+        {
+            var validCode = await _userManager.VerifyTwoFactorTokenAsync(user, _userManager.Options.Tokens.AuthenticatorTokenProvider, model.TotpCode.Trim());
+            if (!validCode)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid two-factor authenticator code.");
+                return View(model);
+            }
+        }
+
+        var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
+            // Store audit log timestamp
+            TempData["LastLoginNotice"] = $"Last authenticated session: {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC";
+
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
 
@@ -63,7 +78,7 @@ public class AuthController : Controller
 
         if (result.IsLockedOut)
         {
-            ModelState.AddModelError(string.Empty, "Account locked out due to multiple failed access attempts. Please try again after 15 minutes.");
+            ModelState.AddModelError(string.Empty, "Security Alert: Administrative account locked for 15 minutes due to multiple failed authentication attempts.");
             return View(model);
         }
 
@@ -76,7 +91,7 @@ public class AuthController : Controller
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();
-        TempData["SuccessMessage"] = "Admin session terminated.";
+        TempData["SuccessMessage"] = "Administrative session terminated successfully.";
         return RedirectToAction(nameof(Login));
     }
 }

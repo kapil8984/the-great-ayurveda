@@ -127,3 +127,34 @@ public class BookAppointmentViewModelValidator : AbstractValidator<BookAppointme
             .Matches(@"^[0-9+\-\s]{10,15}$").WithMessage("Valid phone number required.");
     }
 }
+
+public class VerifyEmailOtpViewModelValidator : AbstractValidator<VerifyEmailOtpViewModel>
+{
+    public VerifyEmailOtpViewModelValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email is required.")
+            .EmailAddress().WithMessage("A valid email address is required.");
+
+        RuleFor(x => x.Otp)
+            .NotEmpty().WithMessage("6-digit verification code is required.")
+            .Length(6).WithMessage("Code must be 6 digits.")
+            .Matches(@"^[0-9]{6}$").WithMessage("Code must be numeric.");
+    }
+}
+
+public class DoctorRegisterViewModelValidator : AbstractValidator<DoctorRegisterViewModel>
+{
+    public DoctorRegisterViewModelValidator()
+    {
+        RuleFor(x => x.FullName).NotEmpty().WithMessage("Full Name is required.");
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Valid email required.");
+        RuleFor(x => x.ContactNumber).NotEmpty().Matches(@"^[0-9+\-\s]{10,15}$").WithMessage("Valid 10-digit mobile required.");
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(8).Matches(@"[A-Z]").Matches(@"[0-9]").WithMessage("Password must be 8+ chars with uppercase and number.");
+        RuleFor(x => x.ConfirmPassword).Equal(x => x.Password).WithMessage("Passwords do not match.");
+        RuleFor(x => x.Qualification).NotEmpty().WithMessage("Medical qualification (e.g. BAMS, MD) is required.");
+        RuleFor(x => x.RegistrationNumber).NotEmpty().WithMessage("AYUSH/State Medical Council Registration Number is required.");
+        RuleFor(x => x.RegistrationCouncil).NotEmpty().WithMessage("Registration Council name is required.");
+        RuleFor(x => x.ConsultationFee).GreaterThan(0).WithMessage("Consultation fee must be greater than 0.");
+    }
+}
