@@ -1,0 +1,606 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-display: 'Cinzel', serif;
+
+  /* Color Palette: Deep Forest Green, Herbal Jade, Sage, Warm Ivory, Muted Gold */
+  --color-primary-dark: #0f2c1d;
+  --color-primary: #1b4332;
+  --color-primary-medium: #2d6a4f;
+  --color-primary-light: #40916c;
+  --color-primary-soft: #d8f3dc;
+  --color-primary-faint: #eef8f2;
+
+  --color-gold: #c9933b;
+  --color-gold-hover: #b07d2c;
+  --color-gold-light: #fef7ea;
+  --color-gold-border: #f2dcba;
+  --color-accent: #d4a373;
+
+  --color-bg: #fcfbf7;
+  --color-bg-card: #ffffff;
+  --color-bg-subtle: #f6f8f5;
+  --color-bg-ivory: #faf7f0;
+
+  --color-text-main: #182b20;
+  --color-text-muted: #53675a;
+  --color-text-light: #83978b;
+  --color-border: #e2eae4;
+  --color-border-subtle: #edf2ee;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 3px rgba(15, 44, 29, 0.04);
+  --shadow-sm: 0 2px 10px rgba(15, 44, 29, 0.06);
+  --shadow-md: 0 8px 26px rgba(15, 44, 29, 0.08);
+  --shadow-lg: 0 18px 45px rgba(15, 44, 29, 0.12);
+  --shadow-glow-gold: 0 0 25px rgba(201, 147, 59, 0.25);
+  --shadow-glow-green: 0 0 25px rgba(45, 106, 79, 0.2);
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 9999px;
+
+  /* Transitions */
+  --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: all 0.15s ease-out;
+}
+
+/* Reset & Accessibility Defaults */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text-main);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Accessible Keyboard Focus Indicators */
+:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 3px;
+}
+
+/* Typography Hierarchy */
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-serif);
+  color: var(--color-primary-dark);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.font-playfair {
+  font-family: var(--font-serif);
+}
+
+.font-cinzel {
+  font-family: var(--font-display);
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-primary-dark);
+}
+
+/* Top Announcement Bar */
+.ayur-announcement-bar {
+  background: linear-gradient(90deg, #0d281a 0%, #153825 50%, #0d281a 100%);
+  color: #d6eadf;
+  font-size: 0.8rem;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.ayur-announcement-bar a {
+  color: #eed5a1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: var(--transition-fast);
+}
+
+.ayur-announcement-bar a:hover {
+  color: #ffffff;
+}
+
+/* Glassmorphism Header */
+.ayur-topheader {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  transition: var(--transition);
+}
+
+.ayur-navbar {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+  box-shadow: 0 4px 18px rgba(15, 44, 29, 0.16);
+  padding: 0;
+}
+
+.ayur-nav-link {
+  color: #eaf3ed !important;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 13px 18px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: var(--transition);
+  text-decoration: none;
+  position: relative;
+}
+
+.ayur-nav-link:hover, .ayur-nav-link.active {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.ayur-nav-link.portal-badge {
+  color: #f7d58a !important;
+  font-weight: 600;
+}
+
+.ayur-nav-link.portal-badge:hover {
+  color: #ffffff !important;
+  background: rgba(201, 147, 59, 0.25);
+}
+
+/* Search Bar */
+.ayur-search-input {
+  border: 1.5px solid var(--color-border) !important;
+  padding: 10px 48px 10px 18px !important;
+  border-radius: var(--radius-pill) !important;
+  font-size: 0.9rem;
+  background-color: var(--color-bg-subtle) !important;
+  transition: var(--transition) !important;
+  width: 100%;
+  color: var(--color-text-main) !important;
+}
+
+.ayur-search-input:focus {
+  background-color: #ffffff !important;
+  border-color: var(--color-primary-medium) !important;
+  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.15) !important;
+  outline: none;
+}
+
+.ayur-search-btn {
+  border-radius: var(--radius-pill) !important;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-medium) 100%) !important;
+  color: #ffffff !important;
+  padding: 7px 16px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  transition: var(--transition) !important;
+  cursor: pointer;
+}
+
+.ayur-search-btn:hover {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%) !important;
+  transform: scale(1.03);
+}
+
+/* Mobile Drawer / Offcanvas */
+.ayur-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 44, 29, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1090;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ayur-mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 82%;
+  max-width: 340px;
+  background: #ffffff;
+  z-index: 1100;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Modern Botanical Cards */
+.ayur-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  transition: var(--transition);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ayur-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(64, 145, 108, 0.35);
+}
+
+.card-ayur {
+  transition: var(--transition);
+}
+
+.card-ayur:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Custom Buttons with Clear Contrast */
+.btn-ayur-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-medium) 100%);
+  color: #ffffff !important;
+  border: none;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: var(--radius-pill);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(27, 67, 50, 0.2);
+}
+
+.btn-ayur-primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(27, 67, 50, 0.28);
+}
+
+.btn-ayur-outline {
+  background: transparent;
+  color: var(--color-primary) !important;
+  border: 1.5px solid var(--color-primary);
+  font-weight: 600;
+  padding: 9px 22px;
+  border-radius: var(--radius-pill);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-ayur-outline:hover {
+  background: var(--color-primary);
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(27, 67, 50, 0.15);
+}
+
+.btn-ayur-gold {
+  background: linear-gradient(135deg, var(--color-gold) 0%, #db9e3b 100%);
+  color: #172419 !important;
+  border: none;
+  font-weight: 700;
+  padding: 11px 26px;
+  border-radius: var(--radius-pill);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(201, 147, 59, 0.25);
+}
+
+.btn-ayur-gold:hover {
+  background: linear-gradient(135deg, #b5802a 0%, var(--color-gold) 100%);
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(201, 147, 59, 0.35);
+}
+
+/* Secondary Button Palette */
+.btn-primary-ayur {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #ffffff !important;
+  transition: var(--transition);
+}
+
+.btn-primary-ayur:hover {
+  background-color: var(--color-primary-dark) !important;
+  border-color: var(--color-primary-dark) !important;
+  transform: translateY(-1px);
+}
+
+/* Badges */
+.badge-ayur {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+.badge-gold {
+  background: var(--color-gold-light);
+  color: #8c5b16;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  border: 1px solid var(--color-gold-border);
+}
+
+/* Hero Carousel Redesign */
+.hero-editorial {
+  position: relative;
+  min-height: 520px;
+  overflow: hidden;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+}
+
+.hero-editorial-glass {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-xl);
+  padding: 44px;
+  box-shadow: var(--shadow-lg);
+  max-width: 650px;
+}
+
+@media (max-width: 768px) {
+  .hero-editorial-glass {
+    padding: 28px 22px;
+    margin: 16px;
+    max-width: 100%;
+  }
+}
+
+/* Tridosha Cards */
+.dosha-card {
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  padding: 28px;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dosha-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--color-primary-light);
+  transition: var(--transition);
+}
+
+.dosha-card.vata::before { background: #3b82f6; }
+.dosha-card.pitta::before { background: #ef4444; }
+.dosha-card.kapha::before { background: #10b981; }
+
+.dosha-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Product Card Styling */
+.product-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(45, 106, 79, 0.35);
+}
+
+.product-image-container {
+  background: linear-gradient(180deg, #fbfcfb 0%, #f1f6f3 100%);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.product-image {
+  max-height: 175px;
+  max-width: 100%;
+  object-fit: contain;
+  transition: transform 0.35s ease-out;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.06);
+}
+
+/* Doctor Consultation Card */
+.doctor-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  text-align: center;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.doctor-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(45, 106, 79, 0.35);
+}
+
+.doctor-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 16px auto;
+  border: 3px solid var(--color-primary-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Medical Disclaimer Box */
+.medical-disclaimer-box {
+  background: #fbf9f4;
+  border: 1px solid #ebdcc5;
+  border-left: 5px solid var(--color-gold);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  margin: 32px 0;
+  font-size: 0.88rem;
+  color: #5c4e38;
+}
+
+/* Category Pill Chips */
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-main);
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.category-pill:hover, .category-pill.active {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Modals */
+.modal-content {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-lg) !important;
+  overflow: hidden;
+}
+
+.modal-header {
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 20px 24px !important;
+}
+
+/* Footer Styling */
+.ayur-footer {
+  background: linear-gradient(180deg, var(--color-primary-dark) 0%, #071911 100%);
+  color: #b5c7bd;
+  padding: 68px 0 28px 0;
+  margin-top: 80px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ayur-footer h5 {
+  color: #ffffff;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  letter-spacing: 0.02em;
+}
+
+.ayur-footer a {
+  color: #9cb5a5;
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: inline-block;
+  margin-bottom: 10px;
+  transition: var(--transition);
+}
+
+.ayur-footer a:hover {
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+/* Micro-animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Support Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
