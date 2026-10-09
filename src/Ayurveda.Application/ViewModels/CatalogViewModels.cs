@@ -81,6 +81,7 @@ public class CategoryFilterItem
 
 public class HomeViewModel
 {
+    public string HeroVariant { get; set; } = "VaidyaHeritage";
     public List<ProductCardViewModel> FeaturedProducts { get; set; } = new();
     public List<ProductCardViewModel> BestSellers { get; set; } = new();
     public List<ProductCardViewModel> Deals { get; set; } = new();

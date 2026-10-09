@@ -197,4 +197,68 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Content.Headers.ContentLength > 0);
     }
+
+    [Fact]
+    public async Task Storefront_HomePage_RendersAllTwelveWowSections()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        // Section 1 & 2: Announcement & Header Mega-Menu
+        Assert.Contains("AYUSH15", html);
+        Assert.Contains("Shop by Concern", html);
+
+        // Section 3: Hero section
+        Assert.Contains("Harmonize Mind, Body", html);
+
+        // Section 4: Prakriti Quiz
+        Assert.Contains("id=\"prakritiQuizSection\"", html);
+        Assert.Contains("Discover Your True Ayurvedic Prakriti", html);
+
+        // Section 5: Shop by concern and category
+        Assert.Contains("Shop by Health Concern", html);
+        Assert.Contains("Browse by Shastriya Category", html);
+
+        // Section 6: Featured products carousel
+        Assert.Contains("id=\"featuredCarouselTrack\"", html);
+
+        // Section 7: Deals strip with timer
+        Assert.Contains("id=\"dealsCountdown\"", html);
+        Assert.Contains("RITUCHARYA20", html);
+
+        // Section 8: Consult a doctor directory
+        Assert.Contains("id=\"doctors\"", html);
+        Assert.Contains("Consult Certified Ayurvedic Vaidyas", html);
+
+        // Section 9: 3-step timeline
+        Assert.Contains("How The Great Ayurveda Works", html);
+
+        // Section 10: Dinacharya routine clock & Dravya spotlight
+        Assert.Contains("id=\"dinacharya\"", html);
+        Assert.Contains("Brahma Muhurta", html);
+
+        // Section 11: Quality promises & FAQ accordion
+        Assert.Contains("Heavy-Metal Tested", html);
+        Assert.Contains("id=\"tgaFaqAccordion\"", html);
+
+        // Section 12: Statutory medical disclaimer
+        Assert.Contains("Statutory Ayurvedic Healthcare Disclaimer", html);
+    }
+
+    [Theory]
+    [InlineData("/fonts/cormorant-garamond-600.woff2")]
+    [InlineData("/fonts/cormorant-garamond-700.woff2")]
+    [InlineData("/fonts/plus-jakarta-sans-400.woff2")]
+    [InlineData("/fonts/plus-jakarta-sans-600.woff2")]
+    public async Task Storefront_SelfHostedFonts_AreServedSuccessfully(string fontPath)
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync(fontPath);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Content.Headers.ContentLength > 0);
+    }
 }

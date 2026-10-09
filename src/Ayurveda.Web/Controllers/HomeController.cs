@@ -8,15 +8,20 @@ namespace Ayurveda.Web.Controllers;
 public class HomeController : Controller
 {
     private readonly AyurvedaDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public HomeController(AyurvedaDbContext context)
+    public HomeController(AyurvedaDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     public async Task<IActionResult> Index()
     {
-        var model = new HomeViewModel();
+        var model = new HomeViewModel
+        {
+            HeroVariant = _configuration["HomeHeroVariant"] ?? "VaidyaHeritage"
+        };
 
         // 1. Categories
         model.Categories = await _context.Categories
@@ -48,14 +53,35 @@ public class HomeController : Controller
                 ImageUrl = p.ImageUrl,
                 AverageRating = p.AverageRating,
                 Stock = p.Stock,
-                Badge = p.AverageRating >= 4.8 ? "Bestseller" : null
+                Badge = p.AverageRating >= 4.8 ? "Bestseller" : "Classical"
             })
             .ToListAsync();
 
-        // 3. Top Doctors (Approved only)
+        // 3. Deals (High discount products for Deals Strip)
+        model.Deals = await _context.Products
+            .Where(p => p.IsActive && p.DiscountPercent > 0)
+            .OrderByDescending(p => p.DiscountPercent)
+            .Take(4)
+            .Select(p => new ProductCardViewModel
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Brand = p.Brand,
+                CategoryName = p.Category.Name,
+                Price = p.Price,
+                Mrp = p.Mrp,
+                DiscountPercent = p.DiscountPercent,
+                ImageUrl = p.ImageUrl,
+                AverageRating = p.AverageRating,
+                Stock = p.Stock,
+                Badge = $"{p.DiscountPercent}% OFF"
+            })
+            .ToListAsync();
+
+        // 4. Top Doctors (Approved only)
         model.TopDoctors = await _context.Doctors
             .Where(d => d.DoctorDetail != null && d.DoctorDetail.Status == 1)
-            .Take(3)
+            .Take(4)
             .Select(d => new DoctorCardViewModel
             {
                 Id = d.Id,

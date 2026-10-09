@@ -3,250 +3,794 @@
     ViewData["Title"] = "The Great Ayurveda | Authentic Ayurveda Care & Consultation";
 }
 
-<!-- Hero Section -->
-<section class="py-5" style="background: linear-gradient(135deg, #143F27 0%, #1F5E3B 60%, #2C7E50 100%); color: #FBF6EA;">
-    <div class="container py-4">
-        <div class="row align-items-center g-5">
-            <div class="col-lg-7">
-                <span class="badge bg-warning text-dark mb-3 px-3 py-2 fw-semibold">
-                    <i class="bi bi-patch-check-fill me-1"></i> AYUSH Certified Practice
-                </span>
-                <h1 class="display-4 fw-bold mb-3" style="font-family: Georgia, serif; line-height: 1.15;">
-                    Harmonize Mind, Body & Vitality with Classical Ayurveda
-                </h1>
-                <p class="lead mb-4 text-light-emphasis" style="max-width: 620px;">
-                    Experience ancient wisdom through certified AYUSH doctor consultations, pure herbal formulations, and personalized dinacharya routines.
-                </p>
-                <div class="d-flex flex-wrap gap-3 mb-4">
-                    <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-gold btn-lg px-4 shadow">
-                        <i class="bi bi-bag-heart me-1"></i> Explore Medicines
-                    </a>
-                    <a asp-controller="Doctors" asp-action="Index" class="btn btn-outline-light btn-lg px-4 shadow">
-                        <i class="bi bi-camera-video me-1"></i> Consult a Doctor
-                    </a>
-                </div>
-                
-                <!-- Trust Stats -->
-                <div class="row g-3 pt-3 border-top border-success-subtle text-light">
-                    <div class="col-4">
-                        <div class="fs-4 fw-bold text-warning">25,000+</div>
-                        <div class="small text-white-50">Happy Patients</div>
-                    </div>
-                    <div class="col-4">
-                        <div class="fs-4 fw-bold text-warning">150+</div>
-                        <div class="small text-white-50">Verified Doctors</div>
-                    </div>
-                    <div class="col-4">
-                        <div class="fs-4 fw-bold text-warning">100%</div>
-                        <div class="small text-white-50">Pure Herbal Formulations</div>
-                    </div>
-                </div>
-            </div>
+<!-- ========================================================================
+     SECTION 3: HERO (3 CONFIGURABLE VARIANTS VIA Model.HeroVariant)
+     ======================================================================== -->
+@if (Model.HeroVariant == "BotanicalZen")
+{
+    <!-- Variant 2: Botanical Zen -->
+    <section class="hero-botanical-zen py-5 position-relative">
+        <!-- Floating Leaf Particles -->
+        <img src="/images/logo-mark.svg" alt="" class="floating-leaf-1" />
+        <img src="/images/categories/herbs.svg" alt="" class="floating-leaf-2" />
 
-            <!-- Prakriti Interactive Mini Quiz Card -->
-            <div class="col-lg-5">
-                <div class="card bg-white text-dark shadow-lg border-0 rounded-4 p-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h5 class="fw-bold mb-0 text-success"><i class="bi bi-flower1 me-2 text-warning"></i> Find Your Prakriti</h5>
-                        <span class="badge bg-success-subtle text-success">Quick Assessment</span>
-                    </div>
-                    <p class="small text-muted mb-3">
-                        Answer 3 simple physical questions to discover your dominant Ayurvedic dosha (Vata, Pitta, or Kapha).
+        <div class="container py-5 my-auto position-relative" style="z-index: 2;">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <span class="badge bg-success text-white mb-3 px-3 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-flower1 me-1"></i> Botanical Pure Holistic Living
+                    </span>
+                    <h1 class="display-3 fw-bold mb-3 font-serif hero-heading" style="line-height: 1.15;">
+                        Embrace Inner Equilibrium with Pure Botanical Ayurveda
+                    </h1>
+                    <p class="lead mb-4 hero-subheading" style="line-height: 1.6;">
+                        Experience time-tested holistic healing. Connect with certified Vaidyas and explore pure single herbs, cold-pressed oils, and classic decoctions tailored to your Prakriti.
                     </p>
-                    
-                    <form id="prakritiQuizForm" onsubmit="calculateDosha(event)">
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">1. Your Body Frame & Metabolism:</label>
-                            <select class="form-select form-select-sm" id="quizQ1" required>
-                                <option value="vata">Slender, light bones, irregular appetite</option>
-                                <option value="pitta">Medium build, good muscle tone, strong hunger</option>
-                                <option value="kapha">Solid, broad build, slow but steady digestion</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">2. Skin Tendency:</label>
-                            <select class="form-select form-select-sm" id="quizQ2" required>
-                                <option value="vata">Dry, thin, tends to feel cold easily</option>
-                                <option value="pitta">Warm, sensitive, prone to flushing or redness</option>
-                                <option value="kapha">Soft, smooth, well-hydrated, cool</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">3. Sleep & Stress Reaction:</label>
-                            <select class="form-select form-select-sm" id="quizQ3" required>
-                                <option value="vata">Light or interrupted sleep, prone to worry</option>
-                                <option value="pitta">Moderate sleep, intense dreams, sharp focus</option>
-                                <option value="kapha">Deep, heavy sleep, generally calm and patient</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-tga-primary w-100 btn-sm rounded-pill">
-                            Discover My Dosha
-                        </button>
-                    </form>
-
-                    <div id="prakritiResult" class="mt-3 p-3 bg-light rounded text-center d-none">
-                        <h6 class="fw-bold mb-1 text-success" id="doshaTitle">Dominant Dosha: Pitta-Vata</h6>
-                        <p class="small text-muted mb-2" id="doshaDesc">Cooling herbs, grounding routine, and balanced hydration may support your natural equilibrium.</p>
-                        <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-success btn-sm rounded-pill">Explore Harmonizing Formulations</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Shop by Category Grid -->
-<section class="py-5">
-    <div class="container">
-        <div class="d-flex align-items-end justify-content-between mb-4">
-            <div>
-                <span class="text-success fw-bold text-uppercase small">Rooted in Tradition</span>
-                <h2 class="fw-bold mb-0" style="font-family: Georgia, serif;">Curated Botanical Categories</h2>
-            </div>
-            <a asp-controller="Shop" asp-action="Index" class="btn btn-link text-success text-decoration-none fw-semibold">
-                View All Categories <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
-
-        <div class="row g-3">
-            @if (Model.Categories != null && Model.Categories.Any())
-            {
-                @foreach (var cat in Model.Categories.Take(8))
-                {
-                    <div class="col-6 col-md-3">
-                        <a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@cat.Id" class="text-decoration-none">
-                            <div class="card h-100 border text-center p-3 tga-card">
-                                <img src="@cat.ImageUrl" class="mx-auto mb-2" alt="@cat.Name" width="64" height="64" />
-                                <h6 class="fw-bold text-dark mb-1">@cat.Name</h6>
-                                <span class="small text-muted">@cat.Description</span>
-                            </div>
+                    <div class="d-flex flex-wrap gap-3 mb-5">
+                        <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-primary btn-lg">
+                            <i class="bi bi-capsule me-1"></i> Explore Botanical Herbs
+                        </a>
+                        <a asp-controller="Doctors" asp-action="Index" class="btn btn-tga-outline btn-lg">
+                            <i class="bi bi-camera-video me-1"></i> Consult Vaidya
                         </a>
                     </div>
-                }
-            }
+                </div>
+                <div class="col-lg-5 text-center">
+                    <div class="card p-4 shadow-xl border-0 rounded-4 bg-white">
+                        <img src="/images/products/ashwagandha.svg" alt="Pure Herbs" class="img-fluid mx-auto mb-3" style="max-height: 260px;" />
+                        <h4 class="font-serif fw-bold text-success mb-1">Ethically Wildcrafted</h4>
+                        <p class="small text-muted mb-0">Harvested from certified Himalayan sanctuaries under sustainable biodynamic cycles.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+else if (Model.HeroVariant == "ModernAyurStore")
+{
+    <!-- Variant 3: Modern AyurStore -->
+    <section class="hero-modern-ayurstore py-5 position-relative">
+        <div class="container py-5 my-auto position-relative" style="z-index: 2;">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <span class="badge bg-warning text-dark mb-3 px-3 py-2 fw-bold text-uppercase">
+                        <i class="bi bi-lightning-charge-fill me-1"></i> Direct-to-Consumer Shastriya Pharmacy
+                    </span>
+                    <h1 class="display-3 fw-bold mb-3 font-serif text-white" style="line-height: 1.15;">
+                        Authentic Ayurvedic Medicines, Shipped Directly to Your Home
+                    </h1>
+                    <p class="lead text-light mb-4" style="line-height: 1.6; opacity: 0.9;">
+                        Lab-verified classical rasayanas, bhasmas, and tailas from premier AYUSH pharmacies across India. Same-day dispatch with verified doctor consultations.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3 mb-5">
+                        <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-gold btn-lg">
+                            <i class="bi bi-cart3 me-1"></i> Shop Classical Medicines
+                        </a>
+                        <a href="#deals" class="btn btn-tga-outline-white btn-lg">
+                            <i class="bi bi-tag me-1"></i> View Flash Deals
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="hero-stat-card text-center">
+                                <div class="h2 fw-bold text-warning mb-1">500+</div>
+                                <div class="small text-light">Pure Formulations</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="hero-stat-card text-center">
+                                <div class="h2 fw-bold text-warning mb-1">24-48h</div>
+                                <div class="small text-light">Express Delivery</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    <!-- Variant 1: Vaidya Heritage (Default & Recommended Concept) -->
+    <section class="hero-vaidya-heritage py-5 position-relative">
+        <!-- Rotating Sacred Mandala Geometry -->
+        <svg class="hero-mandala-bg" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="250" cy="250" r="240" stroke="#E3A72F" stroke-width="1.5" stroke-dasharray="6,4" />
+            <circle cx="250" cy="250" r="210" stroke="#E3A72F" stroke-width="1" />
+            <circle cx="250" cy="250" r="170" stroke="#E3A72F" stroke-width="1.5" stroke-dasharray="12,8" />
+            <circle cx="250" cy="250" r="120" stroke="#E3A72F" stroke-width="1" />
+            <path d="M 250,10 L 250,490 M 10,250 L 490,250 M 80,80 L 420,420 M 80,420 L 420,80" stroke="#E3A72F" stroke-width="0.8" opacity="0.6" />
+        </svg>
+
+        <!-- Floating Organic Leaf Particles with CSS Parallax Drift -->
+        <img src="/images/logo-mark.svg" alt="" class="floating-leaf-1" />
+        <img src="/images/categories/herbs.svg" alt="" class="floating-leaf-2" />
+
+        <div class="container py-5 my-auto position-relative" style="z-index: 2;">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <div class="d-inline-flex align-items-center gap-2 mb-3 px-3 py-1 rounded-pill bg-white bg-opacity-10 border border-warning border-opacity-25 shadow-sm">
+                        <i class="bi bi-patch-check-fill text-warning"></i>
+                        <span class="small text-warning fw-semibold letter-spacing-1">MINISTRY OF AYUSH RECOGNIZED STANDARDS</span>
+                    </div>
+
+                    <h1 class="display-3 fw-bold mb-3 font-serif text-white" style="line-height: 1.15;">
+                        Harmonize Mind, Body &amp; Vitality with Classical Ayurveda
+                    </h1>
+
+                    <p class="lead mb-4 text-light" style="line-height: 1.65; max-width: 620px; opacity: 0.92;">
+                        Connect with certified BAMS/MD Vaidyas for confidential video consultations. Receive authentic, heavy-metal tested Shastriya formulations tailored to your unique Prakriti.
+                    </p>
+
+                    <!-- Two Distinct CTAs -->
+                    <div class="d-flex flex-wrap gap-3 mb-5">
+                        <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-gold btn-lg">
+                            <i class="bi bi-bag-check-fill me-1"></i> Shop Classical Medicines
+                        </a>
+                        <a asp-controller="Doctors" asp-action="Index" class="btn btn-tga-outline-white btn-lg">
+                            <i class="bi bi-camera-video-fill me-1"></i> Consult Certified Vaidya
+                        </a>
+                    </div>
+
+                    <!-- Trust Chips -->
+                    <div class="d-flex flex-wrap gap-3 pt-3 border-top border-white border-opacity-10 small text-light opacity-80">
+                        <div class="d-flex align-items-center gap-1">
+                            <i class="bi bi-check-circle-fill text-warning"></i> 100% Classical Shastriya
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <i class="bi bi-check-circle-fill text-warning"></i> Heavy-Metal Lab Tested
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <i class="bi bi-check-circle-fill text-warning"></i> Pan-India Discreet Delivery
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Animated Statistics Counters & Spotlight Card -->
+                <div class="col-lg-5">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="hero-stat-card">
+                                <div class="h2 fw-bold text-warning mb-1">25,000+</div>
+                                <div class="small text-light opacity-90 fw-medium">Patients Supported</div>
+                                <div class="text-xs text-white-50 mt-1">Holistic Recovery</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="hero-stat-card">
+                                <div class="h2 fw-bold text-warning mb-1">150+</div>
+                                <div class="small text-light opacity-90 fw-medium">Certified Vaidyas</div>
+                                <div class="text-xs text-white-50 mt-1">BAMS / MD Degrees</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="hero-stat-card">
+                                <div class="h2 fw-bold text-warning mb-1">500+</div>
+                                <div class="small text-light opacity-90 fw-medium">Pure Formulations</div>
+                                <div class="text-xs text-white-50 mt-1">Classical Shastriya</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="hero-stat-card">
+                                <div class="h2 fw-bold text-warning mb-1">4.9 / 5</div>
+                                <div class="small text-light opacity-90 fw-medium">Patient Trust Score</div>
+                                <div class="text-xs text-white-50 mt-1">Verified Experiences</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prakriti Quiz Trigger Banner in Hero -->
+                    <div class="mt-4 p-4 rounded-4 bg-white bg-opacity-10 border border-warning border-opacity-30 backdrop-blur">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 class="text-warning fw-bold mb-1"><i class="bi bi-person-bounding-box me-1"></i> Know Your Dosha?</h6>
+                                <p class="text-xs text-light mb-0">Discover whether you are Vata, Pitta, or Kapha in 2 minutes.</p>
+                            </div>
+                            <a href="#prakritiQuizSection" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark text-nowrap">
+                                Start Quiz
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- ========================================================================
+     SECTION 4: "FIND YOUR PRAKRITI" MINI QUIZ CARD (VATA / PITTA / KAPHA)
+     ======================================================================== -->
+<section class="py-5 bg-light" id="prakritiQuizSection">
+    <div class="container py-4">
+        <div class="text-center max-w-700 mx-auto mb-5">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold text-uppercase">
+                Interactive Vedic Assessment
+            </span>
+            <h2 class="display-5 fw-bold font-serif text-dark mt-2 mb-3">
+                Discover Your True Ayurvedic Prakriti
+            </h2>
+            <p class="text-muted">
+                According to the Charaka Samhita, every human body has a unique elemental constitution (Dosha). Answer 5 simple questions to understand your dominant bio-energy and receive personalized guidance.
+            </p>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="prakriti-quiz-card p-4 p-md-5">
+                    <!-- Progress Bar -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-xs fw-bold text-success text-uppercase" id="quizStepCounter">Question 1 of 5</span>
+                        <span class="text-xs text-muted">Takes ~90 seconds</span>
+                    </div>
+                    <div class="progress mb-4" style="height: 6px;">
+                        <div class="progress-bar bg-success" id="quizProgressBar" style="width: 20%;"></div>
+                    </div>
+
+                    <!-- Quiz Question Body -->
+                    <div id="quizBodyContainer">
+                        <h4 class="fw-bold font-serif text-dark mb-4" id="quizQuestionText">
+                            1. What best describes your physical frame and body build?
+                        </h4>
+                        <div id="quizOptionsContainer" class="d-flex flex-column gap-2 mb-4">
+                            <!-- Populated dynamically via site.js -->
+                        </div>
+                    </div>
+
+                    <!-- Quiz Result Container (Initially Hidden) -->
+                    <div id="quizResultContainer" class="d-none">
+                        <!-- Populated dynamically upon quiz completion -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
-<!-- Featured Classical Products -->
-<section class="py-5 bg-white border-top border-bottom">
-    <div class="container">
-        <div class="d-flex align-items-end justify-content-between mb-4">
+<!-- ========================================================================
+     SECTION 5: SHOP BY CONCERN (ICON GRID) + SHOP BY CATEGORY (CARDS)
+     ======================================================================== -->
+<section class="py-5 bg-white reveal-on-scroll">
+    <div class="container py-4">
+        <!-- 5A. Shop by Concern -->
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
             <div>
-                <span class="text-success fw-bold text-uppercase small">Time-Tested Wellness</span>
-                <h2 class="fw-bold mb-0" style="font-family: Georgia, serif;">Featured Formulations</h2>
+                <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase">Targeted Wellness</span>
+                <h2 class="display-6 fw-bold font-serif text-dark mt-1 mb-0">Shop by Health Concern</h2>
             </div>
-            <a asp-controller="Shop" asp-action="Index" class="btn btn-link text-success text-decoration-none fw-semibold">
-                Explore Full Apothecary <i class="bi bi-arrow-right"></i>
+            <a asp-controller="Shop" asp-action="Index" class="text-success fw-bold text-decoration-none">
+                View All Concerns <i class="bi bi-arrow-right"></i>
             </a>
         </div>
 
-        <div class="row g-4">
-            @if (Model.FeaturedProducts != null && Model.FeaturedProducts.Any())
-            {
-                @foreach (var prod in Model.FeaturedProducts)
-                {
-                    <div class="col-6 col-lg-3">
-                        <partial name="_ProductCard" model="prod" />
-                    </div>
-                }
-            }
-        </div>
-    </div>
-</section>
-
-<!-- Consult Verified AYUSH Doctors -->
-<section class="py-5">
-    <div class="container">
-        <div class="d-flex align-items-end justify-content-between mb-4">
-            <div>
-                <span class="text-success fw-bold text-uppercase small">Holistic Consultations</span>
-                <h2 class="fw-bold mb-0" style="font-family: Georgia, serif;">Consult Certified Doctors</h2>
+        <div class="row row-cols-2 row-cols-md-4 g-3 mb-5">
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Digestion" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-fire"></i></div>
+                    <h6 class="fw-bold mb-1">Digestion &amp; Agni</h6>
+                    <span class="text-xs text-muted">Acidity, Bloating, Constipation</span>
+                </a>
             </div>
-            <a asp-controller="Doctors" asp-action="Index" class="btn btn-link text-success text-decoration-none fw-semibold">
-                Browse All Doctors <i class="bi bi-arrow-right"></i>
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Stress" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-moon-stars"></i></div>
+                    <h6 class="fw-bold mb-1">Stress &amp; Deep Sleep</h6>
+                    <span class="text-xs text-muted">Anxiety, Insomnia, Restlessness</span>
+                </a>
+            </div>
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Immunity" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-shield-plus"></i></div>
+                    <h6 class="fw-bold mb-1">Immunity &amp; Ojas</h6>
+                    <span class="text-xs text-muted">Seasonal Defense, Vitality</span>
+                </a>
+            </div>
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Joints" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-activity"></i></div>
+                    <h6 class="fw-bold mb-1">Joint &amp; Muscle Pain</h6>
+                    <span class="text-xs text-muted">Arthritis, Stiffness, Backache</span>
+                </a>
+            </div>
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Hair" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-flower1"></i></div>
+                    <h6 class="fw-bold mb-1">Hair &amp; Scalp Care</h6>
+                    <span class="text-xs text-muted">Hair Fall, Dandruff, Premature Graying</span>
+                </a>
+            </div>
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Skin" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-brightness-high"></i></div>
+                    <h6 class="fw-bold mb-1">Skin Glow &amp; Detox</h6>
+                    <span class="text-xs text-muted">Acne, Eczema, Natural Radiance</span>
+                </a>
+            </div>
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Metabolism" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-speedometer"></i></div>
+                    <h6 class="fw-bold mb-1">Healthy Metabolism</h6>
+                    <span class="text-xs text-muted">Blood Sugar, Thyroid, Weight Balance</span>
+                </a>
+            </div>
+            <div class="col">
+                <a asp-controller="Shop" asp-action="Index" asp-route-concern="Womens" class="concern-card">
+                    <div class="concern-icon-wrap"><i class="bi bi-gender-female"></i></div>
+                    <h6 class="fw-bold mb-1">Women's Harmony</h6>
+                    <span class="text-xs text-muted">PCOS, Hormones, Shatavari</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 5B. Shop by Category -->
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 pt-3">
+            <div>
+                <span class="badge bg-success-subtle text-success px-3 py-1 fw-bold text-uppercase">Classical Categories</span>
+                <h2 class="display-6 fw-bold font-serif text-dark mt-1 mb-0">Browse by Shastriya Category</h2>
+            </div>
+            <a asp-controller="Shop" asp-action="Index" class="text-success fw-bold text-decoration-none">
+                Explore All Categories <i class="bi bi-arrow-right"></i>
             </a>
         </div>
 
-        <div class="row g-4">
-            @if (Model.TopDoctors != null && Model.TopDoctors.Any())
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+            @foreach (var cat in Model.Categories.Take(8))
             {
-                @foreach (var doc in Model.TopDoctors.Take(3))
-                {
-                    <div class="col-md-4">
-                        <partial name="_DoctorCard" model="doc" />
-                    </div>
-                }
+                <div class="col">
+                    <a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@cat.Id" class="category-luxury-card">
+                        <div class="category-img-box">
+                            <img src="@cat.ImageUrl" alt="@cat.Name" class="img-fluid" style="max-height: 90px;" />
+                        </div>
+                        <div class="p-3 text-center">
+                            <h6 class="fw-bold text-dark mb-1">@cat.Name</h6>
+                            <span class="badge bg-light text-muted border px-2 py-1 text-xs">@cat.ProductCount Formulations</span>
+                        </div>
+                    </a>
+                </div>
             }
         </div>
     </div>
 </section>
 
-<!-- How It Works Timeline -->
-<section class="py-5 bg-light border-top">
-    <div class="container text-center py-2">
-        <span class="text-success fw-bold text-uppercase small">Your Wellness Journey</span>
-        <h2 class="fw-bold mb-5" style="font-family: Georgia, serif;">How The Great Ayurveda Works</h2>
-        
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="p-4 bg-white rounded-4 shadow-sm h-100">
-                    <div class="fs-1 text-success mb-3"><i class="bi bi-calendar-heart"></i></div>
-                    <h5 class="fw-bold">1. Book Consultation</h5>
-                    <p class="small text-muted mb-0">Select your preferred date, time and consultation mode (video or audio) with verified AYUSH practitioners.</p>
-                </div>
+<!-- ========================================================================
+     SECTION 6: FEATURED PRODUCTS CAROUSEL (TOUCH-SWIPE & KEYBOARD ACCESSIBLE)
+     ======================================================================== -->
+<section class="py-5 bg-light reveal-on-scroll" id="featured">
+    <div class="container py-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+            <div>
+                <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase">Classical Apothecary</span>
+                <h2 class="display-6 fw-bold font-serif text-dark mt-1 mb-0">Featured Shastriya Formulations</h2>
+                <p class="text-muted small mb-0">Laboratory tested for zero heavy metals and manufactured strictly according to the Ayurvedic Formulary of India (AFI).</p>
             </div>
-            <div class="col-md-4">
-                <div class="p-4 bg-white rounded-4 shadow-sm h-100">
-                    <div class="fs-1 text-warning mb-3"><i class="bi bi-journal-medical"></i></div>
-                    <h5 class="fw-bold">2. Tailored Plan</h5>
-                    <p class="small text-muted mb-0">Receive comprehensive lifestyle, dietary (Ahara), daily routine (Dinacharya), and classical herbal guidance.</p>
-                </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary rounded-circle p-2" id="carouselPrevBtn" aria-label="Previous Products">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary rounded-circle p-2" id="carouselNextBtn" aria-label="Next Products">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
             </div>
-            <div class="col-md-4">
-                <div class="p-4 bg-white rounded-4 shadow-sm h-100">
-                    <div class="fs-1 text-success mb-3"><i class="bi bi-box2-heart"></i></div>
-                    <h5 class="fw-bold">3. Pure Herbs at Home</h5>
-                    <p class="small text-muted mb-0">Authentic lab-tested medicines delivered safely across India with complete usage instructions.</p>
+        </div>
+
+        <div class="carousel-touch-track" id="featuredCarouselTrack" tabindex="0" role="region" aria-label="Featured Products Carousel">
+            @foreach (var item in Model.FeaturedProducts)
+            {
+                <div class="carousel-touch-item">
+                    <partial name="_ProductCard" model="item" />
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ========================================================================
+     SECTION 7: DEALS STRIP WITH LIVE COUNTDOWN TIMER
+     ======================================================================== -->
+<section class="py-5 bg-white reveal-on-scroll" id="deals">
+    <div class="container py-2">
+        <div class="deals-strip">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-6">
+                    <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase mb-2">
+                        <i class="bi bi-lightning-fill me-1"></i> Seasonal Ritucharya Flash Sale
+                    </span>
+                    <h2 class="display-5 fw-bold font-serif text-white mb-3">
+                        Up to 25% Off Rasayana Immunity &amp; Vitality Tonics
+                    </h2>
+                    <p class="text-light opacity-90 mb-4" style="line-height: 1.6;">
+                        Boost your Ojas with classical formulations crafted during seasonal transitions. Limited batch availability directly from certified GMP laboratories.
+                    </p>
+
+                    <!-- Countdown Clock -->
+                    <div class="mb-4">
+                        <div class="small text-uppercase text-warning fw-bold mb-2 letter-spacing-1">Offer Ends In:</div>
+                        <div class="countdown-box" id="dealsCountdown">
+                            <div class="countdown-unit">
+                                <div class="number" id="timerHours">08</div>
+                                <div class="label">Hours</div>
+                            </div>
+                            <div class="countdown-unit">
+                                <div class="number" id="timerMins">45</div>
+                                <div class="label">Mins</div>
+                            </div>
+                            <div class="countdown-unit">
+                                <div class="number" id="timerSecs">30</div>
+                                <div class="label">Secs</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <span class="badge badge-code rounded-pill px-3 py-2 fs-6" data-copy-coupon="RITUCHARYA20">
+                            Coupon: RITUCHARYA20
+                        </span>
+                        <a asp-controller="Shop" asp-action="Index" class="btn btn-tga-gold">
+                            <i class="bi bi-bag-check me-1"></i> Shop Deals Now
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="row g-3">
+                        @foreach (var deal in Model.Deals.Take(2))
+                        {
+                            <div class="col-6">
+                                <div class="product-card p-3 bg-white text-dark rounded-4 shadow-sm h-100 d-flex flex-column">
+                                    <div class="position-relative bg-light rounded-3 p-3 text-center mb-3">
+                                        <span class="position-absolute top-0 start-0 m-2 badge bg-danger">@deal.Badge</span>
+                                        <img src="@deal.ImageUrl" alt="@deal.Title" class="img-fluid" style="height: 110px; object-fit: contain;" />
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1 text-truncate">@deal.Title</h6>
+                                    <div class="text-xs text-muted mb-2">@deal.CategoryName</div>
+                                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="fw-bold text-success fs-6">₹@deal.Price</span>
+                                            <span class="text-muted text-decoration-line-through text-xs ms-1">₹@deal.Mrp</span>
+                                        </div>
+                                        <button type="button" class="btn btn-tga-primary btn-sm rounded-pill px-3 btn-add-to-cart-ajax" data-product-id="@deal.Id">
+                                            Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-@section Scripts {
-<script>
-function calculateDosha(event) {
-    event.preventDefault();
-    const q1 = document.getElementById("quizQ1").value;
-    const q2 = document.getElementById("quizQ2").value;
-    const q3 = document.getElementById("quizQ3").value;
+<!-- ========================================================================
+     SECTION 8: CONSULT A DOCTOR (LIVE VAIDYA DIRECTORY)
+     ======================================================================== -->
+<section class="py-5 bg-light reveal-on-scroll" id="doctors">
+    <div class="container py-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+            <div>
+                <span class="badge bg-success-subtle text-success px-3 py-1 fw-bold text-uppercase">Certified Clinical Care</span>
+                <h2 class="display-6 fw-bold font-serif text-dark mt-1 mb-0">Consult Certified Ayurvedic Vaidyas</h2>
+                <p class="text-muted small mb-0">Every physician holds a verified BAMS or MD degree recognized by state medical councils and the National Commission for Indian System of Medicine (NCISM).</p>
+            </div>
+            <a asp-controller="Doctors" asp-action="Index" class="text-success fw-bold text-decoration-none">
+                View All Doctors <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
 
-    const counts = { vata: 0, pitta: 0, kapha: 0 };
-    counts[q1]++;
-    counts[q2]++;
-    counts[q3]++;
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            @foreach (var doc in Model.TopDoctors)
+            {
+                <div class="col">
+                    <partial name="_DoctorCard" model="doc" />
+                </div>
+            }
+        </div>
+    </div>
+</section>
 
-    let dominant = "vata";
-    if (counts.pitta >= counts.vata && counts.pitta >= counts.kapha) dominant = "pitta";
-    if (counts.kapha > counts.vata && counts.kapha > counts.pitta) dominant = "kapha";
+<!-- ========================================================================
+     SECTION 9: "HOW IT WORKS" 3-STEP ANIMATED TIMELINE
+     ======================================================================== -->
+<section class="py-5 bg-white reveal-on-scroll">
+    <div class="container py-4">
+        <div class="text-center max-w-700 mx-auto mb-5">
+            <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase">Simple Healing Journey</span>
+            <h2 class="display-5 fw-bold font-serif text-dark mt-2 mb-3">How The Great Ayurveda Works</h2>
+            <p class="text-muted">A seamless bridge between ancient Vedic diagnostics and modern doorstep convenience.</p>
+        </div>
 
-    const resultBox = document.getElementById("prakritiResult");
-    const title = document.getElementById("doshaTitle");
-    const desc = document.getElementById("doshaDesc");
+        <div class="row g-4 position-relative">
+            <div class="col-md-4">
+                <div class="timeline-card">
+                    <div class="timeline-badge">1</div>
+                    <h5 class="fw-bold font-serif text-dark mb-2">Identify Concern or Prakriti</h5>
+                    <p class="text-muted small mb-0">
+                        Take our 90-second dosha assessment or select your targeted health concern from our categorized classical formulation list.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="timeline-card">
+                    <div class="timeline-badge">2</div>
+                    <h5 class="fw-bold font-serif text-dark mb-2">1-on-1 Video Consultation</h5>
+                    <p class="text-muted small mb-0">
+                        Connect over secure encrypted video with a certified BAMS/MD Vaidya for in-depth Nadi Pariksha history and root-cause analysis.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="timeline-card">
+                    <div class="timeline-badge">3</div>
+                    <h5 class="fw-bold font-serif text-dark mb-2">Custom Regimen Delivered</h5>
+                    <p class="text-muted small mb-0">
+                        Receive a personalized Ahara-Vihara diet chart along with pure classical medicines delivered discreetly to your doorstep anywhere in India.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
-    if (dominant === "vata") {
-        title.innerText = "Dominant Dosha: Vata (Air & Space)";
-        desc.innerText = "Warm, nourishing foods, regular sleep schedules, and grounding massage oils (Abhyanga) traditionally support Vata equilibrium.";
-    } else if (dominant === "pitta") {
-        title.innerText = "Dominant Dosha: Pitta (Fire & Water)";
-        desc.innerText = "Cooling herbs like Amalaki and Shatavari, moderate hydration, and calming meditation traditionally support Pitta balance.";
-    } else {
-        title.innerText = "Dominant Dosha: Kapha (Earth & Water)";
-        desc.innerText = "Warm spices like Ginger and Trikatu, invigorating movement, and light wholesome meals traditionally support Kapha vitality.";
-    }
+<!-- ========================================================================
+     SECTION 10: AYURVEDA KNOWLEDGE & DINACHARYA (DAILY ROUTINE) CLOCK
+     ======================================================================== -->
+<section class="py-5 bg-light reveal-on-scroll" id="dinacharya">
+    <div class="container py-4">
+        <div class="row g-5 align-items-center">
+            <!-- Left: Dinacharya Interactive Daily Clock -->
+            <div class="col-lg-6">
+                <span class="badge bg-success-subtle text-success px-3 py-1 fw-bold text-uppercase">Dinacharya Clock</span>
+                <h2 class="display-6 fw-bold font-serif text-dark mt-2 mb-3">Sync Your Circadian Agni</h2>
+                <p class="text-muted small mb-4">
+                    Ayurveda aligns your bodily doshas with solar rhythms. Explore optimal daily routine habits prescribed in the Ashtanga Hridaya.
+                </p>
 
-    resultBox.classList.remove("d-none");
-}
-</script>
-}
+                <!-- Dinacharya Tab Buttons -->
+                <div class="d-flex flex-wrap border-bottom mb-3">
+                    <button type="button" class="dinacharya-btn active" data-target="dinaDawn">
+                        <i class="bi bi-sunrise me-1"></i> Brahma Muhurta
+                    </button>
+                    <button type="button" class="dinacharya-btn" data-target="dinaNoon">
+                        <i class="bi bi-sun me-1"></i> Madhyahna (Noon)
+                    </button>
+                    <button type="button" class="dinacharya-btn" data-target="dinaEve">
+                        <i class="bi bi-sunset me-1"></i> Sandhyakala
+                    </button>
+                    <button type="button" class="dinacharya-btn" data-target="dinaNight">
+                        <i class="bi bi-moon me-1"></i> Nidra (Night)
+                    </button>
+                </div>
+
+                <!-- Tab Card 1: Brahma Muhurta -->
+                <div class="card p-4 border-0 rounded-4 shadow-sm dinacharya-card" id="dinaDawn">
+                    <h5 class="fw-bold font-serif text-success mb-2">4:30 AM – 6:00 AM: Sattvic Awakening</h5>
+                    <p class="text-muted small mb-3">
+                        The purest planetary energy. Ushapan (sipping 200ml warm copper water) flushes metabolic toxins (Ama) and activates peristalsis.
+                    </p>
+                    <ul class="list-unstyled small text-muted d-flex flex-column gap-2 mb-0">
+                        <li><i class="bi bi-check2 text-success me-2"></i> <strong>Jihwa Nirlekhana:</strong> Scrape tongue with copper scraper to remove bacteria.</li>
+                        <li><i class="bi bi-check2 text-success me-2"></i> <strong>Gandusha / Oil Pulling:</strong> Swish warm sesame oil for 5 minutes for strong gums.</li>
+                    </ul>
+                </div>
+
+                <!-- Tab Card 2: Madhyahna -->
+                <div class="card p-4 border-0 rounded-4 shadow-sm dinacharya-card d-none" id="dinaNoon">
+                    <h5 class="fw-bold font-serif text-success mb-2">12:00 PM – 1:30 PM: Solar Agni Peak</h5>
+                    <p class="text-muted small mb-3">
+                        Solar heat corresponds to physiological Pitta. Your digestive fire is strongest; this is when you should consume your primary meal.
+                    </p>
+                    <ul class="list-unstyled small text-muted d-flex flex-column gap-2 mb-0">
+                        <li><i class="bi bi-check2 text-success me-2"></i> Consume warm, freshly cooked foods with moderate ghee.</li>
+                        <li><i class="bi bi-check2 text-success me-2"></i> Sip cumin-coriander-fennel (CCF) tea rather than chilled water.</li>
+                    </ul>
+                </div>
+
+                <!-- Tab Card 3: Sandhyakala -->
+                <div class="card p-4 border-0 rounded-4 shadow-sm dinacharya-card d-none" id="dinaEve">
+                    <h5 class="fw-bold font-serif text-success mb-2">6:00 PM – 7:30 PM: Evening Wind-down</h5>
+                    <p class="text-muted small mb-3">
+                        Transition from daylight into dusk. Eat a light supper by sunset to allow full enzymatic breakdown before restful sleep.
+                    </p>
+                    <ul class="list-unstyled small text-muted d-flex flex-column gap-2 mb-0">
+                        <li><i class="bi bi-check2 text-success me-2"></i> Gentle 100-step stroll (Shatapawali) after dinner.</li>
+                        <li><i class="bi bi-check2 text-success me-2"></i> Dim artificial LED lights; practice Anuloma Viloma pranayama.</li>
+                    </ul>
+                </div>
+
+                <!-- Tab Card 4: Nidra -->
+                <div class="card p-4 border-0 rounded-4 shadow-sm dinacharya-card d-none" id="dinaNight">
+                    <h5 class="fw-bold font-serif text-success mb-2">10:00 PM: Restorative Cellular Sleep</h5>
+                    <p class="text-muted small mb-3">
+                        Entering sleep before 10 PM allows Pitta to perform internal liver detoxification and cellular repairs rather than causing mental restlessness.
+                    </p>
+                    <ul class="list-unstyled small text-muted d-flex flex-column gap-2 mb-0">
+                        <li><i class="bi bi-check2 text-success me-2"></i> <strong>Pada Abhyanga:</strong> Massage soles of feet with warm Ksheerabala or sesame oil.</li>
+                        <li><i class="bi bi-check2 text-success me-2"></i> Sip warm golden turmeric milk with a pinch of nutmeg.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right: Herb of the Week Spotlight -->
+            <div class="col-lg-6">
+                <div class="card p-4 p-md-5 border-0 rounded-4 shadow-md bg-white">
+                    <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase align-self-start mb-3">
+                        Dravya Guna Spotlight
+                    </span>
+                    <h3 class="display-6 font-serif fw-bold text-dark mb-1">Ashwagandha</h3>
+                    <div class="text-muted fst-italic mb-3">Withania somnifera • The Royal Adaptogen</div>
+                    <p class="text-muted small" style="line-height: 1.6;">
+                        Revered in the Charaka Samhita as a premier Rasayana (rejuvenator). Traditionally used to calm Vata imbalances, support restful sleep, and foster physical endurance without overstimulation.
+                    </p>
+
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-xs">
+                                <strong>Rasa (Taste):</strong> Tikta, Kashaya, Madhura
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-xs">
+                                <strong>Virya (Potency):</strong> Ushna (Warming)
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-xs">
+                                <strong>Vipaka (Post-Digestive):</strong> Madhura (Sweet)
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-xs">
+                                <strong>Prabhava (Special Action):</strong> Medhya, Balya
+                            </div>
+                        </div>
+                    </div>
+
+                    <a asp-controller="Shop" asp-action="Index" asp-route-concern="Stress" class="btn btn-tga-primary">
+                        <i class="bi bi-search me-1"></i> View Classical Ashwagandha Formulations
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================================================
+     SECTION 11: TESTIMONIALS + 4 QUALITY PROMISES + FAQ ACCORDION
+     ======================================================================== -->
+<section class="py-5 bg-white reveal-on-scroll">
+    <div class="container py-4">
+        <!-- 11A. 4 Quality Promises -->
+        <div class="row g-4 mb-5 pb-4 border-bottom">
+            <div class="col-md-3 text-center">
+                <div class="h1 text-success mb-2"><i class="bi bi-shield-check"></i></div>
+                <h6 class="fw-bold text-dark mb-1">Heavy-Metal Tested</h6>
+                <p class="text-xs text-muted mb-0">Every batch tested by NABL accredited labs for lead, arsenic, and mercury safety.</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="h1 text-success mb-2"><i class="bi bi-book"></i></div>
+                <h6 class="fw-bold text-dark mb-1">Classical Shastriya Texts</h6>
+                <p class="text-xs text-muted mb-0">Strictly prepared according to Charaka, Sushruta, and Sharangadhara Samhitas.</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="h1 text-success mb-2"><i class="bi bi-tree"></i></div>
+                <h6 class="fw-bold text-dark mb-1">Ethically Wildcrafted</h6>
+                <p class="text-xs text-muted mb-0">Pure botanicals harvested sustainably without synthetic chemical pesticides.</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="h1 text-success mb-2"><i class="bi bi-hospital"></i></div>
+                <h6 class="fw-bold text-dark mb-1">Verified AYUSH Vaidyas</h6>
+                <p class="text-xs text-muted mb-0">Strict clinical credential verification on every practicing Ayurvedic physician.</p>
+            </div>
+        </div>
+
+        <!-- 11B. Patient Experiences (Sample Content Notice) -->
+        <div class="text-center max-w-700 mx-auto mb-4">
+            <span class="badge bg-light text-muted border px-3 py-1 fw-bold text-uppercase">Patient Stories</span>
+            <h2 class="display-6 fw-bold font-serif text-dark mt-2 mb-2">Experiences in Holistic Recovery</h2>
+            <div class="badge bg-warning-subtle text-dark border border-warning-subtle text-xs px-2 py-1 mb-3">
+                * Note: Sample patient experience stories based on clinical trial archetypes
+            </div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card p-4 border-0 rounded-4 shadow-sm bg-light h-100">
+                    <div class="text-warning mb-2"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
+                    <p class="small text-muted mb-3 fst-italic">
+                        "The video consultation with Dr. Sharma helped me understand how my aggravated Vata was triggering chronic insomnia. The customized Dashamula and Ahara recommendations restored my natural sleep within three weeks."
+                    </p>
+                    <div class="fw-bold small text-dark">Pooja M., Bengaluru</div>
+                    <div class="text-xs text-muted">Digestive &amp; Sleep Consultation</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 border-0 rounded-4 shadow-sm bg-light h-100">
+                    <div class="text-warning mb-2"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
+                    <p class="small text-muted mb-3 fst-italic">
+                        "Finding genuine, lab-tested Shastriya formulations with botanical certifications online was challenging before The Great Ayurveda. Fast delivery and authentic ingredients."
+                    </p>
+                    <div class="fw-bold small text-dark">Rohan K., Pune</div>
+                    <div class="text-xs text-muted">Classical Formulations Order</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 border-0 rounded-4 shadow-sm bg-light h-100">
+                    <div class="text-warning mb-2"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
+                    <p class="small text-muted mb-3 fst-italic">
+                        "The Prakriti assessment was eye-opening. It showed me my Pitta constitution and guided me toward cooling herbs that significantly improved my skin and gut acidity."
+                    </p>
+                    <div class="fw-bold small text-dark">Dr. Sunita V., Delhi</div>
+                    <div class="text-xs text-muted">Prakriti &amp; Lifestyle Consultation</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11C. FAQ Accordion -->
+        <div class="row justify-content-center pt-3">
+            <div class="col-lg-8">
+                <h3 class="display-6 font-serif fw-bold text-center text-dark mb-4">Frequently Asked Questions</h3>
+                <div class="accordion" id="tgaFaqAccordion">
+                    <div class="accordion-item border-0 mb-3 rounded-3 shadow-sm overflow-hidden">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                Are all doctors on The Great Ayurveda officially licensed?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#tgaFaqAccordion">
+                            <div class="accordion-body text-muted small">
+                                Yes. Every practicing physician holds a registered degree (BAMS or MD in Ayurveda) from a recognized university and is actively registered with their respective State Ayurvedic Board or the National Commission for Indian System of Medicine (NCISM). Our clinical team rigorously verifies each license before onboarding.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item border-0 mb-3 rounded-3 shadow-sm overflow-hidden">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                How do video consultations work?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#tgaFaqAccordion">
+                            <div class="accordion-body text-muted small">
+                                After selecting your preferred Vaidya and booking a convenient slot, you receive an encrypted video meeting link. During your 20-30 minute consultation, the doctor performs a comprehensive Rogi-Roga Pariksha (symptom history, digestion, sleep, tongue assessment) and issues a digital prescription with Ahara (diet) and Vihara (lifestyle) guidance.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item border-0 mb-3 rounded-3 shadow-sm overflow-hidden">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                Are these classical herbal medicines safe alongside allopathic medications?
+                            </button>
+                        </h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#tgaFaqAccordion">
+                            <div class="accordion-body text-muted small">
+                                Many Ayurvedic rasayanas can be safely taken concurrently, but a time gap of 60 to 90 minutes between medications is typically advised. Always disclose your existing prescription medications during your Vaidya video consultation so your doctor can tailor a synergistic regimen.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================================================
+     SECTION 12: STATUTORY MEDICAL DISCLAIMER (VISIBLE BOX)
+     ======================================================================== -->
+<section class="py-4 bg-light">
+    <div class="container">
+        <div class="statutory-disclaimer-card">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-info-circle-fill text-warning fs-4 flex-shrink-0 mt-1"></i>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">Statutory Ayurvedic Healthcare Disclaimer</h6>
+                    <p class="small text-muted mb-0">
+                        Information, formulations, and assessments presented on The Great Ayurveda are classical Ayurvedic proprietary and Shastriya preparations intended for educational and wellness support. Content is not intended to substitute professional medical diagnosis, treatment, or cure of any disease. Do not disregard professional medical advice or delay seeking it because of information on this website. Always consult a qualified AYUSH healthcare practitioner before commencing any herbal regimen.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,253 +1,903 @@
+/* ==========================================================================
+   THE GREAT AYURVEDA — DESIGN SYSTEM & TOKENS
+   Modern Ayurvedic Luxury: Forest Green, Turmeric Gold, Warm Cream, Clay
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. SELF-HOSTED TYPOGRAPHY (No External CDNs)
+   -------------------------------------------------------------------------- */
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/cormorant-garamond-600.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/cormorant-garamond-700.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/plus-jakarta-sans-400.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/plus-jakarta-sans-500.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/plus-jakarta-sans-600.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/plus-jakarta-sans-700.woff2') format('woff2');
+}
+
+/* --------------------------------------------------------------------------
+   2. DESIGN TOKENS
+   -------------------------------------------------------------------------- */
 :root {
-    --tga-forest-green: #1F5E3B;
+    /* Brand Primary Palette */
+    --tga-forest: #1F5E3B;
     --tga-forest-dark: #143F27;
+    --tga-forest-deep: #0D2819;
     --tga-forest-light: #2C7E50;
+    --tga-forest-soft: #EBF4EE;
+    --tga-forest-glow: rgba(31, 94, 59, 0.25);
+
+    /* Turmeric Gold */
     --tga-gold: #E3A72F;
     --tga-gold-hover: #C68E22;
+    --tga-gold-light: #F7C85C;
+    --tga-gold-soft: #FFF9ED;
+    --tga-gold-glow: rgba(227, 167, 47, 0.35);
+
+    /* Parchment Cream */
     --tga-cream: #FBF6EA;
     --tga-cream-card: #F4EEDC;
+    --tga-cream-warm: #FAF2E1;
+    --tga-cream-light: #FFFDF9;
+
+    /* Terracotta Clay */
     --tga-clay: #A4553A;
+    --tga-clay-light: #C46D50;
+    --tga-clay-soft: #FDF1ED;
+
+    /* Ink & Neutral */
     --tga-ink: #1B2A22;
+    --tga-ink-light: #2D3E35;
     --tga-muted: #5E6D64;
-    --tga-border: #E2DBD0;
-    --tga-light-green: #EBF4EE;
+    --tga-muted-light: #8A9990;
+    --tga-border: #E5DED2;
+    --tga-border-light: #EFE9DF;
     --tga-white: #FFFFFF;
-    --tga-shadow-sm: 0 2px 6px rgba(27, 42, 34, 0.05);
-    --tga-shadow-md: 0 6px 18px rgba(27, 42, 34, 0.08);
-    --tga-shadow-lg: 0 12px 30px rgba(27, 42, 34, 0.12);
-    --tga-radius: 12px;
+
+    /* Elevations & Shadows */
+    --tga-shadow-sm: 0 2px 8px rgba(27, 42, 34, 0.05);
+    --tga-shadow-md: 0 8px 24px rgba(27, 42, 34, 0.08);
+    --tga-shadow-lg: 0 16px 36px rgba(27, 42, 34, 0.12);
+    --tga-shadow-xl: 0 24px 50px rgba(27, 42, 34, 0.18);
+    --tga-shadow-gold: 0 8px 25px rgba(227, 167, 47, 0.3);
+
+    /* Radii */
+    --tga-radius-sm: 8px;
+    --tga-radius-md: 14px;
+    --tga-radius-lg: 20px;
+    --tga-radius-xl: 28px;
+    --tga-radius-pill: 9999px;
+
+    /* Typography */
+    --tga-font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --tga-font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   3. GLOBAL BASE STYLES
+   -------------------------------------------------------------------------- */
+html {
+    scroll-behavior: smooth;
 }
 
 body {
     background-color: var(--tga-cream);
     color: var(--tga-ink);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--tga-font-sans);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Announcement Bar */
+.font-serif {
+    font-family: var(--tga-font-serif) !important;
+}
+
+.font-sans {
+    font-family: var(--tga-font-sans) !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. ANNOUNCEMENT BAR & TOP HEADER
+   -------------------------------------------------------------------------- */
 .announcement-bar {
-    background: var(--tga-forest-dark);
+    background: var(--tga-forest-deep);
     color: var(--tga-cream);
-    font-size: 0.825rem;
-    padding: 7px 0;
-    letter-spacing: 0.03em;
+    font-size: 0.8125rem;
+    padding: 8px 0;
+    letter-spacing: 0.025em;
+    border-bottom: 1px solid rgba(227, 167, 47, 0.25);
 }
 
-/* Header & Navbar */
+.announcement-bar .badge-code {
+    background: rgba(227, 167, 47, 0.2);
+    border: 1px dashed var(--tga-gold);
+    color: var(--tga-gold-light);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.announcement-bar .badge-code:hover {
+    background: var(--tga-gold);
+    color: var(--tga-forest-deep);
+}
+
+/* --------------------------------------------------------------------------
+   5. STICKY GLASS HEADER & NAVIGATION
+   -------------------------------------------------------------------------- */
 .tga-navbar {
-    background: rgba(251, 246, 234, 0.95);
-    backdrop-filter: blur(10px);
+    background: rgba(251, 246, 234, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--tga-border);
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1040;
+}
+
+.tga-navbar.scrolled {
+    background: rgba(251, 246, 234, 0.98);
+    box-shadow: var(--tga-shadow-md);
 }
 
 .tga-brand {
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--tga-font-serif);
     font-weight: 700;
-    font-size: 1.45rem;
-    color: var(--tga-forest-green);
+    color: var(--tga-forest);
     text-decoration: none;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    transition: transform 0.2s ease;
+}
+
+.tga-brand:hover {
+    transform: scale(1.02);
 }
 
 .tga-nav-link {
     color: var(--tga-ink);
     font-weight: 500;
-    font-size: 0.95rem;
-    padding: 0.5rem 0.85rem !important;
-    border-radius: 6px;
-    transition: color 0.2s, background-color 0.2s;
+    font-size: 0.9375rem;
+    padding: 0.55rem 0.9rem !important;
+    border-radius: var(--tga-radius-sm);
+    transition: all 0.2s ease;
 }
 
 .tga-nav-link:hover, .tga-nav-link.active {
-    color: var(--tga-forest-green);
-    background-color: rgba(31, 94, 59, 0.06);
+    color: var(--tga-forest);
+    background-color: var(--tga-forest-soft);
 }
 
-/* Buttons */
+/* Mega-Menu Styling */
+.tga-mega-menu {
+    border: 1px solid var(--tga-border);
+    border-radius: var(--tga-radius-md);
+    box-shadow: var(--tga-shadow-xl);
+    background: #FFFFFF;
+    padding: 1.5rem;
+    min-width: 580px;
+    margin-top: 8px;
+}
+
+.tga-mega-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--tga-radius-sm);
+    text-decoration: none;
+    color: var(--tga-ink);
+    transition: all 0.2s;
+}
+
+.tga-mega-item:hover {
+    background: var(--tga-forest-soft);
+    color: var(--tga-forest);
+    transform: translateX(3px);
+}
+
+.tga-mega-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--tga-cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tga-forest);
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   6. HERO SECTIONS & 3 CONFIGURABLE VARIANTS
+   -------------------------------------------------------------------------- */
+
+/* Variant 1: Vaidya Heritage (Default) */
+.hero-vaidya-heritage {
+    position: relative;
+    background: linear-gradient(135deg, #0E2B1B 0%, #17482D 50%, #1F5E3B 100%);
+    color: var(--tga-cream);
+    overflow: hidden;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+}
+
+/* Variant 2: Botanical Zen */
+.hero-botanical-zen {
+    position: relative;
+    background: linear-gradient(140deg, #F2ECE0 0%, #E3E9E0 50%, #CBD8CD 100%);
+    color: var(--tga-ink);
+    overflow: hidden;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+}
+.hero-botanical-zen .hero-heading {
+    color: var(--tga-forest-deep) !important;
+}
+.hero-botanical-zen .hero-subheading {
+    color: #384F42 !important;
+}
+
+/* Variant 3: Modern AyurStore */
+.hero-modern-ayurstore {
+    position: relative;
+    background: radial-gradient(circle at 80% 20%, #2A794E 0%, #143F27 50%, #0A1F13 100%);
+    color: #FFFFFF;
+    overflow: hidden;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+}
+
+/* Animated Layered Background Elements */
+.hero-mandala-bg {
+    position: absolute;
+    right: -10%;
+    top: -15%;
+    width: 750px;
+    height: 750px;
+    pointer-events: none;
+    opacity: 0.12;
+    animation: mandalaSpin 70s linear infinite;
+    transform-origin: center center;
+}
+
+@keyframes mandalaSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Drifting Leaf Particles */
+.floating-leaf-1 {
+    position: absolute;
+    top: 15%;
+    left: 8%;
+    width: 44px;
+    height: 44px;
+    opacity: 0.35;
+    animation: leafFloat1 9s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+.floating-leaf-2 {
+    position: absolute;
+    bottom: 20%;
+    right: 25%;
+    width: 52px;
+    height: 52px;
+    opacity: 0.28;
+    animation: leafFloat2 12s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes leafFloat1 {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    100% { transform: translate(25px, -35px) rotate(22deg); }
+}
+
+@keyframes leafFloat2 {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    100% { transform: translate(-30px, 40px) rotate(-28deg); }
+}
+
+/* Counter Cards */
+.hero-stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(227, 167, 47, 0.3);
+    border-radius: var(--tga-radius-md);
+    padding: 1.1rem 1.4rem;
+    transition: transform 0.25s ease;
+}
+
+.hero-stat-card:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   7. BUTTONS & INTERACTIVE CONTROLS
+   -------------------------------------------------------------------------- */
 .btn-tga-primary {
-    background-color: var(--tga-forest-green);
+    background: var(--tga-forest);
     color: var(--tga-white);
     border: none;
-    padding: 0.6rem 1.4rem;
+    padding: 0.75rem 1.8rem;
     font-weight: 600;
-    border-radius: var(--tga-radius);
+    font-size: 0.95rem;
+    border-radius: var(--tga-radius-pill);
+    box-shadow: 0 4px 14px rgba(31, 94, 59, 0.25);
     transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn-tga-primary:hover {
-    background-color: var(--tga-forest-dark);
+    background: var(--tga-forest-dark);
     color: var(--tga-white);
-    transform: translateY(-1px);
-    box-shadow: var(--tga-shadow-md);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(31, 94, 59, 0.35);
 }
 
 .btn-tga-gold {
-    background-color: var(--tga-gold);
-    color: var(--tga-ink);
+    background: linear-gradient(135deg, #F5C55A 0%, #E3A72F 100%);
+    color: var(--tga-forest-deep);
     border: none;
-    padding: 0.6rem 1.4rem;
-    font-weight: 600;
-    border-radius: var(--tga-radius);
+    padding: 0.75rem 1.8rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: var(--tga-radius-pill);
+    box-shadow: var(--tga-shadow-gold);
     transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn-tga-gold:hover {
-    background-color: var(--tga-gold-hover);
-    color: var(--tga-ink);
-    transform: translateY(-1px);
-    box-shadow: var(--tga-shadow-md);
+    background: linear-gradient(135deg, #F7CD6E 0%, #C68E22 100%);
+    color: var(--tga-forest-deep);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(227, 167, 47, 0.45);
 }
 
 .btn-tga-outline {
-    background-color: transparent;
-    color: var(--tga-forest-green);
-    border: 1.5px solid var(--tga-forest-green);
-    padding: 0.55rem 1.35rem;
+    background: transparent;
+    color: var(--tga-forest);
+    border: 2px solid var(--tga-forest);
+    padding: 0.7rem 1.7rem;
     font-weight: 600;
-    border-radius: var(--tga-radius);
+    font-size: 0.95rem;
+    border-radius: var(--tga-radius-pill);
     transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn-tga-outline:hover {
-    background-color: var(--tga-forest-green);
+    background: var(--tga-forest);
     color: var(--tga-white);
+    transform: translateY(-2px);
 }
 
-/* Cards */
-.tga-card {
-    background-color: var(--tga-white);
+.btn-tga-outline-white {
+    background: transparent;
+    color: var(--tga-cream);
+    border: 2px solid rgba(251, 246, 234, 0.6);
+    padding: 0.7rem 1.7rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: var(--tga-radius-pill);
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-tga-outline-white:hover {
+    background: var(--tga-cream);
+    color: var(--tga-forest-deep);
+    border-color: var(--tga-cream);
+    transform: translateY(-2px);
+}
+
+/* --------------------------------------------------------------------------
+   8. PRAKRITI DOSHA QUIZ (INTERACTIVE 5-STEP)
+   -------------------------------------------------------------------------- */
+.prakriti-quiz-card {
+    background: #FFFFFF;
     border: 1px solid var(--tga-border);
-    border-radius: var(--tga-radius);
-    box-shadow: var(--tga-shadow-sm);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border-radius: var(--tga-radius-xl);
+    box-shadow: var(--tga-shadow-xl);
     overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.tga-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--tga-shadow-lg);
-}
-
-/* Badges */
-.badge-tga-bestseller {
-    background-color: var(--tga-gold);
-    color: var(--tga-ink);
-    font-weight: 600;
-    font-size: 0.725rem;
-    border-radius: 4px;
-    padding: 4px 8px;
-}
-
-.badge-tga-new {
-    background-color: var(--tga-forest-green);
-    color: var(--tga-white);
-    font-weight: 600;
-    font-size: 0.725rem;
-    border-radius: 4px;
-    padding: 4px 8px;
-}
-
-/* Search Autocomplete */
-.search-container {
-    position: relative;
+.prakriti-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
     width: 100%;
+    padding: 1rem 1.25rem;
+    background: var(--tga-cream-light);
+    border: 2px solid var(--tga-border-light);
+    border-radius: var(--tga-radius-md);
+    color: var(--tga-ink);
+    font-weight: 500;
+    text-align: left;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
 }
 
-.search-results-dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    background: var(--tga-white);
-    border: 1px solid var(--tga-border);
-    border-radius: var(--tga-radius);
+.prakriti-option-btn:hover {
+    background: var(--tga-forest-soft);
+    border-color: var(--tga-forest);
+    transform: translateY(-2px);
+}
+
+.prakriti-option-btn.selected {
+    background: var(--tga-forest-soft);
+    border-color: var(--tga-forest);
+    color: var(--tga-forest);
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(31, 94, 59, 0.15);
+}
+
+.dosha-meter-bar {
+    height: 8px;
+    border-radius: 4px;
+    transition: width 0.6s ease;
+}
+
+/* --------------------------------------------------------------------------
+   9. SHOP BY CONCERN & CATEGORY CARDS
+   -------------------------------------------------------------------------- */
+.concern-card {
+    background: #FFFFFF;
+    border: 1px solid var(--tga-border-light);
+    border-radius: var(--tga-radius-lg);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    text-decoration: none;
+    color: var(--tga-ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    height: 100%;
+}
+
+.concern-card:hover {
+    transform: translateY(-6px);
     box-shadow: var(--tga-shadow-lg);
-    z-index: 1050;
-    max-height: 480px;
-    overflow-y: auto;
-    display: none;
+    border-color: var(--tga-gold);
+    color: var(--tga-forest);
 }
 
-.search-results-dropdown.show {
+.concern-icon-wrap {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--tga-forest-soft);
+    color: var(--tga-forest);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 12px;
+    transition: all 0.25s ease;
+}
+
+.concern-card:hover .concern-icon-wrap {
+    background: var(--tga-forest);
+    color: #FFFFFF;
+    transform: rotate(5deg) scale(1.08);
+}
+
+.category-luxury-card {
+    position: relative;
+    border-radius: var(--tga-radius-lg);
+    overflow: hidden;
+    background: #FFFFFF;
+    border: 1px solid var(--tga-border);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
     display: block;
 }
 
-.search-section-header {
-    padding: 8px 16px;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: var(--tga-muted);
-    background-color: var(--tga-cream);
-    border-bottom: 1px solid var(--tga-border);
+.category-luxury-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--tga-shadow-xl);
+    border-color: var(--tga-gold);
 }
 
-.search-item {
+.category-img-box {
+    height: 150px;
+    background: var(--tga-cream-card);
     display: flex;
     align-items: center;
-    padding: 10px 16px;
-    color: var(--tga-ink);
-    text-decoration: none;
-    border-bottom: 1px solid #F0ECE4;
-    transition: background-color 0.15s ease;
+    justify-content: center;
+    padding: 1.5rem;
+    transition: transform 0.4s ease;
 }
 
-.search-item:hover, .search-item.active {
-    background-color: var(--tga-light-green);
+.category-luxury-card:hover .category-img-box img {
+    transform: scale(1.1);
 }
 
-/* Medical Disclaimer Banner & Footer */
-.medical-disclaimer-banner {
-    background-color: #FEF7EA;
-    border: 1px solid #EADBB6;
-    color: #6C5424;
+/* --------------------------------------------------------------------------
+   10. PRODUCT CARDS & CAROUSEL
+   -------------------------------------------------------------------------- */
+.product-card {
+    background: #FFFFFF;
+    border: 1px solid var(--tga-border-light);
+    border-radius: var(--tga-radius-lg);
+    overflow: hidden;
+    transition: all 0.25s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--tga-shadow-lg);
+    border-color: rgba(227, 167, 47, 0.4);
+}
+
+.product-thumb {
+    position: relative;
+    background: var(--tga-cream-card);
+    height: 210px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.product-thumb img {
+    max-height: 170px;
+    max-width: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-thumb img {
+    transform: scale(1.06);
+}
+
+/* Product Badges */
+.badge-bestseller {
+    background: var(--tga-gold);
+    color: var(--tga-forest-deep);
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: var(--tga-radius-pill);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.badge-classical {
+    background: var(--tga-forest);
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: var(--tga-radius-pill);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.badge-discount {
+    background: var(--tga-clay);
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: var(--tga-radius-sm);
+}
+
+/* Accessible Carousel Container */
+.carousel-touch-track {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding-bottom: 1.5rem;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.carousel-touch-track::-webkit-scrollbar {
+    display: none;
+}
+
+.carousel-touch-item {
+    flex: 0 0 calc(25% - 1.15rem);
+    min-width: 260px;
+    scroll-snap-align: start;
+}
+
+@media (max-width: 991px) {
+    .carousel-touch-item {
+        flex: 0 0 calc(50% - 0.75rem);
+    }
+}
+
+@media (max-width: 575px) {
+    .carousel-touch-item {
+        flex: 0 0 85%;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   11. DEALS STRIP & COUNTDOWN TIMER
+   -------------------------------------------------------------------------- */
+.deals-strip {
+    background: linear-gradient(135deg, #143F27 0%, #1F5E3B 100%);
+    border-radius: var(--tga-radius-xl);
+    padding: 3rem 2.5rem;
+    color: var(--tga-cream);
+    box-shadow: var(--tga-shadow-xl);
+    border: 1px solid rgba(227, 167, 47, 0.4);
+}
+
+.countdown-box {
+    display: inline-flex;
+    gap: 12px;
+}
+
+.countdown-unit {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--tga-gold);
+    border-radius: var(--tga-radius-md);
+    padding: 8px 14px;
+    min-width: 65px;
+    text-align: center;
+}
+
+.countdown-unit .number {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--tga-gold);
+    line-height: 1.1;
+    font-family: var(--tga-font-sans);
+}
+
+.countdown-unit .label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--tga-cream);
+    opacity: 0.8;
+}
+
+/* --------------------------------------------------------------------------
+   12. DOCTOR CONSULTATION CARDS & BEACON
+   -------------------------------------------------------------------------- */
+.doctor-card {
+    background: #FFFFFF;
+    border: 1px solid var(--tga-border);
+    border-radius: var(--tga-radius-lg);
+    padding: 1.75rem;
+    transition: all 0.25s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.doctor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--tga-shadow-xl);
+    border-color: var(--tga-forest-light);
+}
+
+.doctor-avatar-wrap {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--tga-cream-card);
+    flex-shrink: 0;
+}
+
+.doctor-avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Pulsing live availability beacon */
+.availability-beacon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1F8A4C;
+}
+
+.beacon-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #28A745;
+    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(40, 167, 69, 0.4);
+    animation: beaconPulse 2s infinite;
+}
+
+@keyframes beaconPulse {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.6); }
+    70% { box-shadow: 0 0 0 8px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   13. 3-STEP TIMELINE & DINACHARYA CLOCK
+   -------------------------------------------------------------------------- */
+.timeline-card {
+    background: #FFFFFF;
+    border: 1px solid var(--tga-border);
+    border-radius: var(--tga-radius-lg);
+    padding: 2rem 1.75rem;
+    position: relative;
+    height: 100%;
+    transition: all 0.25s ease;
+}
+
+.timeline-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--tga-shadow-lg);
+    border-color: var(--tga-forest);
+}
+
+.timeline-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--tga-forest) 0%, var(--tga-forest-dark) 100%);
+    color: var(--tga-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 6px 16px rgba(31, 94, 59, 0.25);
+}
+
+/* Dinacharya Tabs */
+.dinacharya-btn {
+    border: none;
+    background: transparent;
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    color: var(--tga-muted);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.dinacharya-btn:hover {
+    color: var(--tga-forest);
+}
+
+.dinacharya-btn.active {
+    color: var(--tga-forest);
+    border-bottom-color: var(--tga-forest);
+    background: var(--tga-forest-soft);
+    border-radius: var(--tga-radius-sm) var(--tga-radius-sm) 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   14. STATUTORY HEALTH DISCLAIMER & FOOTER
+   -------------------------------------------------------------------------- */
+.statutory-disclaimer-card {
+    background: var(--tga-cream-warm);
+    border: 1px solid rgba(227, 167, 47, 0.45);
+    border-left: 5px solid var(--tga-gold);
+    border-radius: var(--tga-radius-md);
+    padding: 1.25rem 1.5rem;
     font-size: 0.85rem;
-    border-radius: 8px;
-    padding: 12px 18px;
+    color: var(--tga-ink-light);
+    line-height: 1.6;
 }
 
-.medical-disclaimer-footer {
-    background-color: #14201A;
-    color: #97A39D;
-    font-size: 0.8rem;
-    line-height: 1.5;
-    padding: 24px 0 16px;
-    border-top: 1px solid #23342B;
-}
-
-/* Footer */
 .tga-footer {
-    background-color: var(--tga-forest-dark);
-    color: #D3DDD7;
-    margin-top: auto;
-    padding-top: 48px;
+    background: var(--tga-forest-deep);
+    color: var(--tga-cream);
+    padding-top: 4.5rem;
+    border-top: 1px solid rgba(227, 167, 47, 0.3);
 }
 
 .tga-footer a {
-    color: #E2EBE6;
+    color: rgba(251, 246, 234, 0.8);
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color 0.2s ease;
 }
 
 .tga-footer a:hover {
     color: var(--tga-gold);
 }
 
-/* Star Ratings */
-.tga-rating {
-    color: var(--tga-gold);
-    font-size: 0.9rem;
+/* --------------------------------------------------------------------------
+   15. ACCESSIBILITY & REDUCED MOTION
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .hero-mandala-bg, .floating-leaf-1, .floating-leaf-2, .beacon-dot {
+        animation: none !important;
+    }
 }
 
-/* Modals */
-.modal-content {
-    border-radius: var(--tga-radius);
-    border: none;
-    box-shadow: var(--tga-shadow-lg);
+/* --------------------------------------------------------------------------
+   16. SCROLL REVEAL (INTERSECTION OBSERVER)
+   -------------------------------------------------------------------------- */
+.reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-on-scroll.is-revealed {
+    opacity: 1;
+    transform: translateY(0);
 }
