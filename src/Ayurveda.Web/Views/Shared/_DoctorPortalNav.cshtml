@@ -1,0 +1,34 @@
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "Dashboard";
+}
+
+<div class="card bg-white border-0 shadow-sm rounded-4 p-2 mb-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-1">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-bold text-uppercase">
+                <i class="bi bi-hospital me-1"></i> Doctor Clinical Desk
+            </span>
+        </div>
+
+        <nav class="nav nav-pills gap-1">
+            <a asp-controller="DoctorPortal" asp-action="Dashboard" class="nav-link rounded-pill px-3 @(currentAction == "Dashboard" ? "active bg-success" : "text-dark")">
+                <i class="bi bi-speedometer2 me-1"></i> Dashboard
+            </a>
+            <a asp-controller="DoctorPortal" asp-action="Appointments" class="nav-link rounded-pill px-3 @(currentAction == "Appointments" ? "active bg-success" : "text-dark")">
+                <i class="bi bi-calendar2-check me-1"></i> Appointments Queue
+            </a>
+            <a asp-controller="DoctorPortal" asp-action="Availability" class="nav-link rounded-pill px-3 @(currentAction == "Availability" ? "active bg-success" : "text-dark")">
+                <i class="bi bi-clock-history me-1"></i> Availability Slots
+            </a>
+            <a asp-controller="DoctorPortal" asp-action="Patients" class="nav-link rounded-pill px-3 @(currentAction == "Patients" ? "active bg-success" : "text-dark")">
+                <i class="bi bi-people me-1"></i> My Patients
+            </a>
+            <a asp-controller="DoctorPortal" asp-action="Earnings" class="nav-link rounded-pill px-3 @(currentAction == "Earnings" ? "active bg-success" : "text-dark")">
+                <i class="bi bi-cash-stack me-1"></i> Earnings &amp; Payouts
+            </a>
+            <a asp-controller="DoctorPortal" asp-action="Profile" class="nav-link rounded-pill px-3 @(currentAction == "Profile" ? "active bg-success" : "text-dark")">
+                <i class="bi bi-person-gear me-1"></i> Practice Profile
+            </a>
+        </nav>
+    </div>
+</div>

@@ -1,59 +1,199 @@
-@model List<Ayurveda.Application.ViewModels.DoctorCardViewModel>
+@model Ayurveda.Application.ViewModels.DoctorListViewModel
 @{
-    ViewData["Title"] = "Certified Ayurvedic Doctors Consultation";
+    ViewData["Title"] = "Consult Certified Ayurvedic Doctors & Vaidyas";
 }
 
 <div class="container py-4">
-    <!-- Header banner -->
-    <div class="p-4 p-md-5 mb-4 rounded-4 text-white" style="background: linear-gradient(135deg, #143F27, #1F5E3B);">
-        <div class="row align-items-center">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">Home</a></li>
+            <li class="breadcrumb-item active text-success fw-semibold" aria-current="page">Consult AYUSH Vaidyas</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="p-4 p-md-5 mb-4 rounded-4 text-white shadow-sm position-relative overflow-hidden" style="background: linear-gradient(135deg, #18221D 0%, #1F5E3B 100%);">
+        <div class="row align-items-center position-relative" style="z-index: 2;">
             <div class="col-lg-8">
-                <span class="badge bg-warning text-dark mb-2 px-3 py-1">AYUSH Registered Physicians</span>
-                <h1 class="display-6 fw-bold mb-2" style="font-family: Georgia, serif;">Consult Certified Ayurvedic Specialists</h1>
-                <p class="lead mb-0 text-light-emphasis" style="font-size: 1.1rem;">
-                    Personalized dosha assessment, chronic disorder management, and root-cause holistic treatment plans from the comfort of your home.
+                <span class="badge bg-warning text-dark mb-2 px-3 py-1 fw-bold text-uppercase">Ministry of AYUSH Standards</span>
+                <h1 class="display-6 fw-bold mb-2 font-serif">Consult Verified Classical Ayurvedic Physicians</h1>
+                <p class="lead mb-0 text-light-emphasis" style="font-size: 1.05rem;">
+                    Personalized Prakriti &amp; Nadi evaluation, chronic disorder treatment, and root-cause herbal medicine from BAMS &amp; MD Vaidyas via encrypted HD video.
                 </p>
             </div>
             <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                <div class="badge bg-white text-dark p-3 rounded-3 shadow text-start">
-                    <div class="fw-bold text-success"><i class="bi bi-shield-check"></i> 100% Confidential</div>
-                    <div class="small text-muted">Encrypted audio & video sessions</div>
+                <div class="badge bg-white text-dark p-3 rounded-4 shadow-sm text-start">
+                    <div class="fw-bold text-success mb-1"><i class="bi bi-shield-check me-1"></i> End-to-End Encrypted</div>
+                    <div class="small text-muted">In-browser secure WebRTC consultation room</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Medical Emergency Banner -->
-    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4" role="alert">
-        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-        <div class="small">
-            <strong>Emergency Notice:</strong> Online consultations are suitable for non-urgent chronic care and holistic health guidance. For acute, sudden, or life-threatening symptoms, immediately visit your nearest emergency room or dial your local national emergency services.
+    <!-- Mandatory Medical Emergency Banner -->
+    <div class="alert alert-warning border-0 rounded-4 shadow-sm d-flex align-items-center gap-3 p-3 mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-3 text-warning"></i>
+        <div class="small text-dark">
+            <strong>Statutory Medical Emergency Advisory:</strong> Online telemedicine consultations are intended strictly for chronic health balancing, wellness guidance, and non-emergency holistic treatment. If you or someone you know is experiencing acute severe chest pain, breathing difficulty, stroke symptoms, or trauma, immediately call national emergency services (<strong>112 / 102 / 108</strong>) or visit your nearest hospital emergency department.
         </div>
     </div>
 
-    <!-- Doctor Grid -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0" style="font-family: Georgia, serif;">Available Ayurvedic Physicians</h4>
-        <span class="small text-muted">Showing @(Model?.Count ?? 0) verified doctors</span>
-    </div>
+    <div class="row g-4">
+        <!-- Sidebar Filters -->
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 sticky-top" style="top: 100px;">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <h5 class="fw-bold text-success mb-0">Filter Vaidyas</h5>
+                    <a asp-action="Index" class="small text-danger text-decoration-none">Reset</a>
+                </div>
 
-    @if (Model != null && Model.Any())
-    {
-        <div class="row g-4">
-            @foreach (var doc in Model)
+                <form method="get">
+                    <!-- Text Search -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Search Doctor or Clinic</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="search" value="@Model.SearchQuery" class="form-control rounded-start-pill" placeholder="Name, city, clinic..." />
+                            <button type="submit" class="btn btn-tga-gold rounded-end-pill px-3">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Instant Call Now Toggle -->
+                    <div class="form-check form-switch mb-3 p-2 bg-light rounded-3 d-flex align-items-center justify-content-between">
+                        <label class="form-check-label small fw-bold text-success ms-1" for="onlineOnlySwitch">
+                            <span class="spinner-grow spinner-grow-sm text-success me-1" style="width: 8px; height: 8px;"></span> Online Now ("Call Now")
+                        </label>
+                        <input class="form-check-input m-0" type="checkbox" name="onlineOnly" value="true" id="onlineOnlySwitch" checked="@Model.OnlineOnly" onchange="this.form.submit()" />
+                    </div>
+
+                    <!-- Specialisation -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Specialisation</label>
+                        <select name="specialization" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                            <option value="">All Specialisations</option>
+                            @foreach (var spec in Model.Specializations)
+                            {
+                                <option value="@spec" selected="@(Model.SelectedSpecialization == spec)">@spec</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Experience -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Clinical Experience</label>
+                        <select name="experience" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                            <option value="">Any Experience</option>
+                            <option value="1-5" selected="@(Model.SelectedExperience == "1-5")">1 - 5 Years</option>
+                            <option value="5-10" selected="@(Model.SelectedExperience == "5-10")">5 - 10 Years</option>
+                            <option value="10-20" selected="@(Model.SelectedExperience == "10-20")">10 - 20 Years</option>
+                            <option value="20+" selected="@(Model.SelectedExperience == "20+")">20+ Years (Senior Vaidyas)</option>
+                        </select>
+                    </div>
+
+                    <!-- Languages -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Language Spoken</label>
+                        <select name="language" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                            <option value="">All Languages</option>
+                            @foreach (var lang in Model.AvailableLanguages)
+                            {
+                                <option value="@lang" selected="@(Model.SelectedLanguage == lang)">@lang</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Fee Range -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Consultation Fee</label>
+                        <select name="feeRange" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                            <option value="">Any Fee</option>
+                            <option value="0-500" selected="@(Model.SelectedFeeRange == "0-500")">Under ₹500</option>
+                            <option value="500-1000" selected="@(Model.SelectedFeeRange == "500-1000")">₹500 - ₹1,000</option>
+                            <option value="1000+" selected="@(Model.SelectedFeeRange == "1000+")">Above ₹1,000</option>
+                        </select>
+                    </div>
+
+                    <!-- Gender -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Doctor Gender</label>
+                        <select name="gender" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                            <option value="">Any Gender</option>
+                            <option value="female" selected="@(Model.SelectedGender?.ToLower() == "female")">Female Physician</option>
+                            <option value="male" selected="@(Model.SelectedGender?.ToLower() == "male")">Male Physician</option>
+                        </select>
+                    </div>
+
+                    <!-- Minimum Rating -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted">Minimum Rating</label>
+                        <select name="minRating" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                            <option value="">Any Rating</option>
+                            <option value="4.8" selected="@(Model.SelectedRating == 4.8)">4.8★ &amp; above</option>
+                            <option value="4.5" selected="@(Model.SelectedRating == 4.5)">4.5★ &amp; above</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-tga-gold btn-sm w-100 rounded-pill fw-semibold">Apply Filters</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Listing Grid -->
+        <div class="col-lg-9">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark font-serif">Verified Ayurvedic Physicians</h5>
+                    <span class="small text-muted">Showing @Model.TotalCount doctors registered with AYUSH state boards</span>
+                </div>
+
+                <!-- Sort Control -->
+                <form method="get" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="specialization" value="@Model.SelectedSpecialization" />
+                    <input type="hidden" name="experience" value="@Model.SelectedExperience" />
+                    <input type="hidden" name="language" value="@Model.SelectedLanguage" />
+                    <input type="hidden" name="feeRange" value="@Model.SelectedFeeRange" />
+                    <input type="hidden" name="gender" value="@Model.SelectedGender" />
+                    <input type="hidden" name="search" value="@Model.SearchQuery" />
+                    @if (Model.OnlineOnly)
+                    {
+                        <input type="hidden" name="onlineOnly" value="true" />
+                    }
+
+                    <label for="sortBySelect" class="small text-muted text-nowrap">Sort by:</label>
+                    <select name="sortBy" id="sortBySelect" class="form-select form-select-sm rounded-pill border-secondary-subtle" onchange="this.form.submit()">
+                        <option value="recommended" selected="@(Model.SortBy == "recommended")">Recommended</option>
+                        <option value="exp_desc" selected="@(Model.SortBy == "exp_desc")">Experience: High to Low</option>
+                        <option value="fee_asc" selected="@(Model.SortBy == "fee_asc")">Fee: Low to High</option>
+                        <option value="fee_desc" selected="@(Model.SortBy == "fee_desc")">Fee: High to Low</option>
+                        <option value="rating_desc" selected="@(Model.SortBy == "rating_desc")">Rating: High to Low</option>
+                    </select>
+                </form>
+            </div>
+
+            @if (Model.Doctors != null && Model.Doctors.Any())
             {
-                <div class="col-md-6 col-lg-4">
-                    <partial name="_DoctorCard" model="doc" />
+                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+                    @foreach (var doc in Model.Doctors)
+                    {
+                        <div class="col">
+                            <partial name="_DoctorCard" model="doc" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm rounded-4 text-center p-5 bg-white">
+                    <i class="bi bi-person-x text-muted display-4 mb-3"></i>
+                    <h5 class="fw-bold">No Ayurvedic doctors matched your criteria</h5>
+                    <p class="text-muted small mb-3">Try adjusting your filters, experience levels, or language preferences.</p>
+                    <div>
+                        <a asp-action="Index" class="btn btn-tga-gold rounded-pill px-4">View All Doctors</a>
+                    </div>
                 </div>
             }
         </div>
-    }
-    else
-    {
-        <div class="text-center py-5 bg-white rounded-4 border shadow-sm">
-            <i class="bi bi-person-x text-muted display-4 mb-3"></i>
-            <h5 class="fw-bold">No physicians currently available</h5>
-            <p class="text-muted small">Please check back shortly or explore our classical herbal store.</p>
-        </div>
-    }
+    </div>
 </div>

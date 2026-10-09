@@ -17,6 +17,13 @@ public class Appointment
     public string? HealthConcern { get; set; }
     public string? ReportUrl { get; set; }
     public string? PrescriptionNotes { get; set; }
+    public string? PrescriptionProductsJson { get; set; } = "[]";
+    public string? DietaryAdvice { get; set; }
+    public string? DoshaDiagnosis { get; set; }
+    public DateTime? FollowUpDateUtc { get; set; }
+    public int CallDurationSeconds { get; set; } = 0;
+    public DateTime? JoinedAtUtc { get; set; }
+    public DateTime? LeftAtUtc { get; set; }
     public string? MeetingRoomId { get; set; }
     public ConsultationType ConsultationType { get; set; } = ConsultationType.Video;
     public decimal ConsultationFee { get; set; } = 499.00m;
@@ -25,4 +32,5 @@ public class Appointment
 
     public virtual Doctor Doctor { get; set; } = null!;
     public virtual ApplicationUser User { get; set; } = null!;
+    public virtual DoctorReview? Review { get; set; }
 }

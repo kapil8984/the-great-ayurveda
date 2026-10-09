@@ -608,5 +608,117 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Contains("Did you mean:", html);
         Assert.Contains("Chyawanprash", html);
     }
+
+    // =========================================================================
+    // PHASE 7: DOCTOR CONSULTATIONS, CALLING & CLINICAL DESK TESTS
+    // =========================================================================
+
+    [Fact]
+    public async Task Doctors_Index_RendersSeededDoctors_AndEmergencyNotice()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Doctors");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        // Medical emergency notice with national helpline numbers
+        Assert.Contains("112", html);
+        Assert.Contains("102", html);
+        Assert.Contains("108", html);
+        Assert.Contains("Medical Emergency Advisory", html);
+
+        // Doctor directory facets
+        Assert.Contains("Experience", html);
+        Assert.Contains("Call Now", html);
+
+        // Seeded authentic doctors
+        Assert.Contains("Sharma", html);
+    }
+
+    [Fact]
+    public async Task Doctors_Profile_RendersDoctorDetails_AndRegistrationNumber()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Doctors/Profile/1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("AYUSH-", html);
+        Assert.Contains("Years", html);
+        Assert.Contains("HD Video Call", html);
+        Assert.Contains("Book Scheduled Slot", html);
+        Assert.Contains("Verified Patient Reviews", html);
+    }
+
+    [Fact]
+    public async Task Doctors_Book_RendersConsultationModes_AndISTTimezoneNotice()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Doctors/Book/1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Indian Standard Time", html);
+        Assert.Contains("HD Video Call", html);
+        Assert.Contains("Private Audio", html);
+        Assert.Contains("Chat", html);
+        Assert.Contains("Free rescheduling or cancellation", html);
+        Assert.Contains("Medical Lab Reports", html);
+    }
+
+    [Fact]
+    public async Task Doctors_Prescription_RendersOfficialRx_AndAddToCartButton()
+    {
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/Doctors/Prescription/1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains("Ayurvedic Digital Prescription", html);
+        Assert.Contains("Add All Medicines to Basket", html);
+        Assert.Contains("Pathya &amp; Apathya", html);
+        Assert.Contains("Vata-Kapha Agnimandya", html);
+    }
+
+    [Fact]
+    public async Task DoctorPortal_UnauthenticatedUser_RedirectsToLogin()
+    {
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/DoctorPortal/Dashboard");
+
+        // Protected doctor portal must redirect to Login
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task DoctorReview_Submission_RejectsNonCompletedAppointment()
+    {
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        // Submitting review for a nonexistent appointment must return NotFound
+        var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["AppointmentId"] = "9999",
+            ["DoctorId"] = "1",
+            ["Rating"] = "5",
+            ["ReviewText"] = "Great consultation, highly recommended!"
+        });
+
+        var response = await client.PostAsync("/Doctors/SubmitReview", form);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
+
 

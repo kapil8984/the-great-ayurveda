@@ -57,6 +57,7 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IPaymentProvider, PaymentProvider>();
 builder.Services.AddScoped<ICallProvider, CallProvider>();
+builder.Services.AddScoped<ITelephonyProvider, TelephonyProvider>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();

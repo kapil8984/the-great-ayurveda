@@ -1,0 +1,136 @@
+@model Ayurveda.Domain.Entities.Doctor
+@{
+    ViewData["Title"] = "Practice Profile & Account Credentials";
+    var detail = Model.DoctorDetail;
+}
+
+<div class="container py-4">
+    <partial name="_DoctorPortalNav" />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Left: Verified Medical Credentials -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-4 mb-4">
+                <div class="card-body p-0">
+                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold fs-2 mx-auto mb-3 shadow" style="width: 88px; height: 88px;">
+                        @(Model.DoctorName.Length >= 2 ? Model.DoctorName.Substring(0, 2).ToUpper() : "DR")
+                    </div>
+                    <h4 class="fw-bold mb-1 text-dark">@Model.DoctorName</h4>
+                    <p class="text-success fw-semibold mb-2">
+                        <i class="bi bi-patch-check-fill me-1"></i> Verified Ayurvedic Practitioner
+                    </p>
+                    <p class="text-muted small mb-3">@Model.Email</p>
+
+                    <div class="p-3 bg-light rounded-3 text-start mb-3">
+                        <div class="small text-muted text-uppercase fw-semibold mb-1">State Council Reg. No.</div>
+                        <div class="fw-bold text-dark font-monospace">@(detail?.RegistrationNumber ?? "AYU-REG-VERIFIED")</div>
+                    </div>
+
+                    <div class="row g-2 text-start">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded-3">
+                                <div class="text-muted small">Experience</div>
+                                <div class="fw-bold text-dark">@(detail?.Experience ?? 5) Years</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded-3">
+                                <div class="text-muted small">Degree</div>
+                                <div class="fw-bold text-dark">@(detail?.Qualification ?? "BAMS, MD")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security: Password Change -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-shield-lock text-success me-2"></i>Change Password</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="ChangePassword" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Current Password</label>
+                            <input type="password" name="currentPassword" class="form-control rounded-3" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">New Password</label>
+                            <input type="password" name="newPassword" class="form-control rounded-3" required minlength="6" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Confirm New Password</label>
+                            <input type="password" name="confirmPassword" class="form-control rounded-3" required minlength="6" />
+                        </div>
+                        <button type="submit" class="btn btn-outline-dark rounded-pill w-100 py-2">
+                            Update Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Editable Clinical & Public Profile -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <h4 class="fw-bold text-dark mb-1"><i class="bi bi-person-lines-fill text-success me-2"></i>Practice Details &amp; Bio</h4>
+                    <p class="text-muted small mb-0">These clinical credentials and consultation details are displayed on your public patient profile.</p>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="ProfilePost" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Consultation Contact Number</label>
+                                <input type="text" name="contactNumber" value="@Model.ContactNumber" class="form-control rounded-3" required />
+                                <small class="text-muted">Used for critical appointment SMS alerts.</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Languages Spoken</label>
+                                <input type="text" name="languages" value="@(detail?.Language ?? "English, Hindi")" class="form-control rounded-3" placeholder="e.g. Hindi, English, Sanskrit" required />
+                                <small class="text-muted">Comma-separated list of languages.</small>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Clinic &amp; Practice Address</label>
+                                <input type="text" name="clinicAddress" value="@(detail?.ClinicAddress ?? "Ayurveda Wellness Center, New Delhi")" class="form-control rounded-3" required />
+                                <small class="text-muted">Official registered dispensary or physical consultation chamber.</small>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Professional Ayurvedic Biography</label>
+                                <textarea name="bio" rows="6" class="form-control rounded-3" placeholder="Share your clinical lineage, university training, Nadi Pariksha expertise, and Ayurvedic philosophy..." required>@(detail?.Bio)</textarea>
+                            </div>
+
+                            <div class="col-12 text-end pt-3 border-top">
+                                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm">
+                                    <i class="bi bi-check-lg me-1"></i> Save Profile Details
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

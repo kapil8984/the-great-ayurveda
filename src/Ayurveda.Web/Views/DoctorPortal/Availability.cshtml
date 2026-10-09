@@ -1,0 +1,152 @@
+@model Ayurveda.Application.ViewModels.DoctorAvailabilityViewModel
+@{
+    ViewData["Title"] = "Practice Availability & Consultation Slots";
+
+    var allMorning = new[] { "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM" };
+    var allAfternoon = new[] { "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM" };
+    var allEvening = new[] { "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM", "08:30 PM" };
+}
+
+<div class="container py-4">
+    <partial name="_DoctorPortalNav" />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <h3 class="fw-bold mb-1"><i class="bi bi-clock-history text-success me-2"></i>Availability &amp; Practice Schedule</h3>
+            <p class="text-muted mb-0">Configure your consultation fee, real-time "Call Now" availability, and daily consultation booking slots.</p>
+        </div>
+    </div>
+
+    <form asp-action="AvailabilityPost" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="DoctorId" />
+
+        <div class="row g-4">
+            <!-- Left: Settings & Instant Availability -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-toggle-on text-success me-2"></i>Live Practice Status</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="form-check form-switch p-0 d-flex align-items-center justify-content-between mb-3">
+                            <label class="form-check-label fw-bold text-dark" for="isOnlineSwitch">
+                                Instant "Call Now" Active
+                                <div class="text-muted small fw-normal">Enables real-time walk-in calls from patients searching now.</div>
+                            </label>
+                            <input class="form-check-input ms-3 fs-3" type="checkbox" role="switch" asp-for="IsOnline" id="isOnlineSwitch">
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="mb-3">
+                            <label asp-for="ConsultationFee" class="form-label fw-bold text-dark">Consultation Fee (₹ INR)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold">₹</span>
+                                <input asp-for="ConsultationFee" type="number" step="50" min="0" max="10000" class="form-control rounded-end-3" />
+                            </div>
+                            <small class="text-muted">Standard rate charged per 20-30 minute consultation session.</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-success rounded-pill w-100 py-2 shadow-sm mt-3">
+                            <i class="bi bi-check-lg me-1"></i> Save Practice Schedule
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-4 bg-light">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-primary me-2"></i>Slot Booking Rules</h6>
+                        <ul class="text-muted small ps-3 mb-0">
+                            <li class="mb-2">Slots are presented to patients in Indian Standard Time (IST).</li>
+                            <li class="mb-2">Patients can book slots up to 7 days in advance.</li>
+                            <li>Free cancellation is permitted up to 2 hours before the scheduled time slot.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Time Slots -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-calendar-week text-success me-2"></i>Daily Slot Windows</h5>
+                        <p class="text-muted small mb-0">Check the time slots you are available to receive scheduled consultations.</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Morning -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-sun text-warning me-2"></i>Morning Session (09:00 AM - 12:00 PM)</h6>
+                            <div class="row g-2">
+                                @foreach (var slot in allMorning)
+                                {
+                                    var isChecked = Model.MorningSlots.Contains(slot);
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-2 border rounded-3 bg-light">
+                                            <input class="form-check-input ms-1" type="checkbox" name="MorningSlots" value="@slot" id="mSlot-@slot" @(isChecked ? "checked" : "")>
+                                            <label class="form-check-label fw-semibold text-dark ms-2" for="mSlot-@slot">
+                                                @slot
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Afternoon -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-brightness-high text-warning me-2"></i>Afternoon Session (02:00 PM - 05:00 PM)</h6>
+                            <div class="row g-2">
+                                @foreach (var slot in allAfternoon)
+                                {
+                                    var isChecked = Model.AfternoonSlots.Contains(slot);
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-2 border rounded-3 bg-light">
+                                            <input class="form-check-input ms-1" type="checkbox" name="AfternoonSlots" value="@slot" id="aSlot-@slot" @(isChecked ? "checked" : "")>
+                                            <label class="form-check-label fw-semibold text-dark ms-2" for="aSlot-@slot">
+                                                @slot
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Evening -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-moon-stars text-primary me-2"></i>Evening Session (06:00 PM - 09:00 PM)</h6>
+                            <div class="row g-2">
+                                @foreach (var slot in allEvening)
+                                {
+                                    var isChecked = Model.EveningSlots.Contains(slot);
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check p-2 border rounded-3 bg-light">
+                                            <input class="form-check-input ms-1" type="checkbox" name="EveningSlots" value="@slot" id="eSlot-@slot" @(isChecked ? "checked" : "")>
+                                            <label class="form-check-label fw-semibold text-dark ms-2" for="eSlot-@slot">
+                                                @slot
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="text-end pt-3 border-top">
+                            <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm">
+                                <i class="bi bi-check-lg me-1"></i> Update Schedule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

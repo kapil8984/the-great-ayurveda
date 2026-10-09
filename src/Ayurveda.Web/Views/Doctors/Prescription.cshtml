@@ -1,0 +1,212 @@
+@model Ayurveda.Application.ViewModels.PrescriptionViewModel
+@{
+    ViewData["Title"] = $"Ayurvedic Digital Prescription — #{Model.AppointmentId:D5}";
+}
+
+<div class="container py-4" style="max-width: 900px;">
+    <!-- Action Topbar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 print-hide">
+        <a asp-action="MyAppointments" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Consultations
+        </a>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Print / Save PDF
+            </button>
+            @if (Model.PrescribedMedicines.Any())
+            {
+                <form asp-action="AddPrescriptionToCart" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="appointmentId" value="@Model.AppointmentId" />
+                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-xs">
+                        <i class="bi bi-cart-plus me-1"></i> Add All Medicines to Basket
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <!-- Official Prescription Slip (Printable) -->
+    <div class="card border shadow-sm rounded-4 p-4 p-md-5 bg-white position-relative overflow-hidden" id="prescriptionSlip">
+        <!-- Watermark -->
+        <div class="position-absolute top-50 start-50 translate-middle opacity-5 pointer-events-none text-center" style="z-index: 0;">
+            <img src="/images/logo-mark.svg" alt="" width="320" height="320" />
+        </div>
+
+        <div class="position-relative" style="z-index: 1;">
+            <!-- Clinic & Vaidya Header -->
+            <div class="row align-items-center border-bottom pb-4 mb-4">
+                <div class="col-sm-7">
+                    <img src="/images/logo-full.svg" alt="The Great Ayurveda" height="42" class="mb-3" />
+                    <div class="text-muted small">
+                        <strong>The Great Ayurveda Tele-Apothecary Network</strong><br />
+                        Accredited under AYUSH Guidelines • ISO 9001:2015<br />
+                        <span class="text-xs">Reg No: TGA-AYUR-CLINIC-2026</span>
+                    </div>
+                </div>
+                <div class="col-sm-5 text-sm-end mt-3 mt-sm-0">
+                    <h5 class="fw-bold mb-1 text-success font-serif">Dr. @Model.DoctorName</h5>
+                    <div class="small fw-semibold text-dark">@Model.Qualification</div>
+                    <div class="small text-muted">@Model.Specialization</div>
+                    <div class="text-xs text-muted mt-1">
+                        Reg: <strong>@Model.RegistrationNumber</strong><br />
+                        @Model.RegistrationCouncil
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.ClinicAddress))
+                    {
+                        <div class="text-xs text-muted mt-1">@Model.ClinicAddress</div>
+                    }
+                </div>
+            </div>
+
+            <!-- Patient Details & Consultation Metadata -->
+            <div class="card bg-light border-0 rounded-3 p-3 mb-4">
+                <div class="row g-2 small">
+                    <div class="col-sm-6">
+                        <strong>Patient Name:</strong> @Model.PatientName<br />
+                        <strong>Demographics:</strong> @(Model.PatientAge?.ToString() ?? "N/A") Years • @(Model.PatientGender ?? "N/A")
+                    </div>
+                    <div class="col-sm-6 text-sm-end">
+                        <strong>Rx Prescription ID:</strong> #TGA-RX-@Model.AppointmentId.ToString("D5")<br />
+                        <strong>Date:</strong> @Model.ConsultationDate.ToString("dd MMMM yyyy")
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dosha Assessment & Clinical Observations -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-success text-uppercase small letter-spacing-1 mb-2">
+                    <i class="bi bi-activity me-1"></i> Ayurvedic Assessment &amp; Nadi Observations
+                </h6>
+                <div class="p-3 bg-light rounded-3 border-start border-4 border-success small leading-relaxed">
+                    @if (!string.IsNullOrEmpty(Model.DoshaDiagnosis))
+                    {
+                        <div class="mb-2"><strong>Doshic Imbalance:</strong> <span class="badge bg-success-subtle text-success">@Model.DoshaDiagnosis</span></div>
+                    }
+                    <div>
+                        @(string.IsNullOrEmpty(Model.ClinicalObservations) 
+                            ? "Patient evaluated for constitution (Prakriti) and current metabolic state (Vikriti). Advised classical herbal therapies and dietary regimen." 
+                            : Model.ClinicalObservations)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prescribed Classical Formulations -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold text-success text-uppercase small letter-spacing-1 mb-0">
+                        <i class="bi bi-capsule me-1"></i> Prescribed Classical Formulations (Shastriya Dravyas)
+                    </h6>
+                    <span class="badge bg-light text-muted border text-xs">@Model.PrescribedMedicines.Count Medicines</span>
+                </div>
+
+                @if (Model.PrescribedMedicines.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle small mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40px;">#</th>
+                                    <th>Medicine / Formulation</th>
+                                    <th>Dosage &amp; Anupana (Carrier)</th>
+                                    <th>Duration</th>
+                                    <th class="text-end" style="width: 100px;">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.PrescribedMedicines.Count; i++)
+                                {
+                                    var item = Model.PrescribedMedicines[i];
+                                    <tr>
+                                        <td>@(i + 1)</td>
+                                        <td>
+                                            <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId" class="fw-bold text-dark text-decoration-none">
+                                                @item.ProductTitle
+                                            </a>
+                                        </td>
+                                        <td class="text-success fw-semibold">@item.Dosage</td>
+                                        <td>@item.Duration</td>
+                                        <td class="text-end fw-bold">₹@item.Price.ToString("N0")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Direct Add-All Button -->
+                    <div class="p-3 bg-success-subtle border border-success-subtle rounded-3 mt-3 d-flex flex-wrap justify-content-between align-items-center gap-2 print-hide">
+                        <div class="small text-success">
+                            <i class="bi bi-bag-check me-1"></i> Authenticated formulations can be dispatched directly to your doorstep.
+                        </div>
+                        <form asp-action="AddPrescriptionToCart" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="appointmentId" value="@Model.AppointmentId" />
+                            <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 fw-bold">
+                                <i class="bi bi-cart-plus me-1"></i> Add All to Shopping Cart
+                            </button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div class="p-3 bg-light rounded-3 text-muted small text-center">
+                        Specific single herbs and dietary lifestyle modifications prescribed without proprietary packaged medicines.
+                    </div>
+                }
+            </div>
+
+            <!-- Dietary Advice (Pathya / Apathya) -->
+            @if (!string.IsNullOrEmpty(Model.DietaryAdvice))
+            {
+                <div class="mb-4">
+                    <h6 class="fw-bold text-success text-uppercase small letter-spacing-1 mb-2">
+                        <i class="bi bi-cup-hot me-1"></i> Ahara &amp; Vihara Advice (Pathya &amp; Apathya)
+                    </h6>
+                    <div class="p-3 bg-light rounded-3 small">
+                        @Model.DietaryAdvice
+                    </div>
+                </div>
+            }
+
+            <!-- Follow-up Date -->
+            @if (Model.FollowUpDate.HasValue)
+            {
+                <div class="card bg-warning-subtle border-0 rounded-3 p-3 mb-4">
+                    <div class="d-flex align-items-center gap-2 text-dark small">
+                        <i class="bi bi-calendar-check text-warning fs-5"></i>
+                        <div>
+                            <strong>Recommended Follow-up Consultation:</strong>
+                            <span class="ms-1">@Model.FollowUpDate.Value.ToString("dd MMMM yyyy")</span>
+                            <span class="text-muted ms-2">(Book in advance for continued monitoring)</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Signature & Seal -->
+            <div class="row pt-4 border-top align-items-end mt-4">
+                <div class="col-8">
+                    <div class="text-xs text-muted">
+                        <strong>Statutory Disclaimer:</strong> This digital prescription is generated by a certified AYUSH physician following a tele-consultation under Telemedicine Practice Guidelines of India.
+                    </div>
+                </div>
+                <div class="col-4 text-end">
+                    <div class="font-serif fw-bold text-success" style="font-size: 1.1rem; border-bottom: 1px dashed #2C7E50; display: inline-block; padding-bottom: 2px;">
+                        Dr. @Model.DoctorName
+                    </div>
+                    <div class="text-xs text-muted mt-1">Digital Signature Verified</div>
+                    <span class="badge bg-success text-white text-xs mt-1">AYUSH Registered</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@media print {
+        .print-hide { display: none !important; }
+        header, footer, .announcement-bar { display: none !important; }
+        body { background: white !important; }
+        #prescriptionSlip { border: none !important; box-shadow: none !important; }
+    }
+</style>

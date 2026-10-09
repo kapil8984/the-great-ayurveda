@@ -1,0 +1,147 @@
+@model Ayurveda.Domain.Entities.Appointment
+@{
+    ViewData["Title"] = $"Live Consultation Room — Dr. {Model.Doctor.DoctorName}";
+    bool isDoctor = ViewBag.IsDoctor == true;
+    bool isPatient = ViewBag.IsPatient == true;
+    bool isWindowOpen = ViewBag.IsWindowOpen == true;
+    string roomUrl = ViewBag.RoomUrl as string ?? $"https://meet.jit.si/TheGreatAyurveda_Appt_{Model.Id}";
+}
+
+<div class="container-fluid px-3 py-3" style="max-width: 1400px;">
+    <!-- Emergency Warning Banner -->
+    <div class="alert alert-warning border-0 rounded-4 shadow-sm d-flex align-items-center justify-content-between p-2 px-3 mb-3">
+        <div class="small d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+            <span><strong>Medical Emergency Protocol:</strong> If patient exhibits acute respiratory collapse, acute chest pain, or severe allergic reaction, dial <strong>112 / 102</strong> immediately.</span>
+        </div>
+        <span class="badge bg-light text-dark border">Encrypted WebRTC Channel</span>
+    </div>
+
+    <!-- Room Topbar -->
+    <div class="card bg-dark text-white border-0 rounded-4 p-3 mb-3 shadow">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-danger rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1">
+                    <span class="spinner-grow spinner-grow-sm text-light" style="width: 8px; height: 8px;"></span> LIVE CONSULTATION
+                </span>
+                <div>
+                    <h5 class="fw-bold mb-0 font-serif">Dr. @Model.Doctor.DoctorName &amp; @Model.PatientName</h5>
+                    <div class="text-white-50 small">
+                        Slot: @Model.TimeSlot (@Model.AppointmentDate.ToString("dd MMM yyyy")) • @Model.ConsultationType Mode
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <!-- Live Duration Timer -->
+                <div class="bg-black bg-opacity-50 px-3 py-2 rounded-pill font-monospace small border border-secondary">
+                    <i class="bi bi-stopwatch text-warning me-1"></i> <span id="callDurationTimer">00:00:00</span>
+                </div>
+
+                @if (isDoctor)
+                {
+                    <a asp-controller="DoctorPortal" asp-action="WritePrescription" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill px-3 fw-bold btn-sm">
+                        <i class="bi bi-file-earmark-medical me-1"></i> End Call &amp; Write Prescription
+                    </a>
+                }
+                else
+                {
+                    <a asp-action="MyAppointments" class="btn btn-outline-light rounded-pill px-3 btn-sm">
+                        <i class="bi bi-box-arrow-left me-1"></i> Exit Room
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Main Video Frame -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="card border-0 shadow rounded-4 overflow-hidden bg-black" style="height: 640px;">
+                @if (isWindowOpen)
+                {
+                    <iframe src="@roomUrl"
+                            allow="camera; microphone; display-capture; fullscreen; autoplay"
+                            style="width: 100%; height: 100%; border: none;"
+                            id="jitsiVideoFrame"></iframe>
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-items-center justify-content-center h-100 text-white text-center p-4">
+                        <i class="bi bi-lock-fill text-warning display-3 mb-3"></i>
+                        <h4 class="fw-bold font-serif">Consultation Room Locked</h4>
+                        <p class="text-white-50" style="max-width: 480px;">
+                            This secure clinical room opens 15 minutes before your scheduled slot time (@Model.TimeSlot on @Model.AppointmentDate.ToString("dd MMM yyyy")).
+                        </p>
+                        <a asp-action="MyAppointments" class="btn btn-outline-light rounded-pill px-4 mt-2">Return to My Appointments</a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Consultation Medical Notes Drawer -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 d-flex flex-column" style="max-height: 640px; overflow-y: auto;">
+                <h6 class="fw-bold text-success mb-2 font-serif border-bottom pb-2">
+                    <i class="bi bi-clipboard2-pulse me-1"></i> Patient Clinical Dossier
+                </h6>
+
+                <div class="small text-muted mb-3">
+                    <div class="mb-1"><strong>Patient:</strong> @Model.PatientName (@(Model.PatientAge?.ToString() ?? "N/A") yrs, @(Model.PatientGender ?? "N/A"))</div>
+                    <div class="mb-1"><strong>Contact:</strong> @Model.PatientContact</div>
+                    <div class="mb-1"><strong>Doctor:</strong> Dr. @Model.Doctor.DoctorName</div>
+                </div>
+
+                <div class="mb-3">
+                    <span class="small fw-bold text-dark d-block mb-1">Chief Health Concern:</span>
+                    <div class="p-2 bg-light rounded-3 small text-secondary">
+                        @(string.IsNullOrEmpty(Model.HealthConcern) ? "General consultation" : Model.HealthConcern)
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.ReportUrl))
+                {
+                    <div class="mb-3">
+                        <span class="small fw-bold text-dark d-block mb-1">Uploaded Medical Lab Report:</span>
+                        <a href="@Model.ReportUrl" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill w-100 text-truncate">
+                            <i class="bi bi-file-earmark-pdf me-1 text-danger"></i> View Attached Report
+                        </a>
+                    </div>
+                }
+
+                @if (isDoctor)
+                {
+                    <div class="mt-auto pt-3 border-top">
+                        <a asp-controller="DoctorPortal" asp-action="WritePrescription" asp-route-id="@Model.Id" class="btn btn-success w-100 rounded-pill py-2 fw-semibold">
+                            <i class="bi bi-pencil-square me-1"></i> Digital Prescription Writer
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-auto pt-3 border-top text-center text-muted text-xs">
+                        <i class="bi bi-shield-check text-success fs-5 d-block mb-1"></i>
+                        The Vaidya will generate your official Ayurvedic digital prescription upon conclusion of this consultation.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Live Call Duration Counter
+    let seconds = 0;
+    const timerEl = document.getElementById("callDurationTimer");
+    if (timerEl) {
+        setInterval(() => {
+            seconds++;
+            const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            timerEl.innerText = `${h}:${m}:${s}`;
+        }, 1000);
+    }
+</script>
+}

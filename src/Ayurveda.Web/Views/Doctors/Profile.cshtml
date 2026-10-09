@@ -1,28 +1,52 @@
 @model Ayurveda.Application.ViewModels.DoctorDetailsViewModel
 @{
-    ViewData["Title"] = $"Dr. {Model.DoctorName}";
+    ViewData["Title"] = $"Dr. {Model.DoctorName} — {Model.SpecializationName}";
+    var reviews = ViewBag.Reviews as List<Ayurveda.Domain.Entities.DoctorReview> ?? new();
 }
 
 <div class="container py-4">
-    <nav aria-label="breadcrumb">
+    <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">Doctors</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">Vaidyas</a></li>
             <li class="breadcrumb-item active" aria-current="page">Dr. @Model.DoctorName</li>
         </ol>
     </nav>
 
+    <!-- Medical Emergency Banner -->
+    <div class="alert alert-warning border-0 rounded-4 shadow-sm d-flex align-items-center gap-3 p-3 mb-4">
+        <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
+        <div class="small">
+            <strong>Emergency Advisory:</strong> Online consultations are not intended for acute medical emergencies. If you are experiencing sudden acute chest discomfort, shortness of breath, or trauma, immediately dial national emergency services (<strong>112 / 102 / 108</strong>) or visit the nearest ER.
+        </div>
+    </div>
+
     <div class="row g-4 mb-5">
-        <!-- Col 1: Bio & Details -->
+        <!-- Col 1: Bio, Credentials & Verified Reviews -->
         <div class="col-lg-8">
-            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
-                <div class="d-flex align-items-center gap-4 mb-4">
-                    <img src="@(string.IsNullOrEmpty(Model.ProfileImage) ? "/images/doctor-avatar.svg" : Model.ProfileImage)" 
-                         alt="@Model.DoctorName" class="rounded-circle border" width="100" height="100" style="object-fit: cover; background: #EAF4EE;" />
+            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4 bg-white">
+                <div class="d-flex flex-wrap align-items-center gap-4 mb-4">
+                    <div class="position-relative">
+                        <img src="@(string.IsNullOrEmpty(Model.ProfileImage) ? "/images/doctor-avatar.svg" : Model.ProfileImage)" 
+                             alt="@Model.DoctorName" class="rounded-circle border" width="110" height="110" style="object-fit: cover; background: #EAF4EE;" />
+                        @if (Model.IsOnline)
+                        {
+                            <span class="position-absolute bottom-0 end-0 p-2 bg-success border border-2 border-white rounded-circle" title="Online for instant consultation"></span>
+                        }
+                    </div>
                     <div>
-                        <h2 class="h3 fw-bold mb-1 text-dark" style="font-family: Georgia, serif;">Dr. @Model.DoctorName</h2>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h1 class="h3 fw-bold mb-0 text-dark font-serif">Dr. @Model.DoctorName</h1>
+                            @if (Model.IsOnline)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle text-xs px-2 py-1">
+                                    <span class="spinner-grow spinner-grow-sm text-success me-1" style="width: 6px; height: 6px;"></span> Available Now
+                                </span>
+                            }
+                        </div>
                         <div class="badge bg-success-subtle text-success fs-6 mb-2">@Model.SpecializationName</div>
-                        <div class="small text-muted">
-                            <i class="bi bi-patch-check-fill text-success"></i> Reg No: @(Model.RegistrationNumber ?? "AYUSH-REG-VERIFIED") • Council: @(Model.RegistrationCouncil ?? "Central Council of Indian Medicine")
+                        <div class="small text-muted d-flex flex-wrap gap-3">
+                            <span><i class="bi bi-patch-check-fill text-success me-1"></i> Reg: <strong>@(Model.RegistrationNumber ?? "AYUSH-REG-VERIFIED")</strong></span>
+                            <span><i class="bi bi-bank text-secondary me-1"></i> @(Model.RegistrationCouncil ?? "Central Council of Indian Medicine (CCIM)")</span>
                         </div>
                     </div>
                 </div>
@@ -38,51 +62,149 @@
                     </div>
                     <div class="col-4">
                         <div class="fs-5 fw-bold text-warning"><i class="bi bi-star-fill"></i> @Model.Rating.ToString("0.0")</div>
-                        <div class="small text-muted">(@Model.ReviewCount Reviews)</div>
+                        <div class="small text-muted">(@Model.ReviewCount Verified Reviews)</div>
                     </div>
                 </div>
 
-                <h5 class="fw-bold text-dark mb-2">About Dr. @Model.DoctorName</h5>
-                <p class="text-secondary">
-                    @(string.IsNullOrEmpty(Model.Bio) ? "Experienced Ayurvedic physician dedicated to constitutional diagnosis, pulse reading principles (Nadi Pariksha), and evidence-supported holistic wellness plans." : Model.Bio)
+                <h5 class="fw-bold text-dark mb-2 font-serif">Clinical Philosophy &amp; Background</h5>
+                <p class="text-secondary leading-relaxed">
+                    @(string.IsNullOrEmpty(Model.Bio) ? "Experienced classical Ayurvedic physician committed to root-cause diagnosis via Ashtavidha Pariksha, doshic balancing, and lifestyle charya recommendations." : Model.Bio)
                 </p>
 
-                @if (!string.IsNullOrEmpty(Model.Languages))
+                <div class="row g-2 mt-2 pt-3 border-top">
+                    <div class="col-md-6">
+                        <span class="small fw-bold text-dark"><i class="bi bi-translate text-success me-1"></i> Languages Spoken:</span>
+                        <div class="small text-muted">@(Model.Languages ?? "Hindi, English")</div>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="small fw-bold text-dark"><i class="bi bi-geo-alt text-success me-1"></i> Affiliated Clinic / Gurukulam:</span>
+                        <div class="small text-muted">@(Model.ClinicAddress ?? "Dhanvantari Ayurveda Peeth")</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Availability Schedule Preview -->
+            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4 bg-white">
+                <h5 class="fw-bold text-dark mb-3 font-serif"><i class="bi bi-calendar-check text-success me-2"></i> Typical Consultation Schedule</h5>
+                
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <h6 class="fw-bold small text-success mb-2"><i class="bi bi-sun me-1"></i> Morning Hours</h6>
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var slot in Model.MorningSlots)
+                                {
+                                    <span class="badge bg-white text-dark border small">@slot</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <h6 class="fw-bold small text-warning mb-2"><i class="bi bi-brightness-high me-1"></i> Afternoon Hours</h6>
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var slot in Model.AfternoonSlots)
+                                {
+                                    <span class="badge bg-white text-dark border small">@slot</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <h6 class="fw-bold small text-primary mb-2"><i class="bi bi-moon-stars me-1"></i> Evening Hours</h6>
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var slot in Model.EveningSlots)
+                                {
+                                    <span class="badge bg-white text-dark border small">@slot</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verified Patient Reviews -->
+            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0 font-serif"><i class="bi bi-chat-heart text-success me-2"></i> Verified Patient Reviews</h5>
+                    <span class="badge bg-light text-dark border">@Model.ReviewCount Reviews</span>
+                </div>
+
+                @if (reviews.Any())
                 {
-                    <div class="mt-2">
-                        <span class="small fw-bold text-dark">Languages Spoken:</span>
-                        <span class="small text-muted ms-1">@Model.Languages</span>
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var r in reviews)
+                        {
+                            <div class="p-3 bg-light rounded-3 border-start border-4 border-success">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold small text-dark">@(r.User?.FullName ?? "Verified Patient")</span>
+                                    <div class="text-warning small">
+                                        @for (int i = 0; i < r.Rating; i++) { <span>★</span> }
+                                    </div>
+                                </div>
+                                <p class="small text-secondary mb-1">@r.ReviewText</p>
+                                <span class="text-xs text-muted">Consulted on @r.CreatedAt.ToString("dd MMM yyyy")</span>
+                            </div>
+                        }
                     </div>
                 }
-
-                @if (!string.IsNullOrEmpty(Model.ClinicAddress))
+                else
                 {
-                    <div class="mt-2">
-                        <span class="small fw-bold text-dark">Affiliated Clinic:</span>
-                        <span class="small text-muted ms-1">@Model.ClinicAddress</span>
+                    <div class="text-muted small text-center py-3">
+                        <i class="bi bi-patch-check text-success fs-3 d-block mb-1"></i>
+                        No public reviews posted yet. Reviews are unlocked following completed consultations.
                     </div>
                 }
             </div>
         </div>
 
-        <!-- Col 2: Booking Card -->
+        <!-- Col 2: Consultation Booking Card -->
         <div class="col-lg-4">
-            <div class="card p-4 shadow-sm border-0 rounded-4 sticky-top" style="top: 100px;">
-                <h5 class="fw-bold mb-3">Consultation Overview</h5>
+            <div class="card p-4 shadow-sm border-0 rounded-4 sticky-top bg-white" style="top: 100px;">
+                <h5 class="fw-bold mb-3 font-serif">Consultation Overview</h5>
                 
-                <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-3">
-                    <span class="text-muted">Consultation Fee:</span>
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-success-subtle rounded-3 border border-success-subtle">
+                    <span class="small fw-semibold text-success">Standard Fee:</span>
                     <span class="fs-4 fw-bold text-success">₹@Model.ConsultationFee.ToString("N0")</span>
                 </div>
 
+                <!-- Consultation Modes -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted mb-2">Available Consultation Modes</label>
+                    <div class="d-flex flex-column gap-2">
+                        <a asp-action="Book" asp-route-id="@Model.Id" asp-route-mode="Video" class="p-2 px-3 border rounded-3 text-decoration-none text-dark d-flex justify-content-between align-items-center hover-bg-light">
+                            <span class="small"><i class="bi bi-camera-video text-success me-2"></i> HD Video Call</span>
+                            <span class="fw-bold small text-success">₹@Model.ConsultationFee.ToString("N0")</span>
+                        </a>
+                        <a asp-action="Book" asp-route-id="@Model.Id" asp-route-mode="Audio" class="p-2 px-3 border rounded-3 text-decoration-none text-dark d-flex justify-content-between align-items-center hover-bg-light">
+                            <span class="small"><i class="bi bi-telephone text-primary me-2"></i> Private Audio Call</span>
+                            <span class="fw-bold small text-success">₹@(Math.Round(Model.ConsultationFee * 0.85m, 0))</span>
+                        </a>
+                        <a asp-action="Book" asp-route-id="@Model.Id" asp-route-mode="Chat" class="p-2 px-3 border rounded-3 text-decoration-none text-dark d-flex justify-content-between align-items-center hover-bg-light">
+                            <span class="small"><i class="bi bi-chat-text text-warning me-2"></i> Clinical Text Consultation</span>
+                            <span class="fw-bold small text-success">₹@(Math.Round(Model.ConsultationFee * 0.70m, 0))</span>
+                        </a>
+                    </div>
+                </div>
+
                 <ul class="list-unstyled small text-muted d-flex flex-column gap-2 mb-4">
-                    <li><i class="bi bi-check2 text-success me-2"></i> 20-30 Minute Private Audio/Video Session</li>
-                    <li><i class="bi bi-check2 text-success me-2"></i> Comprehensive Ahara (Diet) & Dinacharya Plan</li>
-                    <li><i class="bi bi-check2 text-success me-2"></i> Digital Prescription with Direct Basket Add</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> 20-30 Minute Dedicated Vaidya Session</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> Official Digital Prescription Slip</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> One-Click Add Prescribed Medicines to Basket</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> Free Reschedule up to 2 hours prior</li>
                 </ul>
 
-                <a asp-action="Book" asp-route-id="@Model.Id" class="btn btn-tga-gold w-100 py-2 fs-6 rounded-pill shadow">
-                    Book Appointment Now <i class="bi bi-arrow-right ms-1"></i>
+                @if (Model.IsOnline)
+                {
+                    <a asp-action="Book" asp-route-id="@Model.Id" asp-route-mode="Video" class="btn btn-success w-100 py-2 fs-6 rounded-pill shadow-sm mb-2 fw-bold d-flex align-items-center justify-content-center gap-2">
+                        <span class="spinner-grow spinner-grow-sm text-light" style="width: 8px; height: 8px;"></span>
+                        Start Consultation Now
+                    </a>
+                }
+                
+                <a asp-action="Book" asp-route-id="@Model.Id" class="btn btn-tga-gold w-100 py-2 fs-6 rounded-pill shadow-sm fw-bold">
+                    Book Scheduled Slot <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
         </div>

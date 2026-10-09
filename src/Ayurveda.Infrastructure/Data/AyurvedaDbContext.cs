@@ -30,6 +30,7 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Address> Addresses => Set<Address>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<DoctorReview> DoctorReviews => Set<DoctorReview>();
     public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
     public DbSet<Yoga> Yogas => Set<Yoga>();
     public DbSet<YogaReview> YogaReviews => Set<YogaReview>();
@@ -313,6 +314,26 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
             entity.HasOne(a => a.User)
                   .WithMany(u => u.Appointments)
                   .HasForeignKey(a => a.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // DoctorReview
+        modelBuilder.Entity<DoctorReview>(entity =>
+        {
+            entity.ToTable("DoctorReviews");
+            entity.HasOne(dr => dr.Doctor)
+                  .WithMany(d => d.Reviews)
+                  .HasForeignKey(dr => dr.DoctorId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(dr => dr.User)
+                  .WithMany()
+                  .HasForeignKey(dr => dr.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(dr => dr.Appointment)
+                  .WithOne(a => a.Review)
+                  .HasForeignKey<DoctorReview>(dr => dr.AppointmentId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 

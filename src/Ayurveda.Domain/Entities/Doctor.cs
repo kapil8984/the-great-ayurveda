@@ -17,6 +17,7 @@ public class Doctor
 
     public virtual DoctorDetail? DoctorDetail { get; set; }
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+    public virtual ICollection<DoctorReview> Reviews { get; set; } = new List<DoctorReview>();
 }
 
 public class DoctorDetail
@@ -44,6 +45,7 @@ public class DoctorDetail
     public bool IsOnline { get; set; } = false;
     public double Rating { get; set; } = 4.8;
     public int ReviewCount { get; set; } = 0;
+    public bool IsDemoData { get; set; } = false;
 
     // JSON encoded lists of string times
     public string MorningTimesJson { get; set; } = "[]";
@@ -52,3 +54,18 @@ public class DoctorDetail
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+public class DoctorReview
+{
+    public int Id { get; set; }
+    public int DoctorId { get; set; }
+    public virtual Doctor Doctor { get; set; } = null!;
+    public int UserId { get; set; }
+    public virtual ApplicationUser User { get; set; } = null!;
+    public int AppointmentId { get; set; }
+    public virtual Appointment Appointment { get; set; } = null!;
+    public int Rating { get; set; } // 1 - 5
+    public string? ReviewText { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+

@@ -27,6 +27,12 @@ public interface ICallProvider
     Task<CallRoomDto> CreateRoomAsync(int appointmentId, string doctorName, string patientName);
 }
 
+public interface ITelephonyProvider
+{
+    Task<bool> InitiatePhoneCallAsync(string patientPhone, string doctorPhone);
+    Task<bool> SendSmsReminderAsync(string phoneNumber, string message);
+}
+
 public class SearchSuggestionResultDto
 {
     public string Query { get; set; } = string.Empty;

@@ -1,0 +1,184 @@
+@model List<Ayurveda.Application.ViewModels.AppointmentDetailsViewModel>
+@{
+    ViewData["Title"] = "Clinical Appointments Queue";
+    var filter = ViewBag.CurrentFilter as string ?? "All";
+}
+
+<div class="container py-4">
+    <partial name="_DoctorPortalNav" />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div>
+                    <h3 class="fw-bold mb-1"><i class="bi bi-calendar2-check text-success me-2"></i>Appointment Queue</h3>
+                    <p class="text-muted mb-0">Manage incoming consultation requests, launch video sessions, and issue prescriptions.</p>
+                </div>
+                <div class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success-subtle rounded-pill">
+                    Total: @Model.Count consultations
+                </div>
+            </div>
+
+            <!-- Filter tabs -->
+            <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+                @foreach (var tab in new[] { "All", "Confirmed", "Pending", "Completed", "Cancelled", "Declined" })
+                {
+                    <a asp-action="Appointments" asp-route-status="@tab" 
+                       class="btn btn-sm rounded-pill px-3 @(filter == tab ? "btn-success text-white shadow-sm" : "btn-outline-secondary")">
+                        @tab
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 card border-0 shadow-sm rounded-4">
+            <div class="card-body py-5">
+                <i class="bi bi-inbox text-muted display-3 mb-3 d-block"></i>
+                <h5 class="fw-bold text-dark">No appointments found</h5>
+                <p class="text-muted mb-0">There are no consultations matching the "@filter" filter at this time.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var appt in Model)
+            {
+                var istTime = appt.StartUtc.AddHours(5.5);
+                var isLiveNow = appt.Status == "Confirmed" && Math.Abs((DateTime.UtcNow - appt.StartUtc).TotalMinutes) <= 30;
+
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-4 @(isLiveNow ? "border-start border-4 border-success" : "")">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center g-3">
+                                <!-- Patient Info -->
+                                <div class="col-lg-4 col-md-5">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center fw-bold fs-5" style="width: 52px; height: 52px; flex-shrink: 0;">
+                                            @appt.PatientName.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div>
+                                            <h5 class="fw-bold mb-1 text-dark">@appt.PatientName</h5>
+                                            <div class="small text-muted mb-1">
+                                                <i class="bi bi-calendar-event me-1"></i> @istTime.ToString("ddd, dd MMM yyyy") at <strong>@istTime.ToString("hh:mm tt") IST</strong>
+                                            </div>
+                                            <span class="badge bg-light text-dark border">
+                                                <i class="bi @(appt.ConsultationType == Ayurveda.Domain.Enums.ConsultationType.Video ? "bi-camera-video text-primary" : appt.ConsultationType == Ayurveda.Domain.Enums.ConsultationType.Audio ? "bi-telephone text-success" : "bi-chat-dots text-info") me-1"></i>
+                                                @appt.ConsultationType Consultation
+                                            </span>
+                                            <span class="badge bg-light text-dark border ms-1">₹@appt.ConsultationFee</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Clinical Note / Concern -->
+                                <div class="col-lg-4 col-md-4">
+                                    <div class="small fw-semibold text-muted text-uppercase mb-1">Chief Health Concern</div>
+                                    <p class="mb-1 text-dark small fw-medium text-truncate" style="max-width: 320px;" title="@appt.HealthConcern">
+                                        @(string.IsNullOrWhiteSpace(appt.HealthConcern) ? "General Health & Lifestyle Guidance" : appt.HealthConcern)
+                                    </p>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (appt.Status == "Confirmed")
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Confirmed</span>
+                                        }
+                                        else if (appt.Status == "Pending")
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i>Pending Acceptance</span>
+                                        }
+                                        else if (appt.Status == "Completed")
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-patch-check me-1"></i>Completed</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border">@appt.Status</span>
+                                        }
+
+                                        @if (appt.HasPrescription)
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-file-earmark-medical me-1"></i>Rx Ready</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="col-lg-4 col-md-3 text-lg-end">
+                                    <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                                        @if (appt.Status == "Pending")
+                                        {
+                                            <form asp-action="AcceptAppointment" asp-route-id="@appt.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm">
+                                                    <i class="bi bi-check-lg me-1"></i> Accept
+                                                </button>
+                                            </form>
+                                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#declineModal-@appt.Id">
+                                                <i class="bi bi-x-lg me-1"></i> Decline
+                                            </button>
+                                        }
+                                        else if (appt.Status == "Confirmed")
+                                        {
+                                            <a asp-controller="Doctors" asp-action="Room" asp-route-id="@appt.Id" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm @(isLiveNow ? "animate-pulse" : "")" target="_blank">
+                                                <i class="bi bi-camera-video me-1"></i> Open Room
+                                            </a>
+                                            <a asp-action="WritePrescription" asp-route-id="@appt.Id" class="btn btn-outline-success btn-sm rounded-pill px-3">
+                                                <i class="bi bi-pencil-square me-1"></i> Issue Rx
+                                            </a>
+                                        }
+                                        else if (appt.Status == "Completed")
+                                        {
+                                            <a asp-controller="Doctors" asp-action="Prescription" asp-route-id="@appt.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3" target="_blank">
+                                                <i class="bi bi-file-earmark-text me-1"></i> View Rx
+                                            </a>
+                                            <a asp-action="WritePrescription" asp-route-id="@appt.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                                <i class="bi bi-pencil me-1"></i> Edit Rx
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (appt.Status == "Pending")
+                {
+                    <!-- Decline Modal -->
+                    <div class="modal fade" id="declineModal-@appt.Id" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content rounded-4 border-0 shadow">
+                                <form asp-action="DeclineAppointment" asp-route-id="@appt.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <div class="modal-header border-0 pb-0">
+                                        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-x-circle me-2"></i>Decline Consultation</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body py-3">
+                                        <p class="text-muted small">Please provide a reason for declining @appt.PatientName's consultation appointment:</p>
+                                        <textarea name="reason" rows="3" class="form-control rounded-3" placeholder="e.g. In emergency surgery / prior clinical commitment..." required></textarea>
+                                    </div>
+                                    <div class="modal-footer border-0 pt-0">
+                                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-danger rounded-pill px-4">Confirm Decline</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>

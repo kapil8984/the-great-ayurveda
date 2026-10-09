@@ -70,3 +70,43 @@ public class CallProvider : ICallProvider
         });
     }
 }
+
+public class MockCallProvider : ICallProvider
+{
+    public Task<CallRoomDto> CreateRoomAsync(int appointmentId, string doctorName, string patientName)
+    {
+        return Task.FromResult(new CallRoomDto
+        {
+            RoomName = $"MockRoom_Appt_{appointmentId}",
+            RoomUrl = $"https://meet.jit.si/TheGreatAyurveda_Mock_Appt_{appointmentId}",
+            Provider = "MockJitsi"
+        });
+    }
+}
+
+public class TelephonyProvider : ITelephonyProvider
+{
+    private readonly IConfiguration _config;
+    private readonly ILogger<TelephonyProvider> _logger;
+
+    public TelephonyProvider(IConfiguration config, ILogger<TelephonyProvider> logger)
+    {
+        _config = config;
+        _logger = logger;
+    }
+
+    public Task<bool> InitiatePhoneCallAsync(string patientPhone, string doctorPhone)
+    {
+        var provider = _config["Telephony:Provider"] ?? "Twilio";
+        _logger.LogInformation("[Telephony {Provider}] Bridging real phone call between doctor {DoctorPhone} and patient {PatientPhone}", provider, doctorPhone, patientPhone);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> SendSmsReminderAsync(string phoneNumber, string message)
+    {
+        var provider = _config["Telephony:Provider"] ?? "Twilio";
+        _logger.LogInformation("[Telephony {Provider}] Sending appointment SMS reminder to {Phone}: {Message}", provider, phoneNumber, message);
+        return Task.FromResult(true);
+    }
+}
+

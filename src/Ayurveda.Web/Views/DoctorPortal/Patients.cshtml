@@ -1,0 +1,141 @@
+@model List<Ayurveda.Application.ViewModels.DoctorPatientHistoryItemViewModel>
+@{
+    ViewData["Title"] = "My Consulted Patients History";
+}
+
+<div class="container py-4">
+    <partial name="_DoctorPortalNav" />
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h3 class="fw-bold mb-1"><i class="bi bi-people text-success me-2"></i>My Consulted Patients</h3>
+                    <p class="text-muted mb-0">Confidential clinical record of all patients who have completed or scheduled consultations with your practice.</p>
+                </div>
+                <div class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success-subtle rounded-pill">
+                    Total Patients: @Model.Count
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 card border-0 shadow-sm rounded-4">
+            <div class="card-body py-5">
+                <i class="bi bi-person-x text-muted display-3 mb-3 d-block"></i>
+                <h5 class="fw-bold text-dark">No patient records yet</h5>
+                <p class="text-muted mb-0">Patients who book and attend consultations with you will appear in your clinical register here.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var patient in Model)
+            {
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center g-3">
+                                <div class="col-lg-4 col-md-5">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center fw-bold fs-5" style="width: 52px; height: 52px; flex-shrink: 0;">
+                                            @patient.PatientName.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div>
+                                            <h5 class="fw-bold mb-1 text-dark">@patient.PatientName</h5>
+                                            <div class="small text-muted mb-1">
+                                                <i class="bi bi-telephone me-1"></i> @(string.IsNullOrWhiteSpace(patient.ContactNumber) ? "Contact on file" : patient.ContactNumber)
+                                            </div>
+                                            <span class="badge bg-light text-dark border">
+                                                <i class="bi bi-calendar-check me-1 text-success"></i> @patient.ConsultationCount Consultation@(patient.ConsultationCount > 1 ? "s" : "")
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-5 col-md-4">
+                                    <div class="small fw-semibold text-muted text-uppercase mb-1">Last Health Concern</div>
+                                    <p class="mb-0 text-dark small fw-medium">
+                                        @(string.IsNullOrWhiteSpace(patient.LastHealthConcern) ? "General Wellness & Rejuvenation" : patient.LastHealthConcern)
+                                    </p>
+                                </div>
+
+                                <div class="col-lg-3 col-md-3 text-lg-end">
+                                    <button class="btn btn-outline-success btn-sm rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#history-@patient.UserId">
+                                        <i class="bi bi-clock-history me-1"></i> View Clinical Dossier
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Expandable Consultation Dossier -->
+                            <div class="collapse pt-4 mt-3 border-top" id="history-@patient.UserId">
+                                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-journal-medical text-success me-2"></i>Past Consultation History</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Date &amp; Time (IST)</th>
+                                                <th>Mode</th>
+                                                <th>Status</th>
+                                                <th>Chief Concern</th>
+                                                <th>Clinical Summary</th>
+                                                <th class="text-end">Prescription</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var c in patient.Consultations)
+                                            {
+                                                var ist = c.StartUtc.AddHours(5.5);
+                                                <tr>
+                                                    <td class="fw-medium">@ist.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark border">@c.ConsultationType</span>
+                                                    </td>
+                                                    <td>
+                                                        @if (c.Status == "Completed")
+                                                        {
+                                                            <span class="badge bg-success-subtle text-success">Completed</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary-subtle text-secondary">@c.Status</span>
+                                                        }
+                                                    </td>
+                                                    <td class="small text-muted text-truncate" style="max-width: 180px;">@c.HealthConcern</td>
+                                                    <td class="small text-muted text-truncate" style="max-width: 220px;">
+                                                        @(string.IsNullOrWhiteSpace(c.PrescriptionNotes) ? "—" : c.PrescriptionNotes)
+                                                    </td>
+                                                    <td class="text-end">
+                                                        @if (c.HasPrescription)
+                                                        {
+                                                            <a asp-controller="Doctors" asp-action="Prescription" asp-route-id="@c.Id" class="btn btn-outline-primary btn-sm rounded-pill py-0 px-2" target="_blank">
+                                                                <i class="bi bi-file-earmark-text"></i> View Rx
+                                                            </a>
+                                                        }
+                                                        else if (c.Status == "Confirmed")
+                                                        {
+                                                            <a asp-action="WritePrescription" asp-route-id="@c.Id" class="btn btn-outline-success btn-sm rounded-pill py-0 px-2">
+                                                                <i class="bi bi-pencil"></i> Write Rx
+                                                            </a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small">—</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

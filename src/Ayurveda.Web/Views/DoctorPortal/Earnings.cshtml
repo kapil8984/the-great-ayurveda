@@ -1,0 +1,155 @@
+@model Ayurveda.Application.ViewModels.DoctorEarningsViewModel
+@{
+    ViewData["Title"] = "Clinical Earnings & Payout Settlements";
+}
+
+<div class="container py-4">
+    <partial name="_DoctorPortalNav" />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h3 class="fw-bold mb-1"><i class="bi bi-cash-stack text-success me-2"></i>Practice Financial Ledger</h3>
+                    <p class="text-muted mb-0">Transparent breakdown of completed consultations, platform commission, and bank settlement requests.</p>
+                </div>
+                <div>
+                    <form asp-action="RequestPayout" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm" @(Model.NetPayable <= 0 ? "disabled" : "")>
+                            <i class="bi bi-bank me-2"></i> Request Payout (₹@Model.NetPayable.ToString("N0"))
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-success-subtle text-success p-3">
+                        <i class="bi bi-graph-up-arrow fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Gross Consultations</div>
+                        <h4 class="fw-bold mb-0 text-dark">₹@Model.TotalGross.ToString("N0")</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-warning-subtle text-warning p-3">
+                        <i class="bi bi-pie-chart fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Platform Fee (15%)</div>
+                        <h4 class="fw-bold mb-0 text-dark">₹@Model.PlatformCommission.ToString("N0")</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3 border-start border-4 border-success">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-3">
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Net Available Balance</div>
+                        <h4 class="fw-bold mb-0 text-success">₹@Model.NetPayable.ToString("N0")</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-info-subtle text-info p-3">
+                        <i class="bi bi-check2-all fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Withdrawn to Bank</div>
+                        <h4 class="fw-bold mb-0 text-dark">₹@Model.WithdrawnAmount.ToString("N0")</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settlement Details & Table -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+            <div class="d-flex align-items-center justify-content-between">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-receipt text-success me-2"></i>Completed Consultations Ledger</h5>
+                <span class="badge bg-light text-dark border">@Model.Consultations.Count Settled Sessions</span>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            @if (!Model.Consultations.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-receipt-cutoff display-4 d-block mb-3"></i>
+                    <h6>No completed consultations yet</h6>
+                    <p class="small mb-0">Consultations will be credited to your ledger immediately upon completion and issuance of the digital prescription.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ref #</th>
+                                <th>Date &amp; Time (IST)</th>
+                                <th>Patient Name</th>
+                                <th>Consultation Type</th>
+                                <th class="text-end">Patient Fee</th>
+                                <th class="text-end">Fee (15%)</th>
+                                <th class="text-end">Net Credit</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.Consultations)
+                            {
+                                var ist = c.StartUtc.AddHours(5.5);
+                                var fee = c.ConsultationFee;
+                                var comm = Math.Round(fee * 0.15m, 2);
+                                var net = fee - comm;
+                                <tr>
+                                    <td class="fw-bold text-muted">#@c.Id</td>
+                                    <td>@ist.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                    <td class="fw-semibold text-dark">@c.PatientName</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">@c.ConsultationType</span>
+                                    </td>
+                                    <td class="text-end">₹@fee.ToString("N0")</td>
+                                    <td class="text-end text-muted">-₹@comm.ToString("N0")</td>
+                                    <td class="text-end fw-bold text-success">+₹@net.ToString("N0")</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Settled
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

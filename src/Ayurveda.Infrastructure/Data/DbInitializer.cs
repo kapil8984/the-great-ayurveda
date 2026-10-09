@@ -253,6 +253,9 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 logger.LogInformation("Seeded foundational yoga postures.");
             }
+
+            // 7. Seed 24 Fictional Ayurvedic Doctors (Phase 7)
+            await SeedDoctorsAsync(context, userManager, logger);
         }
         catch (Exception ex)
         {
@@ -260,6 +263,266 @@ public static class DbInitializer
             throw;
         }
     }
+
+    public static async Task SeedDoctorsAsync(
+        AyurvedaDbContext context,
+        UserManager<ApplicationUser> userManager,
+        ILogger logger)
+    {
+        if (await context.Doctors.CountAsync() >= 24)
+            return;
+
+        var categories = await context.Categories.ToListAsync();
+        var defaultCat = categories.FirstOrDefault() ?? throw new InvalidOperationException("Categories not seeded");
+
+        var doctorDefs = new (string Name, string Email, string Qualification, int Experience, string Gender, string Languages, decimal Fee, double Rating, int Reviews, string Specialization, bool IsOnline, string Bio, string RegNo, string Council, string Address)[]
+        {
+            ("Dr. Aarav Sharma", "dr.aarav.sharma@thegreatayurveda.com", "BAMS, MD (Kayachikitsa)", 16, "Male", "Hindi, English", 599m, 4.9, 142, "Digestive Care", true,
+             "Senior Vaidya specializing in chronic gut dysbiosis, Grahani, and hyperacidity. Over 16 years restoring digestive Agni through classical Bhaishajya Ratnavali protocols.",
+             "AYUSH-CCIM/2010/8941", "Delhi Bharatiya Chikitsa Parishad", "Shree Dhanvantari Clinic, Defence Colony, New Delhi"),
+
+            ("Dr. Ananya Nambiar", "dr.ananya.nambiar@thegreatayurveda.com", "BAMS, MD (Prasuti & Stri Roga)", 14, "Female", "Malayalam, English, Hindi", 699m, 4.95, 218, "Women's Wellness", true,
+             "Renowned Kerala Ayurvedic gynecological specialist focusing on PCOS reversal, prenatal Garbhini charya, and natural menopause transition using classical Rasayanas.",
+             "AYUSH-KER/2012/4102", "Travancore-Cochin Medical Council", "Nambiar Ayurveda Nilayam, Kochi, Kerala"),
+
+            ("Dr. Vikramaditya Joshi", "dr.vikram.joshi@thegreatayurveda.com", "BAMS, Ph.D (Panchakarma)", 24, "Male", "Marathi, Hindi, English, Sanskrit", 1199m, 5.0, 310, "Panchakarma & Therapy Kits", false,
+             "Master Panchakarma physician trained in classical Ashtanga Hridaya. Advises on customized Shodhana therapies, Vamana, Virechana, and Basti regimens for deep toxin detox.",
+             "AYUSH-MAH/2002/1039", "Maharashtra Council of Indian Medicine", "Vaidya Joshi Ayurveda Peeth, Sadashiv Peth, Pune"),
+
+            ("Dr. Meera Deshmukh", "dr.meera.deshmukh@thegreatayurveda.com", "BAMS, Fellow in Ayurvedic Cosmetology", 8, "Female", "Marathi, Hindi, English", 449m, 4.8, 88, "Skin Care", true,
+             "Specialist in holistic dermatological wellness. Expert in herbal management of stubborn psoriasis, eczema, acne vulgaris, and hyperpigmentation with blood-purifying Raktashodhaka churnas.",
+             "AYUSH-MAH/2018/6620", "Maharashtra Council of Indian Medicine", "AyurSkin Holistic Care, Bandra West, Mumbai"),
+
+            ("Dr. Rajeshwari Iyer", "dr.rajeshwari.iyer@thegreatayurveda.com", "BAMS, MD (Kaumarbhritya - Pediatrics)", 18, "Female", "Tamil, English, Hindi", 799m, 4.9, 175, "Immunity & Rasayana", false,
+             "Ayurvedic pediatrician with extensive clinical expertise in Suvarnaprashana, recurring childhood respiratory allergies, gut immunity, and holistic pediatric nourishment.",
+             "AYUSH-TN/2008/3391", "Tamil Nadu Board of Indian Medicine", "Sri Shankara Ayurvedic Child Clinic, Mylapore, Chennai"),
+
+            ("Dr. Harish Chandra Shastri", "dr.harish.shastri@thegreatayurveda.com", "BAMS, Senior Vaidya", 28, "Male", "Hindi, Sanskrit", 999m, 4.95, 260, "Joint & Muscle Care", false,
+             "Traditional Vaidya lineage practitioner with 28 years mastering Sandhivata (osteoarthritis), cervical spondylosis, and sciatica through tailored herbal tailas and Janu Basti guidance.",
+             "AYUSH-UP/1998/0872", "Board of Ayurvedic and Unani Systems of Medicine, UP", "Shastri Ayurvedic Chikitsalaya, Assi Ghat, Varanasi"),
+
+            ("Dr. Tanvi Bhatia", "dr.tanvi.bhatia@thegreatayurveda.com", "BAMS, Certified Sleep Counselor", 6, "Female", "Hindi, Punjabi, English", 399m, 4.75, 64, "Stress, Sleep & Brain", true,
+             "Integrative Ayurvedic consultant dedicated to treating chronic insomnia, burnout, Vata-induced anxiety, and mental fatigue using Medhya botanicals and Shirodhara self-care rituals.",
+             "AYUSH-PB/2020/9012", "Punjab Ayurvedic Council", "MindVeda Holistic Wellness, Sector 35, Chandigarh"),
+
+            ("Dr. Devendra Hegde", "dr.devendra.hegde@thegreatayurveda.com", "BAMS, MD (Dravyaguna Vijnana)", 15, "Male", "Kannada, English, Hindi", 649m, 4.85, 130, "Herbs & Raw Powders", false,
+             "Authority on botanical taxonomy and classical Dravya formulation. Advises patients on correct single-herb decoctions, therapeutic dosages, and wildcrafted herb synergy.",
+             "AYUSH-KAR/2011/5521", "Karnataka Ayurvedic and Unani Practitioners Board", "Hegde Herbal Heritage, Malleshwaram, Bengaluru"),
+
+            ("Dr. Suniti Mukherjee", "dr.suniti.mukherjee@thegreatayurveda.com", "BAMS, MD (Kayachikitsa)", 11, "Female", "Bengali, English, Hindi", 549m, 4.8, 112, "Diabetes & Metabolism Support", true,
+             "Focused on reversing insulin resistance and metabolic sluggishness through Agni-kindling herbs, Karela-Jamun extracts, and customized Ahara charya meal planning.",
+             "AYUSH-WB/2015/7821", "Paschim Banga Ayurved Parishad", "Prana Health Center, Salt Lake, Kolkata"),
+
+            ("Dr. Pradeep Varma", "dr.pradeep.varma@thegreatayurveda.com", "BAMS, MS (Ayur - Shalakya Tantra)", 19, "Male", "Malayalam, Tamil, English", 849m, 4.9, 158, "Panchakarma & Therapy Kits", false,
+             "ENT and Netra Roga expert specializing in chronic sinusitis, allergic rhinitis, Nasya therapy, computer vision syndrome, and Tarpana ocular rejuvenation.",
+             "AYUSH-KER/2007/2844", "Travancore-Cochin Medical Council", "Varma Shalakya Clinic, Thiruvananthapuram"),
+
+            ("Dr. Shalini Kulkarni", "dr.shalini.kulkarni@thegreatayurveda.com", "BAMS, Trichology Specialist", 5, "Female", "Marathi, Hindi, English", 349m, 4.7, 52, "Hair Care", true,
+             "Dedicated Ayurvedic trichologist addressing severe hair fall (Khalitya), premature graying (Palitya), and scalp microbiome balance with classical Bhringraj and Amla regimens.",
+             "AYUSH-MAH/2021/8834", "Maharashtra Council of Indian Medicine", "KeshVeda Clinic, Shivaji Nagar, Pune"),
+
+            ("Dr. Balram Upadhyay", "dr.balram.upadhyay@thegreatayurveda.com", "BAMS, MD (Ayurveda)", 22, "Male", "Hindi, Bhojpuri, English", 899m, 4.9, 194, "Immunity & Rasayana", false,
+             "Senior respiratory Ayurvedic clinician specializing in Shwasa-Kasa (bronchial asthma, chronic bronchitis), post-viral recovery, and long-term lung tissue strengthening.",
+             "AYUSH-UP/2004/1922", "Board of Ayurvedic and Unani Systems of Medicine, UP", "AyurShwasa Kendra, Gomti Nagar, Lucknow"),
+
+            ("Dr. Kavita Patel", "dr.kavita.patel@thegreatayurveda.com", "BAMS", 9, "Female", "Gujarati, Hindi, English", 499m, 4.8, 96, "Digestive Care", true,
+             "Compassionate Vaidya specializing in IBS, chronic constipation, Agnimandya, and dietary re-education based on classical Ashtavidha Pariksha diagnosis.",
+             "AYUSH-GUJ/2017/4910", "Gujarat Board of Ayurvedic and Unani Systems of Medicine", "Sattva Ayurvedic Care, Navrangpura, Ahmedabad"),
+
+            ("Dr. Somnath Sen", "dr.somnath.sen@thegreatayurveda.com", "BAMS, MD (Rasashastra)", 20, "Male", "Bengali, Hindi, English", 950m, 4.95, 230, "Honey, Ghee & Natural Foods", false,
+             "Authority on traditional pharmaceutics, medicinal clarified butters (Ghrithas), and classical Rasayanas for longevity, cellular repair, and anti-aging Ojas replenishment.",
+             "AYUSH-WB/2006/3319", "Paschim Banga Ayurved Parishad", "Dhanwantari Rasashala, Ballygunge, Kolkata"),
+
+            ("Dr. Priyamvada Rao", "dr.priyamvada.rao@thegreatayurveda.com", "BAMS", 7, "Female", "Telugu, English, Hindi", 449m, 4.75, 78, "Women's Wellness", true,
+             "Holistic women's health practitioner specializing in hormonal acne, dysmenorrhea, postpartum rejuvenating care, and gentle Shatavari formulations.",
+             "AYUSH-AP/2019/5108", "Andhra Pradesh Board of Ayurveda", "MatruVeda Center, Banjara Hills, Hyderabad"),
+
+            ("Dr. Madhavan Pillai", "dr.madhavan.pillai@thegreatayurveda.com", "BAMS, Marma Master", 26, "Male", "Malayalam, English, Sanskrit", 1250m, 5.0, 290, "Joint & Muscle Care", false,
+             "Legendary Kerala Marma therapist with 26 years correcting chronic back pain, slipped discs, sciatica, and sports injuries without surgical intervention.",
+             "AYUSH-KER/2000/1182", "Travancore-Cochin Medical Council", "Pillai Marma Gurukulam, Palakkad, Kerala"),
+
+            ("Dr. Alok Kumar Tiwari", "dr.alok.tiwari@thegreatayurveda.com", "BAMS, MD (Manasa Roga)", 12, "Male", "Hindi, English", 599m, 4.85, 140, "Stress, Sleep & Brain", true,
+             "Mind-body physician harmonizing mental clarity and neurological calm through Satvavajaya Chikitsa, Medhya rasayanas, and lifestyle circadian synchronization.",
+             "AYUSH-DEL/2014/6619", "Delhi Bharatiya Chikitsa Parishad", "Chetana Ayurvedic Center, Rohini, Delhi"),
+
+            ("Dr. Rituja Chawla", "dr.rituja.chawla@thegreatayurveda.com", "BAMS, MD (Twak Roga)", 10, "Female", "Hindi, English", 650m, 4.9, 125, "Skin Care", true,
+             "Expert on allergic dermatitis, urticaria (Sheetapitta), Vitiligo supportive protocols, and luminous skin glow using Kumkumadi Tailam and Manjistha root.",
+             "AYUSH-DEL/2016/8120", "Delhi Bharatiya Chikitsa Parishad", "ShubhAyur Skin Clinic, South Extension, New Delhi"),
+
+            ("Dr. Eknath Gaikwad", "dr.eknath.gaikwad@thegreatayurveda.com", "BAMS", 17, "Male", "Marathi, Hindi, English", 700m, 4.85, 160, "Diabetes & Metabolism Support", false,
+             "Specializing in metabolic syndrome, fatty liver grade 1/2 reversal support, and lipid balance using classical Guggulu and Arogyavardhini protocols.",
+             "AYUSH-MAH/2009/4412", "Maharashtra Council of Indian Medicine", "Gaikwad Arogya Bhavan, Nashik"),
+
+            ("Dr. Jayashree Sundaram", "dr.jayashree.sundaram@thegreatayurveda.com", "BAMS, Yoga Acharya", 13, "Female", "Tamil, English, Hindi", 620m, 4.8, 115, "Yoga & Wellness", true,
+             "Integrates classical therapeutic Yoga asanas, Pranayama breathing, and herbal medicine to cure postural disorders, chronic migraines, and hormonal imbalances.",
+             "AYUSH-TN/2013/5901", "Tamil Nadu Board of Indian Medicine", "AyurYoga Sanjeevani, Coimbatore"),
+
+            ("Dr. Gaurav Aggarwal", "dr.gaurav.aggarwal@thegreatayurveda.com", "BAMS", 4, "Male", "Hindi, English", 299m, 4.65, 38, "Hair Care", true,
+             "Young dynamic Vaidya focused on scalp health, modern lifestyle hair loss, dandruff, and stress-related alopecia with affordable consultation options.",
+             "AYUSH-HR/2022/9410", "Haryana Board of Ayurvedic Systems", "KeshRoot Health, Gurugram"),
+
+            ("Dr. Vasantha Kumari", "dr.vasantha.kumari@thegreatayurveda.com", "BAMS, MD (Jara Chikitsa)", 25, "Female", "Telugu, Kannada, English", 1100m, 4.95, 245, "Immunity & Rasayana", false,
+             "Senior geriatric physician helping elders maintain vitality, memory retention, joint mobility, digestive warmth, and peaceful sleep in their golden years.",
+             "AYUSH-KAR/2001/2209", "Karnataka Ayurvedic and Unani Practitioners Board", "Sanjeevani Elder Care Ayurveda, Jayanagar, Bengaluru"),
+
+            ("Dr. Nikhilesh Roy", "dr.nikhilesh.roy@thegreatayurveda.com", "BAMS", 3, "Male", "Hindi, Bengali, English", 320m, 4.6, 24, "Digestive Care", true,
+             "Approachable general Ayurvedic consultant providing fast consultations for acute indigestion, travel sickness, bloating, and simple herbal remedies.",
+             "AYUSH-WB/2023/1180", "Paschim Banga Ayurved Parishad", "Arogya Niketan, Howrah"),
+
+            ("Dr. Sarojini Nair", "dr.sarojini.nair@thegreatayurveda.com", "BAMS, MD (Panchakarma), Gold Medalist", 30, "Female", "Malayalam, English, Hindi, Sanskrit", 1499m, 5.0, 380, "Panchakarma & Therapy Kits", false,
+             "Distinguished Ayurvedic scholar and master clinician with 30 years experience heading premier Ayurvedic hospitals. Renowned worldwide for complex case management.",
+             "AYUSH-KER/1996/0014", "Travancore-Cochin Medical Council", "Nair Classical Ayurvedic Hospital, Kottayam, Kerala")
+        };
+
+        var morningSlotsJson = "[\"09:00 AM\", \"09:30 AM\", \"10:00 AM\", \"10:30 AM\", \"11:00 AM\", \"11:30 AM\"]";
+        var afternoonSlotsJson = "[\"02:00 PM\", \"02:30 PM\", \"03:00 PM\", \"03:30 PM\", \"04:00 PM\"]";
+        var eveningSlotsJson = "[\"05:30 PM\", \"06:00 PM\", \"06:30 PM\", \"07:00 PM\", \"07:30 PM\"]";
+
+        foreach (var def in doctorDefs)
+        {
+            var existingDoctor = await context.Doctors.FirstOrDefaultAsync(d => d.Email == def.Email);
+            if (existingDoctor != null) continue;
+
+            // Find matching category
+            var cat = categories.FirstOrDefault(c => c.Name.Equals(def.Specialization, StringComparison.OrdinalIgnoreCase)) ?? defaultCat;
+
+            // Create ApplicationUser for login
+            var user = await userManager.FindByEmailAsync(def.Email);
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = def.Email,
+                    Email = def.Email,
+                    FullName = def.Name,
+                    ContactNumber = "+91 98765 43210",
+                    Gender = def.Gender,
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var userRes = await userManager.CreateAsync(user, "DoctorPass@2026");
+                if (userRes.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(user, UserRole.Doctor.ToString());
+                }
+            }
+
+            var doctor = new Doctor
+            {
+                DoctorName = def.Name,
+                Email = def.Email,
+                ContactNumber = "+91 98765 43210",
+                ProfileImage = "/images/doctor-avatar.svg",
+                Role = "Doctor",
+                ApplicationUserId = user?.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var detail = new DoctorDetail
+            {
+                Doctor = doctor,
+                Qualification = def.Qualification,
+                Experience = def.Experience,
+                Gender = def.Gender,
+                Language = def.Languages,
+                ConsultationFee = def.Fee,
+                Rating = def.Rating,
+                ReviewCount = def.Reviews,
+                IsOnline = def.IsOnline,
+                IsDemoData = true,
+                Bio = def.Bio,
+                RegistrationNumber = def.RegNo,
+                RegistrationCouncil = def.Council,
+                ClinicAddress = def.Address,
+                SpecializationId = cat.Id,
+                Status = 1, // Approved
+                MorningTimesJson = morningSlotsJson,
+                AfternoonTimesJson = afternoonSlotsJson,
+                EveningTimesJson = eveningSlotsJson,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            doctor.DoctorDetail = detail;
+            context.Doctors.Add(doctor);
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded 24 authentic fictional Ayurvedic Vaidyas with full credentials, slot schedules, and login accounts.");
+
+        // Seed sample completed appointment with prescription & verified review
+        var firstDoc = await context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync();
+        var patientUser = await context.Users.FirstOrDefaultAsync(u => u.Email != "admin@thegreatayurveda.com");
+        if (firstDoc != null && patientUser != null && !await context.Appointments.AnyAsync())
+        {
+            var firstProduct = await context.Products.FirstOrDefaultAsync();
+            var prescribedJson = firstProduct != null 
+                ? $"[{{\"ProductId\":{firstProduct.Id},\"ProductTitle\":\"{firstProduct.Title}\",\"Dosage\":\"1 tsp twice daily with warm water after meals\",\"Duration\":\"30 Days\",\"Price\":{firstProduct.Price},\"ImageUrl\":\"{firstProduct.ImageUrl}\"}}]"
+                : "[]";
+
+            var pastAppt = new Appointment
+            {
+                DoctorId = firstDoc.Id,
+                UserId = patientUser.Id,
+                AppointmentDate = DateTime.Today.AddDays(-3),
+                StartUtc = DateTime.UtcNow.AddDays(-3),
+                TimeSlot = "10:00 AM",
+                PatientName = patientUser.FullName,
+                PatientContact = "+91 98765 00000",
+                PatientAge = 34,
+                PatientGender = "Male",
+                HealthConcern = "Chronic morning bloating, sluggish digestion, and fatigue after meals",
+                ConsultationType = ConsultationType.Video,
+                ConsultationFee = firstDoc.DoctorDetail!.ConsultationFee,
+                Status = "Completed",
+                MeetingRoomId = "https://meet.jit.si/TheGreatAyurveda_DemoRoom_01",
+                PrescriptionNotes = "Mild Mandagni with aggravated Samana Vata. Advised to avoid cold dairy, practice CCF tea infusions, and take prescribed classical formulations regularly.",
+                DietaryAdvice = "Sip warm water with cumin seeds throughout the day. Take light dinner by 7:30 PM. Avoid raw salads at night.",
+                DoshaDiagnosis = "Vata-Kapha Agnimandya",
+                PrescriptionProductsJson = prescribedJson,
+                FollowUpDateUtc = DateTime.UtcNow.AddDays(14),
+                CallDurationSeconds = 1240,
+                JoinedAtUtc = DateTime.UtcNow.AddDays(-3),
+                LeftAtUtc = DateTime.UtcNow.AddDays(-3).AddMinutes(21)
+            };
+
+            var review = new DoctorReview
+            {
+                DoctorId = firstDoc.Id,
+                UserId = patientUser.Id,
+                Appointment = pastAppt,
+                Rating = 5,
+                ReviewText = "Exceptionally insightful consultation! Dr. Sharma explained the root cause of my digestive imbalance thoroughly and the dietary advice started helping within 3 days.",
+                CreatedAt = DateTime.UtcNow.AddDays(-2)
+            };
+
+            context.Appointments.Add(pastAppt);
+            context.DoctorReviews.Add(review);
+
+            // Upcoming appointment
+            var upcomingAppt = new Appointment
+            {
+                DoctorId = firstDoc.Id,
+                UserId = patientUser.Id,
+                AppointmentDate = DateTime.Today.AddDays(1),
+                StartUtc = DateTime.UtcNow.AddDays(1),
+                TimeSlot = "11:00 AM",
+                PatientName = patientUser.FullName,
+                PatientContact = "+91 98765 00000",
+                PatientAge = 34,
+                PatientGender = "Male",
+                HealthConcern = "Follow-up consultation for digestion progress review",
+                ConsultationType = ConsultationType.Video,
+                ConsultationFee = firstDoc.DoctorDetail.ConsultationFee,
+                Status = "Confirmed",
+                MeetingRoomId = "https://meet.jit.si/TheGreatAyurveda_DemoRoom_02"
+            };
+            context.Appointments.Add(upcomingAppt);
+
+            await context.SaveChangesAsync();
+            logger.LogInformation("Seeded sample completed appointment with digital prescription, verified review, and upcoming appointment.");
+        }
+    }
+
 
     private class ProductSeedDto
     {
