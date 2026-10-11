@@ -1,0 +1,43 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad_pure-certified-organic-gokshura-powder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A16207" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#713F12" stop-opacity="0.05"/>
+    </linearGradient>
+    <radialGradient id="sunGlow_pure-certified-organic-gokshura-powder" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#FACC15" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow_pure-certified-organic-gokshura-powder" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Card Background -->
+  <rect width="200" height="200" rx="16" fill="#F8FAFC"/>
+  <rect width="200" height="200" rx="16" fill="url(#bgGrad_pure-certified-organic-gokshura-powder)"/>
+  <circle cx="100" cy="110" r="75" fill="url(#sunGlow_pure-certified-organic-gokshura-powder)"/>
+
+  <!-- Top Category Pill -->
+  <g transform="translate(100, 18)">
+    <rect x="-65" y="0" width="130" height="15" rx="7.5" fill="#A16207" fill-opacity="0.9"/>
+    <text x="0" y="10.5" font-family="system-ui, sans-serif" font-size="6.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">Herbs & Raw Powders</text>
+  </g>
+
+  <!-- Product Illustration -->
+  <g filter="url(#shadow_pure-certified-organic-gokshura-powder)">
+            <!-- Authentic Churna / Powder Pouch -->
+        <path d="M72,70 L128,70 L134,165 Q134,172 126,172 L74,172 Q66,172 66,165 Z" fill="#78350F"/>
+        <line x1="72" y1="78" x2="128" y2="78" stroke="#FBBF24" stroke-width="2"/>
+        <rect x="74" y="92" width="52" height="64" rx="4" fill="#FEF3C7"/>
+        <text x="100" y="110" font-family="'Cinzel', Georgia, serif" font-size="7" font-weight="700" fill="#92400E" text-anchor="middle">CHURNA</text>
+        <path d="M93,125 C93,120 100,118 100,123 C100,118 107,120 107,125 C107,130 100,133 100,133 C100,133 93,130 93,125 Z" fill="#D97706"/>
+        <text x="100" y="145" font-family="system-ui, sans-serif" font-size="5.5" font-weight="600" fill="#78350F" text-anchor="middle">100% ORGANIC RAW</text>
+  </g>
+
+  <!-- Bottom Title Badge -->
+  <g transform="translate(10, 178)">
+    <rect x="0" y="0" width="180" height="16" rx="8" fill="#FFFFFF" opacity="0.95" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="90" y="11" font-family="system-ui, sans-serif" font-size="7" font-weight="700" fill="#0F172A" text-anchor="middle">Pure Certified Organic Go...</text>
+  </g>
+</svg>

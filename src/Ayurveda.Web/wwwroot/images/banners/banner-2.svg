@@ -1,0 +1,43 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#78350F"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="80%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#78350F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#bgGrad)"/>
+  <rect width="1200" height="400" fill="url(#glow)"/>
+  
+  <!-- Geometric Ayurvedic Lotus Motif -->
+  <g transform="translate(950, 200)" opacity="0.18">
+    <circle cx="0" cy="0" r="140" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <circle cx="0" cy="0" r="100" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="60" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+    <path d="M0,-140 Q40,-60 0,0 Q-40,-60 0,-140" fill="#FFFFFF"/>
+    <path d="M0,140 Q40,60 0,0 Q-40,60 0,140" fill="#FFFFFF"/>
+    <path d="M-140,0 Q-60,40 0,0 Q-60,-40 -140,0" fill="#FFFFFF"/>
+    <path d="M140,0 Q60,40 0,0 Q60,-40 140,0" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Left Content -->
+  <g transform="translate(80, 80)">
+    <rect x="0" y="0" width="260" height="32" rx="16" fill="#FCD34D" fill-opacity="0.2"/>
+    <text x="20" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#FCD34D" letter-spacing="2">HOLISTIC HEALING</text>
+    
+    <text x="0" y="95" font-family="'Cinzel', Georgia, serif" font-size="44" font-weight="800" fill="#FFFFFF" letter-spacing="1">Panchakarma & Seasonal Detox</text>
+    <text x="0" y="145" font-family="system-ui, sans-serif" font-size="20" font-weight="400" fill="#E2E8F0" max-width="700">Balancing Vata, Pitta & Kapha with 5,000-Year Ancient Healing Science</text>
+
+    <!-- Badges / CTAs -->
+    <g transform="translate(0, 190)">
+      <rect x="0" y="0" width="200" height="48" rx="24" fill="#FCD34D"/>
+      <text x="35" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#0F172A">Explore Catalogue â†’</text>
+
+      <rect x="220" y="0" width="200" height="48" rx="24" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+      <text x="250" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF">Book Vaidya Call</text>
+    </g>
+  </g>
+</svg>

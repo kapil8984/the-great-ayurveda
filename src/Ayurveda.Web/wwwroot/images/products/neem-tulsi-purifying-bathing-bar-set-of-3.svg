@@ -1,0 +1,44 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad_neem-tulsi-purifying-bathing-bar-set-of-3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BE185D" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#831843" stop-opacity="0.05"/>
+    </linearGradient>
+    <radialGradient id="sunGlow_neem-tulsi-purifying-bathing-bar-set-of-3" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#F472B6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow_neem-tulsi-purifying-bathing-bar-set-of-3" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Card Background -->
+  <rect width="200" height="200" rx="16" fill="#F8FAFC"/>
+  <rect width="200" height="200" rx="16" fill="url(#bgGrad_neem-tulsi-purifying-bathing-bar-set-of-3)"/>
+  <circle cx="100" cy="110" r="75" fill="url(#sunGlow_neem-tulsi-purifying-bathing-bar-set-of-3)"/>
+
+  <!-- Top Category Pill -->
+  <g transform="translate(100, 18)">
+    <rect x="-65" y="0" width="130" height="15" rx="7.5" fill="#BE185D" fill-opacity="0.9"/>
+    <text x="0" y="10.5" font-family="system-ui, sans-serif" font-size="6.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">Skin Care</text>
+  </g>
+
+  <!-- Product Illustration -->
+  <g filter="url(#shadow_neem-tulsi-purifying-bathing-bar-set-of-3)">
+            <!-- Amber Elixir Bottle -->
+        <rect x="92" y="60" width="16" height="15" rx="2" fill="#E2E8F0"/>
+        <path d="M82,75 L118,75 L125,92 L125,172 Q125,176 120,176 L80,176 Q75,176 75,172 L75,92 Z" fill="#92400E"/>
+        <rect x="79" y="98" width="42" height="62" rx="3" fill="#FFFBEB"/>
+        <text x="100" y="118" font-family="'Cinzel', Georgia, serif" font-size="7" font-weight="700" fill="#78350F" text-anchor="middle">ASAVA ELIXIR</text>
+        <line x1="83" y1="124" x2="117" y2="124" stroke="#F472B6" stroke-width="1"/>
+        <text x="100" y="136" font-family="system-ui, sans-serif" font-size="6" font-weight="600" fill="#B45309" text-anchor="middle">450 ML</text>
+        <text x="100" y="148" font-family="system-ui, sans-serif" font-size="5" fill="#78350F" text-anchor="middle">NATURALLY FERMENTED</text>
+  </g>
+
+  <!-- Bottom Title Badge -->
+  <g transform="translate(10, 178)">
+    <rect x="0" y="0" width="180" height="16" rx="8" fill="#FFFFFF" opacity="0.95" stroke="#E2E8F0" stroke-width="0.8"/>
+    <text x="90" y="11" font-family="system-ui, sans-serif" font-size="7" font-weight="700" fill="#0F172A" text-anchor="middle">Neem & Tulsi Purifying Ba...</text>
+  </g>
+</svg>
