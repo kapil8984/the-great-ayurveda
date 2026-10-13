@@ -1,0 +1,197 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    var publicSiteUrl = Configuration["PublicSiteUrl"] ?? "http://localhost:5000";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] != null ? $"{ViewData["Title"]} | TGA Admin Portal" : "Admin Portal | The Great Ayurveda")</title>
+    <meta name="description" content="Secure administrative management portal for The Great Ayurveda." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#18221D" />
+
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/admin.webmanifest" />
+    
+    <!-- Local Bootstrap 5.3 & Icons -->
+    <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="/css/admin.css" asp-append-version="true" />
+</head>
+<body class="d-flex">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- Left Sidebar Navigation -->
+        <aside class="admin-sidebar p-3 d-flex flex-column" style="width: 260px; flex-shrink: 0;">
+            <div class="mb-3 px-2 d-flex align-items-center justify-content-between">
+                <img src="/images/admin-logo-full.svg" alt="The Great Ayurveda Admin Portal" height="42" class="img-fluid" />
+                <button class="btn btn-sm btn-outline-light rounded-circle p-1 d-none d-md-inline-flex align-items-center justify-content-center" id="adminSidebarToggle" title="Collapse/Expand Sidebar" style="width: 30px; height: 30px;">
+                    <i class="bi bi-layout-sidebar"></i>
+                </button>
+            </div>
+
+            <a href="/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm w-100 rounded-pill mb-3 d-flex align-items-center justify-content-center gap-2 fw-semibold text-white shadow-xs" style="border-color: rgba(44,126,80,0.6); background: rgba(44,126,80,0.25);" id="adminSidebarViewWebsiteBtn" title="Open Public Website in new tab">
+                <i class="bi bi-box-arrow-up-right text-warning"></i>
+                <span>View Website</span>
+            </a>
+
+            <nav class="d-flex flex-column gap-1 flex-grow-1 overflow-y-auto" style="max-height: calc(100vh - 180px);">
+                <a asp-controller="Dashboard" asp-action="Index" class="admin-sidebar-link">
+                    <i class="bi bi-speedometer2"></i> <span class="sidebar-text">Dashboard</span>
+                </a>
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("SupportAgent") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Doctors" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-hospital"></i> <span class="sidebar-text">Doctor Practice</span>
+                    </a>
+                    <a asp-controller="Doctors" asp-action="Pending" class="admin-sidebar-link">
+                        <i class="bi bi-person-check"></i> <span class="sidebar-text">Doctor Verification</span>
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("CatalogManager") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Products" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-box-seam"></i> <span class="sidebar-text">Products &amp; Stock</span>
+                    </a>
+                    <a asp-controller="Categories" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-grid"></i> <span class="sidebar-text">Categories Catalog</span>
+                    </a>
+                    <a asp-controller="Marketing" asp-action="Coupons" class="admin-sidebar-link">
+                        <i class="bi bi-tag"></i> <span class="sidebar-text">Coupons &amp; Offers</span>
+                    </a>
+                    <a asp-controller="Marketing" asp-action="Banners" class="admin-sidebar-link">
+                        <i class="bi bi-images"></i> <span class="sidebar-text">Store Banners</span>
+                    </a>
+                    <a asp-controller="Yoga" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-flower1"></i> <span class="sidebar-text">Yoga &amp; Wellness</span>
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("SupportAgent") || User.IsInRole("FinanceManager") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Orders" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-cart-check"></i> <span class="sidebar-text">Orders &amp; Dispatch</span>
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("SupportAgent") || User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Appointments" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-calendar2-heart"></i> <span class="sidebar-text">Tele-Consultations</span>
+                    </a>
+                    <a asp-controller="Moderation" asp-action="Reviews" class="admin-sidebar-link">
+                        <i class="bi bi-chat-square-quote"></i> <span class="sidebar-text">Reviews &amp; Q&amp;A</span>
+                    </a>
+                    <a asp-controller="Users" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-people"></i> <span class="sidebar-text">Users &amp; Patients</span>
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("FinanceManager"))
+                {
+                    <a asp-controller="Finance" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-cash-stack"></i> <span class="sidebar-text">Finance &amp; GST</span>
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin"))
+                {
+                    <div class="small text-uppercase text-white-50 px-2 pt-2 fw-semibold sidebar-header-title" style="font-size: 0.7rem;">System &amp; Security</div>
+                    <a asp-controller="AdminUsers" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-shield-lock"></i> <span class="sidebar-text">Staff Roles &amp; 2FA</span>
+                    </a>
+                    <a asp-controller="Audit" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-journal-text"></i> <span class="sidebar-text">Audit Trail</span>
+                    </a>
+                    <a asp-controller="Settings" asp-action="Index" class="admin-sidebar-link">
+                        <i class="bi bi-sliders"></i> <span class="sidebar-text">System Settings</span>
+                    </a>
+                }
+            </nav>
+
+            <div class="border-top border-secondary pt-3 mt-auto">
+                <div class="small text-white-50 px-2 mb-2 text-truncate sidebar-text">@User.Identity.Name</div>
+                <form asp-area="Admin" asp-controller="Auth" asp-action="Logout" method="post" id="adminLogoutForm" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-pill btn-logout-trigger" data-tga-logout data-action-url="/admin-portal/auth/logout">
+                        <i class="bi bi-box-arrow-right me-1"></i> <span class="sidebar-text">Sign Out</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+    }
+
+    <!-- Main Content Panel -->
+    <div class="flex-grow-1 d-flex flex-column min-vh-100">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <header class="admin-header py-2 px-4 d-flex justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3 flex-grow-1">
+                    <h5 class="fw-bold mb-0 text-dark text-nowrap d-none d-md-block">Management Console</h5>
+                    <partial name="_SearchBox" />
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="theme-toggle-btn shadow-xs" id="adminThemeToggle" title="Toggle Dark/Light Mode">
+                        <i class="bi bi-moon-stars-fill"></i>
+                    </button>
+                    <a href="/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm rounded-pill px-3 d-inline-flex align-items-center gap-1 fw-semibold" id="adminHeaderViewWebsiteBtn" title="Open Public Website in new tab">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <span>View Website</span>
+                    </a>
+                    <span class="badge bg-success-subtle text-success border border-success px-3 py-1 text-nowrap d-none d-sm-inline">Protected Admin Host</span>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-tga-logout data-action-url="/admin-portal/auth/logout" title="Sign Out">
+                        <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                    </button>
+                </div>
+            </header>
+        }
+
+        <main class="p-4 flex-grow-1">
+            @RenderBody()
+        </main>
+
+        <footer class="py-2 px-4 bg-light text-muted small border-top d-flex justify-content-between align-items-center">
+            <span>&copy; @DateTime.UtcNow.Year The Great Ayurveda Management Console</span>
+            <span class="badge bg-secondary-subtle text-secondary border">AI-generated sample images</span>
+        </footer>
+    </div>
+
+    <!-- Reusable Accessible Confirm Modal & Idle Timeout Modal -->
+    <partial name="_ConfirmModal" />
+    <partial name="_IdleTimeoutModal" />
+
+    <!-- Toasts Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="toast align-items-center text-bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body"><i class="bi bi-check-circle me-2"></i> @TempData["SuccessMessage"]</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="toast align-items-center text-bg-danger border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body"><i class="bi bi-exclamation-triangle me-2"></i> @TempData["ErrorMessage"]</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <script src="/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="/lib/chartjs/chart.umd.js"></script>
+    <script src="/js/admin.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

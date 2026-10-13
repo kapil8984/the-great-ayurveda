@@ -41,10 +41,9 @@ yarn-error.log*
 *.db-wal
 *.mdf
 *.ldf
-outbox/
-uploads/
 scratch/
-shared/
+outbox/
+**/outbox/
 shared/uploads/
 wwwroot/uploads/
 **/wwwroot/uploads/

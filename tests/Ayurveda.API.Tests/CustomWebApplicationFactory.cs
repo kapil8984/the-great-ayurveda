@@ -53,6 +53,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Ayurveda.API.Pr
                 options.UseInMemoryDatabase(_dbName);
                 options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning));
             });
+
+            // Ensure JWT signing key matches test token signing key
+            services.PostConfigure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
+                Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
+                options =>
+                {
+                    options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtKey));
+                });
         });
     }
 
