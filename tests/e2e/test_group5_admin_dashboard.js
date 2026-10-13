@@ -185,7 +185,7 @@ async function runGroup5Verification() {
         assert(titleInput !== null, 'Product edit form loaded with Title field');
 
         const originalTitle = await titleInput.inputValue();
-        const testSuffix = ' [Certified Pure]';
+        const testSuffix = ' [Authentic Grade]';
         let updatedTitle = originalTitle;
         if (!originalTitle.includes(testSuffix)) {
             updatedTitle = originalTitle + testSuffix;

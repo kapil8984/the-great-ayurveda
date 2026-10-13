@@ -1,6 +1,6 @@
 @model Ayurveda.Application.ViewModels.DoctorRegisterViewModel
 @{
-    ViewData["Title"] = "Certified Vaidya Registration Wizard";
+    ViewData["Title"] = "Ayurvedic Doctor Registration Wizard";
     var specializations = ViewBag.Specializations as List<Ayurveda.Domain.Entities.Category> ?? new List<Ayurveda.Domain.Entities.Category>();
 }
 
@@ -129,7 +129,7 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label asp-for="RegistrationNumber" class="form-label small fw-semibold">State / NCISM Reg. Number *</label>
+                                    <label asp-for="RegistrationNumber" class="form-label small fw-semibold">AYUSH/State Medical Council Registration Number *</label>
                                     <input asp-for="RegistrationNumber" class="form-control" placeholder="e.g. AYU-DL-2018-9841" required />
                                     <span asp-validation-for="RegistrationNumber" class="text-danger small"></span>
                                 </div>

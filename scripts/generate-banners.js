@@ -90,7 +90,7 @@ const BANNERS = [
         tagline: 'SHODHANA & REJUVENATION THERAPY',
         desc: 'Ancient Detox Tools: Pure Copper Neti Pots, Bronze Kansa Vatki Bowls, Anu Taila & Massage Tailas',
         cta: 'Shop Panchakarma',
-        code: 'Lab Certified • Heavy Metal Tested',
+        code: 'AFI Standards • Classical Herbs',
         bgGradient: 'linear-gradient(135deg, #1B261D 0%, #2A4031 40%, #154228 80%, #0F2A1B 100%)',
         accentColor: '#A3D9A5',
         secondaryColor: '#E3A72F',
@@ -334,8 +334,8 @@ function generateHtml(b) {
       <p>${getCardDesc(b.theme)}</p>
       <div class="trust-row">
         <span>✓ 100% Classical</span>
-        <span>✓ Certified Vaidyas</span>
-        <span>✓ Heavy-Metal Tested</span>
+        <span>✓ Qualified Vaidyas</span>
+        <span>✓ Classical Standards</span>
       </div>
     </div>
   </div>

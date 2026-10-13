@@ -1136,7 +1136,7 @@ function initCouponCopy() {
     const copyBtns = document.querySelectorAll("[data-copy-coupon]");
     copyBtns.forEach(btn => {
         btn.addEventListener("click", function () {
-            const code = btn.getAttribute("data-copy-coupon") || "AYUSH15";
+            const code = btn.getAttribute("data-copy-coupon") || "HEALTH15";
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(code).then(() => {
                     showToast("Coupon Copied", `Code ${code} copied to clipboard! Enjoy your discount.`);

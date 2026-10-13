@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "Access Denied";
+    Layout = "_Layout";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden text-center p-4 p-md-5" style="background: rgba(18, 30, 24, 0.95); border: 1px solid rgba(212, 175, 55, 0.3) !important;">
+                <div class="mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger bg-opacity-10 text-danger p-3 mb-2" style="width: 80px; height: 80px;">
+                        <i class="bi bi-shield-x fs-1"></i>
+                    </div>
+                </div>
+
+                <h2 class="fw-bold text-white mb-2">Access Restricted</h2>
+                <span class="badge bg-danger-subtle text-danger px-3 py-1 rounded-pill mb-3 align-self-center">HTTP 403 Forbidden</span>
+
+                <p class="text-white-50 mb-4">
+                    Your current administrative role does not have authorization to access this section or perform this operation. Please contact the SuperAdmin if you require elevated privileges.
+                </p>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-warning rounded-pill px-4 fw-semibold">
+                        <i class="bi bi-speedometer2 me-1"></i> Return to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

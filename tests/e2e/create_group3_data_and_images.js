@@ -419,7 +419,7 @@ function build312Catalog() {
                     ingredients = `Pure wildcrafted ${herb}, classical companion herbs, and synergistic botanical extracts.`;
                     howToUse = "Take 1-2 tablets or 1 teaspoon twice daily with warm water, or as advised by an Ayurvedic physician.";
                     precautions = "Keep out of reach of children. Consult your healthcare practitioner before use.";
-                    description = `Crafted with reverence to traditional Ayurvedic pharmacology (Dravyaguna Vijnana) using sustainably harvested herbs from certified forest farms.`;
+                    description = `Crafted with reverence to traditional Ayurvedic pharmacology (Dravyaguna Vijnana) using sustainably harvested herbs from cultivated farms.`;
                 }
 
                 const price = Math.round((299 + (skuCounter * 17) % 1200) / 10) * 10 - 1;
@@ -641,3 +641,4 @@ main().catch(err => {
     console.error('Fatal error during asset generation:', err);
     process.exit(1);
 });
+

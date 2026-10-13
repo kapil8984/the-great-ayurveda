@@ -19,7 +19,7 @@
 flowchart TB
     subgraph Clients["Clients & Assistive Technologies"]
         Customer["🛒 Customer / Patient\n(Desktop & Mobile Web)"]
-        Doctor["🩺 Certified Vaidya\n(Clinical Desk)"]
+        Doctor["🩺 Qualified Vaidya\n(Clinical Desk)"]
         AdminStaff["🛡️ Admin Staff\n(SuperAdmin, Catalog, Finance)"]
     end
 
@@ -116,12 +116,12 @@ dotnet run --project src/Ayurveda.Admin --urls "https://localhost:7201;http://lo
 
 Upon database initialization, the following administrative personnel are bootstrapped:
 
-| Staff Role | Email | Default Password | Permission Scope |
+| Staff Role | Email | Bootstrap Credential | Permission Scope |
 | :--- | :--- | :--- | :--- |
-| **SuperAdmin** | `admin@thegreatayurveda.com` | `AdminSecure@2026` | Full administrative control, audit logs, system settings |
-| **Catalog Manager** | `catalog@thegreatayurveda.com` | `AdminSecure@2026` | Products, inventory, pricing, categories (Finance blocked) |
-| **Support Agent** | `support@thegreatayurveda.com` | `AdminSecure@2026` | Users, tickets, reviews, order status moderation |
-| **Finance Manager** | `finance@thegreatayurveda.com` | `AdminSecure@2026` | Payments, refunds, doctor payouts, GST reports |
+| **SuperAdmin** | `admin@thegreatayurveda.com` | `Admin__InitialPassword` (Env Var in Production) / Local seed | Full administrative control, audit logs, system settings |
+| **Catalog Manager** | `catalog@thegreatayurveda.com` | Seeded in Development only | Products, inventory, pricing, categories (Finance blocked) |
+| **Support Agent** | `support@thegreatayurveda.com` | Seeded in Development only | Users, tickets, reviews, order status moderation |
+| **Finance Manager** | `finance@thegreatayurveda.com` | Seeded in Development only | Payments, refunds, doctor payouts, GST reports |
 
 > [!NOTE]
 > All administrative accounts enforce 15-minute lockouts after 5 consecutive failed attempts. Multi-factor authentication (TOTP 2FA) is supported and can be enabled per staff user.

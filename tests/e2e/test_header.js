@@ -69,7 +69,7 @@ async function run() {
         // Top bar verification
         assert(Math.round(headerInfo.topBarHeight) <= 34, `Top offers strip height is slim (~32px) [Actual: ${headerInfo.topBarHeight.toFixed(1)}px]`);
         assert(!headerInfo.topBarText.includes('Senior BAMS Vaidyas'), 'Top bar removed "Senior BAMS Vaidyas" wording');
-        assert(headerInfo.topBarText.includes('AYUSH15') || headerInfo.topBarText.includes('DIWALI30'), 'Top bar contains offer marquee & coupons');
+        assert(headerInfo.topBarText.includes('HEALTH15') || headerInfo.topBarText.includes('DIWALI30'), 'Top bar contains offer marquee & coupons');
 
         if (!vp.isMobile) {
             // Desktop full-screen: header height must be 110px or less

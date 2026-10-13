@@ -1,6 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Ayurveda.Admin/Ayurveda.Admin.csproj" />
     <Project Path="src/Ayurveda.Api/Ayurveda.Api.csproj" />
     <Project Path="src/Ayurveda.Application/Ayurveda.Application.csproj" />
     <Project Path="src/Ayurveda.Domain/Ayurveda.Domain.csproj" />

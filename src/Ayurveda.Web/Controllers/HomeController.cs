@@ -123,8 +123,16 @@ public class HomeController : Controller
         return View();
     }
 
+    [HttpGet]
     public IActionResult Contact()
     {
+        return View();
+    }
+
+    [HttpPost]
+    public IActionResult Contact(string? name, string? email, string? subject, string? message)
+    {
+        TempData["SuccessMessage"] = "Thank you! Your inquiry has been received by our Ayurvedic Care Team. (Note: Email dispatch is disabled in this demo).";
         return View();
     }
 
@@ -138,7 +146,7 @@ public class HomeController : Controller
         return View();
     }
 
-    [HttpHead, HttpGet]
+    [HttpHead, HttpGet, Route("ping")]
     public IActionResult Ping()
     {
         return Ok();

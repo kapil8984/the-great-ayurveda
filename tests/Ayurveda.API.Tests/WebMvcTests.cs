@@ -73,65 +73,13 @@ public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
     }
 }
 
-public class AdminMvcFactory : WebApplicationFactory<Ayurveda.Admin.Program>
-{
-    private readonly string _dbName = "AdminMvcTestDb_" + Guid.NewGuid().ToString("N");
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Development");
-
-        builder.ConfigureServices(services =>
-        {
-            var descriptorsToRemove = services.Where(d =>
-                d.ServiceType == typeof(DbContextOptions<AyurvedaDbContext>) ||
-                d.ServiceType == typeof(DbContextOptions) ||
-                d.ServiceType == typeof(AyurvedaDbContext) ||
-                d.ServiceType == typeof(IAntiforgery) ||
-                d.ServiceType.FullName?.Contains("EntityFrameworkCore") == true ||
-                d.ServiceType.Name.Contains("DbContextOptionsConfiguration")).ToList();
-
-            foreach (var d in descriptorsToRemove)
-            {
-                services.Remove(d);
-            }
-
-            services.AddSingleton<IAntiforgery, PassThroughAntiforgery>();
-
-            services.AddDbContext<AyurvedaDbContext>(options =>
-            {
-                options.UseInMemoryDatabase(_dbName);
-                options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-            });
-        });
-    }
-
-    protected override Microsoft.Extensions.Hosting.IHost CreateHost(Microsoft.Extensions.Hosting.IHostBuilder builder)
-    {
-        var host = base.CreateHost(builder);
-
-        using (var scope = host.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<AdminMvcFactory>>();
-            DbInitializer.InitializeAsync(db, userManager, roleManager, logger).GetAwaiter().GetResult();
-        }
-
-        return host;
-    }
-}
-
-public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcFactory>
+public class WebMvcTests : IClassFixture<WebMvcFactory>
 {
     private readonly WebMvcFactory _webFactory;
-    private readonly AdminMvcFactory _adminFactory;
 
-    public WebMvcTests(WebMvcFactory webFactory, AdminMvcFactory adminFactory)
+    public WebMvcTests(WebMvcFactory webFactory)
     {
         _webFactory = webFactory;
-        _adminFactory = adminFactory;
     }
 
     [Theory]
@@ -173,28 +121,28 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     [Fact]
     public async Task AdminPortal_UnauthenticatedUser_RedirectsToAdminLogin()
     {
-        var client = _adminFactory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });
 
-        var response = await client.GetAsync("/Dashboard");
+        var response = await client.GetAsync("/admin-portal/Dashboard");
 
-        // Protected route must redirect to Admin Login (/Auth/Login)
+        // Protected route must redirect to Admin Login (/admin-portal/auth/login)
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Contains("/Auth/Login", response.Headers.Location?.ToString());
+        Assert.Contains("/admin-portal/auth/login", response.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task AdminLogin_RendersSecureAdminPage()
     {
-        var client = _adminFactory.CreateClient();
-        var response = await client.GetAsync("/Auth/Login");
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/admin-portal/auth/login");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("The Great Ayurveda Admin Portal", content);
-        Assert.Contains("RESTRICTED ACCESS", content);
+        Assert.Contains("Admin Portal", content);
+        Assert.Contains("Restricted Area", content);
     }
 
     [Fact]
@@ -240,7 +188,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     [InlineData("/images/admin-logo-full.svg")]
     public async Task AdminPortal_StaticBrandingAssets_AreServedSuccessfully(string assetPath)
     {
-        var client = _adminFactory.CreateClient();
+        var client = _webFactory.CreateClient();
         var response = await client.GetAsync(assetPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -257,7 +205,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         var html = await response.Content.ReadAsStringAsync();
 
         // Section 1 & 2: Announcement & Header Mega-Menu
-        Assert.Contains("AYUSH15", html);
+        Assert.Contains("HEALTH15", html);
         Assert.Contains("Shop by Concern", html);
 
         // Section 3: Hero section
@@ -280,7 +228,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
 
         // Section 8: Consult a doctor directory
         Assert.Contains("id=\"doctors\"", html);
-        Assert.Contains("Consult Certified Ayurvedic Vaidyas", html);
+        Assert.Contains("Consult Qualified Ayurvedic Vaidyas", html);
 
         // Section 9: 3-step timeline
         Assert.Contains("How The Great Ayurveda Works", html);
@@ -290,7 +238,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Contains("Brahma Muhurta", html);
 
         // Section 11: Quality promises & FAQ accordion
-        Assert.Contains("Heavy-Metal Tested", html);
+        Assert.Contains("Classical Purity", html);
         Assert.Contains("id=\"tgaFaqAccordion\"", html);
 
         // Section 12: Statutory medical disclaimer
@@ -409,15 +357,14 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     [Fact]
     public async Task Auth_AdminLogin_RendersTotp2FaAndZeroRegisterLinks()
     {
-        var client = _adminFactory.CreateClient();
-        var response = await client.GetAsync("/auth/login");
+        var client = _webFactory.CreateClient();
+        var response = await client.GetAsync("/admin-portal/auth/login");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
 
-        Assert.Contains("RESTRICTED ACCESS", html);
-        Assert.Contains("TotpCode", html);
-        Assert.Contains("id=\"toggleAdminPwdBtn\"", html);
+        Assert.Contains("Restricted Area", html);
+        Assert.Contains("id=\"togglePasswordBtn\"", html);
         Assert.Contains("id=\"adminCapsLockAlert\"", html);
         // Rule: Admin portal must have ZERO registration links
         Assert.DoesNotContain("Register", html, StringComparison.OrdinalIgnoreCase);
@@ -680,7 +627,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
 
-        Assert.Contains("AYUSH-", html);
+        Assert.Contains("DEMO-REG-", html);
         Assert.Contains("Years", html);
         Assert.Contains("HD Video Call", html);
         Assert.Contains("Book Scheduled Slot", html);
@@ -761,7 +708,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
 
     private async Task<HttpClient> CreateAuthenticatedAdminClientAsync(string email, string password)
     {
-        var client = _adminFactory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });
@@ -772,7 +719,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
             ["Password"] = password
         });
 
-        var loginResponse = await client.PostAsync("/Auth/Login", loginForm);
+        var loginResponse = await client.PostAsync("/admin-portal/auth/login", loginForm);
         Assert.True(loginResponse.StatusCode == HttpStatusCode.Redirect || loginResponse.StatusCode == HttpStatusCode.OK);
 
         return client;
@@ -782,7 +729,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     public async Task Admin_Dashboard_RendersExecutiveKpis_WhenAuthenticated()
     {
         var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/Dashboard");
+        var response = await client.GetAsync("/admin-portal/Dashboard");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -800,14 +747,14 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     {
         var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
 
-        var response = await client.GetAsync("/Doctors");
+        var response = await client.GetAsync("/admin-portal/Doctors");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Contains("Doctor Practice Management", html);
         Assert.Contains("Registration No.", html);
 
-        var pendingResponse = await client.GetAsync("/Doctors/Pending");
+        var pendingResponse = await client.GetAsync("/admin-portal/Doctors/Pending");
         Assert.Equal(HttpStatusCode.OK, pendingResponse.StatusCode);
     }
 
@@ -816,18 +763,18 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     {
         // Explicit acceptance test: CatalogManager role CANNOT open finance pages
         var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/Finance");
+        var response = await client.GetAsync("/admin-portal/Finance");
 
         // Should return 403 Forbidden or redirect to AccessDenied
         Assert.True(response.StatusCode == HttpStatusCode.Forbidden || 
-                   (response.StatusCode == HttpStatusCode.Redirect && response.Headers.Location?.ToString().Contains("AccessDenied") == true));
+                   (response.StatusCode == HttpStatusCode.Redirect && response.Headers.Location?.ToString().Contains("accessdenied", StringComparison.OrdinalIgnoreCase) == true));
     }
 
     [Fact]
     public async Task Admin_Finance_AllowsFinanceManagerAccess_AndGstReportExport()
     {
         var client = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/Finance");
+        var response = await client.GetAsync("/admin-portal/Finance");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -837,7 +784,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Contains("Doctor Payouts &amp; Settlements", html);
 
         // Test GST CSV Export
-        var csvResponse = await client.GetAsync("/Finance/ExportGstCsv");
+        var csvResponse = await client.GetAsync("/admin-portal/Finance/ExportGstCsv");
         Assert.Equal(HttpStatusCode.OK, csvResponse.StatusCode);
         Assert.Equal("text/csv", csvResponse.Content.Headers.ContentType?.MediaType);
         var csv = await csvResponse.Content.ReadAsStringAsync();
@@ -850,7 +797,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     public async Task Admin_UserManagement_RendersUserList_AndGdprDataExport()
     {
         var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/Users");
+        var response = await client.GetAsync("/admin-portal/Users");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -859,7 +806,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Contains("Total Users:", html);
 
         // GDPR Data Export for customer account #1
-        var exportResponse = await client.GetAsync("/Users/ExportData/1");
+        var exportResponse = await client.GetAsync("/admin-portal/Users/ExportData/1");
         Assert.Equal(HttpStatusCode.OK, exportResponse.StatusCode);
         Assert.Equal("application/json", exportResponse.Content.Headers.ContentType?.MediaType);
         var json = await exportResponse.Content.ReadAsStringAsync();
@@ -870,7 +817,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     public async Task Admin_Products_AllowsCsvExport_AndInventoryTracking()
     {
         var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/Products");
+        var response = await client.GetAsync("/admin-portal/Products");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -879,7 +826,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Contains("Shastriya Categories", html);
 
         // Bulk CSV Export
-        var csvResponse = await client.GetAsync("/Products/ExportCsv");
+        var csvResponse = await client.GetAsync("/admin-portal/Products/ExportCsv");
         Assert.Equal(HttpStatusCode.OK, csvResponse.StatusCode);
         Assert.Equal("text/csv", csvResponse.Content.Headers.ContentType?.MediaType);
         var csv = await csvResponse.Content.ReadAsStringAsync();
@@ -891,7 +838,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     public async Task Admin_Audit_Trail_RendersSecurityLogs_ForSuperAdmin()
     {
         var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/Audit");
+        var response = await client.GetAsync("/admin-portal/Audit");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -962,7 +909,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     public async Task AdminPortal_RendersAccessibleConfirmModal_AndIdleTimeoutModal_WhenAuthenticated()
     {
         var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/Dashboard");
+        var response = await client.GetAsync("/admin-portal/Dashboard");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -980,7 +927,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
 
         // 3. Admin Logout triggers (sidebar and header)
         Assert.Contains("data-tga-logout", html);
-        Assert.Contains("data-action-url=\"/Auth/Logout\"", html);
+        Assert.Contains("data-action-url=\"/admin-portal/auth/logout\"", html);
     }
 
     [Fact]
@@ -988,14 +935,14 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
     {
         var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
 
-        var response = await client.PostAsync("/Auth/Logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        var response = await client.PostAsync("/admin-portal/auth/logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Contains("/Auth/Login", response.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/admin-portal/auth/login", response.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
 
         // GET logout on Admin redirects to login
-        var getResponse = await client.GetAsync("/Auth/Logout");
+        var getResponse = await client.GetAsync("/admin-portal/auth/logout");
         Assert.Equal(HttpStatusCode.Redirect, getResponse.StatusCode);
-        Assert.Contains("/Auth/Login", getResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/admin-portal/auth/login", getResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

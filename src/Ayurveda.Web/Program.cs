@@ -1,12 +1,28 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Ayurveda.Application.Interfaces;
 using Ayurveda.Domain.Entities;
+using Ayurveda.Domain.Enums;
 using Ayurveda.Infrastructure.Data;
 using Ayurveda.Infrastructure.Identity;
 using Ayurveda.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Data Protection Keys Persistence
+var dataProtectionConfig = builder.Configuration["DataProtection:KeyPath"]
+    ?? builder.Configuration["DataProtection:KeysPath"]
+    ?? "App_Data/DataProtectionKeys";
+var dataProtectionPath = Path.IsPathRooted(dataProtectionConfig)
+    ? dataProtectionConfig
+    : Path.Combine(builder.Environment.ContentRootPath, dataProtectionConfig);
+Directory.CreateDirectory(dataProtectionPath);
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("TheGreatAyurveda");
 
 // Database Context
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -52,10 +68,53 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
+// Dedicated Admin Cookie Scheme (Isolated from public site)
+builder.Services.AddAuthentication()
+    .AddCookie("AdminCookieScheme", options =>
+    {
+        options.Cookie.Name = ".Ayurveda.Admin.Auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.LoginPath = "/admin-portal/auth/login";
+        options.AccessDeniedPath = "/admin-portal/auth/accessdenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
+
+// Admin Authorization Policies with legacy "Admin" role mapped to SuperAdmin
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireSuperAdmin", policy =>
+    {
+        policy.AddAuthenticationSchemes("AdminCookieScheme");
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin");
+    });
+
+    options.AddPolicy("RequireCatalogManagement", policy =>
+    {
+        policy.AddAuthenticationSchemes("AdminCookieScheme");
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.CatalogManager.ToString());
+    });
+
+    options.AddPolicy("RequireFinanceManagement", policy =>
+    {
+        policy.AddAuthenticationSchemes("AdminCookieScheme");
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.FinanceManager.ToString());
+    });
+
+    options.AddPolicy("RequireCustomerSupport", policy =>
+    {
+        policy.AddAuthenticationSchemes("AdminCookieScheme");
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.SupportAgent.ToString());
+    });
+});
+
 // Register Domain & Infrastructure Services
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IPaymentProvider, PaymentProvider>();
 builder.Services.AddScoped<ICallProvider, CallProvider>();
 builder.Services.AddScoped<ITelephonyProvider, TelephonyProvider>();
@@ -161,7 +220,7 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        await DbInitializer.InitializeAsync(db, userManager, roleManager, logger);
+        await DbInitializer.InitializeAsync(db, userManager, roleManager, logger, builder.Configuration, builder.Environment);
     }
     catch (Exception ex)
     {
@@ -176,33 +235,27 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Serve shared uploads directory
-var sharedUploadsDir = FileStorageService.ResolveSharedUploadsPath(builder.Configuration);
-Directory.CreateDirectory(sharedUploadsDir);
-var webExistingUploads = Path.Combine(builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot"), "uploads");
-if (Directory.Exists(webExistingUploads) && webExistingUploads != sharedUploadsDir)
-{
-    foreach (var file in Directory.GetFiles(webExistingUploads))
-    {
-        var dest = Path.Combine(sharedUploadsDir, Path.GetFileName(file));
-        if (!File.Exists(dest)) File.Copy(file, dest);
-    }
-}
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(sharedUploadsDir),
-    RequestPath = "/uploads"
-});
+// Ensure wwwroot/uploads directory exists for shared upload assets
+var uploadsDir = Path.Combine(builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot"), "uploads");
+Directory.CreateDirectory(uploadsDir);
 
-// Security Headers
+// Security Headers & Admin Host Isolation
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    if (context.Request.Path.StartsWithSegments("/admin-portal"))
+    {
+        context.Response.Headers.Append("X-Robots-Tag", "noindex, nofollow");
+    }
     await next();
 });
 
@@ -210,7 +263,65 @@ app.UseRouting();
 app.UseSession();
 
 app.UseAuthentication();
+
+// Set context.User from AdminCookieScheme for all /admin-portal paths
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/admin-portal"))
+    {
+        var adminResult = await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.AuthenticateAsync(context, "AdminCookieScheme");
+        if (adminResult.Succeeded && adminResult.Principal != null)
+        {
+            context.User = adminResult.Principal;
+        }
+    }
+    await next();
+});
+
 app.UseAuthorization();
+
+// Dedicated Admin Portal Area Route
+app.MapAreaControllerRoute(
+    name: "AdminArea",
+    areaName: "Admin",
+    pattern: "admin-portal/{controller=Dashboard}/{action=Index}/{id?}");
+
+// robots.txt & sitemap.xml using configured Site:BaseUrl (no hardcoded domain)
+app.MapGet("/robots.txt", (IConfiguration config, HttpContext httpContext) =>
+{
+    var baseUrl = (config["Site:BaseUrl"] ?? config["SiteSettings:BaseUrl"] ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}").TrimEnd('/');
+    var content = $"User-agent: *\nDisallow: /admin-portal/\nDisallow: /admin-portal\nDisallow: /account/\nDisallow: /checkout/\nDisallow: /cart/\nDisallow: /doctor-portal/\n\nSitemap: {baseUrl}/sitemap.xml\n";
+    return Results.Text(content, "text/plain");
+});
+
+app.MapGet("/sitemap.xml", async (AyurvedaDbContext db, IConfiguration config, HttpContext httpContext) =>
+{
+    var baseUrl = (config["Site:BaseUrl"] ?? config["SiteSettings:BaseUrl"] ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}").TrimEnd('/');
+    var sb = new System.Text.StringBuilder();
+    sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    sb.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+
+    var staticPages = new[] { "", "/Shop", "/Doctors", "/Diseases", "/Home/About", "/Home/Contact", "/Home/Faq", "/Home/Privacy" };
+    foreach (var page in staticPages)
+    {
+        sb.AppendLine($"  <url><loc>{baseUrl}{page}</loc><changefreq>weekly</changefreq><priority>{(page == "" ? "1.0" : "0.8")}</priority></url>");
+    }
+
+    var products = await db.Products.Where(p => p.IsActive).Select(p => p.Id).ToListAsync();
+    foreach (var pId in products)
+    {
+        sb.AppendLine($"  <url><loc>{baseUrl}/Shop/Details/{pId}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>");
+    }
+
+    var doctors = await db.Doctors.Where(d => !d.IsDeleted && d.DoctorDetail != null && d.DoctorDetail.Status == 1).Select(d => d.Id).ToListAsync();
+    foreach (var dId in doctors)
+    {
+        sb.AppendLine($"  <url><loc>{baseUrl}/Doctors/Profile/{dId}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>");
+    }
+
+    sb.AppendLine("</urlset>");
+    return Results.Content(sb.ToString(), "application/xml", System.Text.Encoding.UTF8);
+});
 
 app.MapControllerRoute(
     name: "default",

@@ -142,13 +142,15 @@ public class AccountController : Controller
             return View(model);
         }
 
+        var requireEmailVerification = _configuration.GetValue<bool>("Auth:RequireEmailVerification", true);
+
         var user = new ApplicationUser
         {
             UserName = normalizedEmail,
             Email = normalizedEmail,
             FullName = model.FullName.Trim(),
             ContactNumber = model.ContactNumber.Trim(),
-            EmailConfirmed = false,
+            EmailConfirmed = !requireEmailVerification,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -156,6 +158,12 @@ public class AccountController : Controller
         if (result.Succeeded)
         {
             await _userManager.AddToRoleAsync(user, UserRole.Customer.ToString());
+
+            if (!requireEmailVerification)
+            {
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                return RedirectToAction("Index", "Home");
+            }
 
             // Generate 6-digit OTP for email verification
             var otpCode = GenerateSecureOtp();
@@ -228,9 +236,9 @@ public class AccountController : Controller
             .OrderByDescending(o => o.CreatedAt)
             .FirstOrDefaultAsync();
 
-        var isDemo = _configuration.GetValue<bool>("DemoMode", false);
+        var skipOtp = _configuration.GetValue<bool>("DemoMode:SkipOtp", false);
 
-        if (!isDemo)
+        if (!skipOtp)
         {
             if (otpRecord == null || otpRecord.Attempts >= 5)
             {
@@ -458,7 +466,12 @@ public class AccountController : Controller
                 $"<p>Your one-time password reset code is: <strong>{otpCode}</strong></p><p>This code expires in 15 minutes.</p>");
         }
 
-        TempData["SuccessMessage"] = "If an account exists with this email, a 6-digit verification code has been dispatched.";
+        var smtpHost = _configuration["Smtp:Host"];
+        var isSmtpConfigured = !string.IsNullOrWhiteSpace(smtpHost) && smtpHost != "smtp.example.com" && !_configuration.GetValue<bool>("DemoMode", false);
+        TempData["SuccessMessage"] = isSmtpConfigured
+            ? "If an account exists with this email, a 6-digit verification code has been dispatched."
+            : "Email is disabled in this demo. Password reset verification code cannot be delivered.";
+
         return RedirectToAction("ResetPassword", new { email = normalizedEmail });
     }
 
@@ -490,25 +503,21 @@ public class AccountController : Controller
             .OrderByDescending(o => o.CreatedAt)
             .FirstOrDefaultAsync();
 
-        var isDemo = _configuration.GetValue<bool>("DemoMode", false);
-
-        if (!isDemo)
+        // Forgot password must NEVER accept an arbitrary code
+        if (otpRecord == null || otpRecord.Attempts >= 5)
         {
-            if (otpRecord == null || otpRecord.Attempts >= 5)
-            {
-                ModelState.AddModelError(string.Empty, "Verification code has expired or exceeded maximum attempts. Please request a new code.");
-                return View(model);
-            }
+            ModelState.AddModelError(string.Empty, "Verification code has expired or exceeded maximum attempts. Please request a new code.");
+            return View(model);
+        }
 
-            otpRecord.Attempts++;
+        otpRecord.Attempts++;
 
-            var isCorrect = BCrypt.Net.BCrypt.Verify(model.Otp.Trim(), otpRecord.OtpHashed);
-            if (!isCorrect)
-            {
-                await _context.SaveChangesAsync();
-                ModelState.AddModelError("Otp", "Invalid verification code.");
-                return View(model);
-            }
+        var isCorrect = BCrypt.Net.BCrypt.Verify(model.Otp.Trim(), otpRecord.OtpHashed);
+        if (!isCorrect)
+        {
+            await _context.SaveChangesAsync();
+            ModelState.AddModelError("Otp", "Invalid verification code.");
+            return View(model);
         }
 
         if (otpRecord != null)

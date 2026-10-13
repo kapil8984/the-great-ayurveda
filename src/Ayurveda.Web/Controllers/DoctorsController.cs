@@ -184,6 +184,8 @@ public class DoctorsController : Controller
     // -------------------------------------------------------------------------
     // 2. DOCTOR PROFILE & VERIFIED REVIEWS
     // -------------------------------------------------------------------------
+    [HttpGet("Doctors/Profile/{id}")]
+    [HttpGet("Doctors/Details/{id}")]
     public async Task<IActionResult> Profile(int id)
     {
         var doc = await _context.Doctors
@@ -455,8 +457,8 @@ public class DoctorsController : Controller
             DoctorName = appt.Doctor.DoctorName,
             Specialization = appt.Doctor.DoctorDetail?.Specialization?.Name ?? "Classical Ayurveda",
             Qualification = appt.Doctor.DoctorDetail?.Qualification ?? "BAMS",
-            RegistrationNumber = appt.Doctor.DoctorDetail?.RegistrationNumber ?? "AYUSH/CCIM/REG",
-            RegistrationCouncil = appt.Doctor.DoctorDetail?.RegistrationCouncil ?? "Central Council of Indian Medicine",
+            RegistrationNumber = appt.Doctor.DoctorDetail?.RegistrationNumber ?? "DEMO-REG-0000",
+            RegistrationCouncil = appt.Doctor.DoctorDetail?.RegistrationCouncil ?? "State Ayurvedic Board (Demonstration)",
             ClinicAddress = appt.Doctor.DoctorDetail?.ClinicAddress,
             PatientName = appt.PatientName,
             PatientAge = appt.PatientAge,

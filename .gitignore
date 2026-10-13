@@ -45,5 +45,14 @@ outbox/
 uploads/
 scratch/
 shared/
+shared/uploads/
+wwwroot/uploads/
+**/wwwroot/uploads/
+publish/
 TestResults/
-
+App_Data/
+SEEDED_LOGINS.md
+tests/e2e/screenshots/
+_legacy/
+prod_sim_err.txt
+prod_sim_out.txt

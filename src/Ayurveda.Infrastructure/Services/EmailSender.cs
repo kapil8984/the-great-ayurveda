@@ -27,7 +27,7 @@ public class EmailSender : IEmailSender
 
         var isDemo = _configuration.GetValue<bool>("DemoMode", false);
         // In DemoMode, development or when SMTP is not configured, write to local outbox without network calls
-        if (isDemo || string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUser))
+        if (isDemo || string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUser) || smtpHost.Contains("example.com", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogInformation("[DemoMode] Suppressed external SMTP network call to {ToEmail}. Subject: {Subject}", toEmail, subject);
             try

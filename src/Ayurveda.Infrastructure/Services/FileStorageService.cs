@@ -30,24 +30,29 @@ public class FileStorageService : IFileStorageService
         }
     }
 
-    public static string ResolveSharedUploadsPath(IConfiguration configuration)
+    public static string ResolveSharedUploadsPath(IConfiguration configuration, string? contentRootPath = null, string? webRootPath = null)
     {
-        var configPath = configuration["Storage:UploadsPath"] ?? "shared/uploads";
-        if (Path.IsPathRooted(configPath))
+        var configPath = configuration["Storage:UploadsPath"];
+        if (!string.IsNullOrWhiteSpace(configPath) && Path.IsPathRooted(configPath))
             return Path.GetFullPath(configPath);
 
-        var current = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (current != null)
+        var baseDir = !string.IsNullOrWhiteSpace(webRootPath)
+            ? webRootPath
+            : (!string.IsNullOrWhiteSpace(contentRootPath)
+                ? Path.Combine(contentRootPath, "wwwroot")
+                : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
+
+        var relativeFolder = !string.IsNullOrWhiteSpace(configPath) ? configPath : "uploads";
+        if (relativeFolder.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase) || relativeFolder.StartsWith("wwwroot\\", StringComparison.OrdinalIgnoreCase))
         {
-            if (File.Exists(Path.Combine(current.FullName, "TheGreatAyurveda.slnx")) ||
-                Directory.Exists(Path.Combine(current.FullName, ".git")))
-            {
-                return Path.GetFullPath(Path.Combine(current.FullName, configPath));
-            }
-            current = current.Parent;
+            relativeFolder = relativeFolder.Substring(8);
+        }
+        else if (relativeFolder.StartsWith("shared/uploads", StringComparison.OrdinalIgnoreCase) || relativeFolder.StartsWith("shared\\uploads", StringComparison.OrdinalIgnoreCase))
+        {
+            relativeFolder = "uploads";
         }
 
-        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", configPath));
+        return Path.GetFullPath(Path.Combine(baseDir, relativeFolder));
     }
 
     public async Task<string> SaveFileAsync(Stream stream, string originalFileName, string contentType)
