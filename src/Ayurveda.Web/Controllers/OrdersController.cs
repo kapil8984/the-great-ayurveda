@@ -32,7 +32,17 @@ public class OrdersController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null && User.Identity?.IsAuthenticated == true)
+        {
+            user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == User.Identity.Name || u.Email == User.Identity.Name);
+        }
+
+        if (user != null && (User.IsInRole("Doctor") || await _userManager.IsInRoleAsync(user, "Doctor")))
+        {
+            return RedirectToAction("Dashboard", "DoctorPortal");
+        }
+
         if (user == null)
         {
             return RedirectToAction("Login", "Account");

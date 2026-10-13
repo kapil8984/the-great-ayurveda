@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="consultBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064E3B"/>
+      <stop offset="50%" stop-color="#047857"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <radialGradient id="greenGlow" cx="80%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#A7F3D0" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#064E3B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#consultBg)"/>
+  <rect width="1200" height="400" fill="url(#greenGlow)"/>
+
+  <!-- Doctor Stethoscope & Herbal Leaf Iconography -->
+  <g transform="translate(980, 200)">
+    <circle cx="0" cy="0" r="140" fill="none" stroke="#6EE7B7" stroke-width="2" stroke-dasharray="6 6" opacity="0.4"/>
+    <circle cx="0" cy="0" r="100" fill="#065F46" opacity="0.6"/>
+    <!-- Video / Consultation Cam -->
+    <rect x="-45" y="-35" width="65" height="50" rx="10" fill="#A7F3D0"/>
+    <polygon points="25,-20 50,-35 50,5 25,-10" fill="#A7F3D0"/>
+    <circle cx="-12" cy="-10" r="12" fill="#047857"/>
+    <!-- Free 100% Badge Ring -->
+    <g transform="translate(35, 45)">
+      <circle cx="0" cy="0" r="32" fill="#F59E0B"/>
+      <text x="0" y="-4" font-family="system-ui, sans-serif" font-size="12" font-weight="800" fill="#064E3B" text-anchor="middle">100%</text>
+      <text x="0" y="14" font-family="system-ui, sans-serif" font-size="11" font-weight="900" fill="#064E3B" text-anchor="middle">FREE</text>
+    </g>
+  </g>
+
+  <!-- Content -->
+  <g transform="translate(80, 75)">
+    <rect x="0" y="0" width="310" height="34" rx="17" fill="#A7F3D0" fill-opacity="0.25"/>
+    <text x="20" y="22" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#A7F3D0" letter-spacing="2">&#x1FA7A; NEW PATIENT WELCOME OFFER</text>
+
+    <text x="0" y="95" font-family="'Cinzel', Georgia, serif" font-size="44" font-weight="800" fill="#FFFFFF" letter-spacing="1">Free First Vaidya Consultation</text>
+    <text x="0" y="145" font-family="system-ui, sans-serif" font-size="20" font-weight="400" fill="#D1FAE5">1-on-1 Personalized Prakriti Analysis &amp; Digital Health Blueprint</text>
+    <text x="0" y="180" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#6EE7B7">No promo code required &#x2014; instant instant video / audio booking</text>
+
+    <g transform="translate(0, 215)">
+      <rect x="0" y="0" width="220" height="48" rx="24" fill="#F59E0B"/>
+      <text x="32" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#064E3B">Book Free Session &#x2192;</text>
+      <rect x="240" y="0" width="200" height="48" rx="24" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+      <text x="260" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF">Meet Doctors</text>
+    </g>
+  </g>
+</svg>

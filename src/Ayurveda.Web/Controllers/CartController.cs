@@ -151,6 +151,11 @@ public class CartController : Controller
             CouponError = couponError
         };
 
+        ViewBag.CartBanners = await _context.Banners
+            .Where(b => b.IsActive && b.Placement == "cart")
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
         return View(model);
     }
 

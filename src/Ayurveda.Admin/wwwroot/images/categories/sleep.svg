@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="24" fill="#EAF4EE" />
+  <circle cx="100" cy="90" r="50" fill="#1F5E3B" opacity="0.12" />
+  <path d="M 100,50 C 70,80 70,120 100,140 C 130,120 130,80 100,50 Z" fill="#1F5E3B" />
+  <circle cx="100" cy="70" r="12" fill="#E3A72F" />
+  <text x="100" y="172" font-family="sans-serif" font-size="13" font-weight="600" fill="#1B2A22" text-anchor="middle">SLEEP</text>
+</svg>

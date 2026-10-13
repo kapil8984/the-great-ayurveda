@@ -13,7 +13,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? "Server=(localdb)\\mssqllocaldb;Database=AyurvedaDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 
 builder.Services.AddDbContext<AyurvedaDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, b => b.MigrationsAssembly("Ayurveda.Infrastructure")));
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];

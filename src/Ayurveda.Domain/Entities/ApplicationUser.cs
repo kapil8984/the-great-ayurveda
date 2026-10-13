@@ -7,8 +7,10 @@ public class ApplicationUser : IdentityUser<int>
     public string FullName { get; set; } = string.Empty;
     public string? ContactNumber { get; set; }
     public string? Gender { get; set; }
+    public DateTime? DateOfBirth { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
     public string? ProfileImageUrl { get; set; }
 
     // Navigations

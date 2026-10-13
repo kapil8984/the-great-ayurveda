@@ -23,10 +23,16 @@
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4 bg-white">
+            <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4 bg-white position-relative">
+                <!-- Demo Badge -->
                 <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 border-bottom pb-3 gap-2">
                     <div>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle text-xs px-2 py-1 mb-1">Encrypted Tele-Consultation</span>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle text-xs px-2 py-1">Encrypted Tele-Consultation</span>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle text-xs px-2 py-1">
+                                <i class="bi bi-shield-check me-1"></i> Demo mode - no real payment
+                            </span>
+                        </div>
                         <h2 class="h4 fw-bold mb-0 text-dark font-serif">Book Ayurvedic Consultation</h2>
                         <div class="text-muted small">Consulting with <strong>Dr. @Model.DoctorName</strong> • @Model.SpecializationName</div>
                     </div>
@@ -36,7 +42,7 @@
                     </div>
                 </div>
 
-                <form asp-action="BookPost" method="post" enctype="multipart/form-data">
+                <form asp-action="BookPost" method="post" enctype="multipart/form-data" id="bookConsultationForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="DoctorId" />
                     <input type="hidden" asp-for="DoctorName" />
@@ -74,9 +80,6 @@
                                 <span asp-validation-for="SelectedTimeSlot" class="text-danger small"></span>
                             </div>
                         </div>
-                        <div class="text-xs text-muted mt-2">
-                            <i class="bi bi-clock me-1"></i> Stored in universal UTC and displayed in Indian Standard Time (UTC+05:30).
-                        </div>
                     </div>
 
                     <!-- 2. Consultation Mode -->
@@ -87,7 +90,7 @@
                                 <label class="card p-3 border rounded-3 h-100 cursor-pointer text-center">
                                     <input class="form-check-input mx-auto mb-2" type="radio" asp-for="ConsultationType" value="Video" checked />
                                     <div class="fw-bold small text-dark"><i class="bi bi-camera-video text-success me-1"></i> HD Video Call</div>
-                                    <div class="text-xs text-muted">Recommended for tongue &amp; face inspection</div>
+                                    <div class="text-xs text-muted">Direct visual tongue &amp; pulse exam</div>
                                 </label>
                             </div>
                             <div class="col-md-4">
@@ -145,19 +148,189 @@
                         </div>
                     </div>
 
-                    <!-- Policy & Confidentiality Notice -->
-                    <div class="card bg-light border-0 p-3 rounded-3 mb-4">
-                        <div class="small text-muted d-flex flex-column gap-1">
-                            <div><i class="bi bi-shield-check text-success me-1"></i> <strong>Doctor-Patient Privilege:</strong> All medical details and uploaded documents are encrypted and accessible strictly by Dr. @Model.DoctorName.</div>
-                            <div><i class="bi bi-arrow-repeat text-primary me-1"></i> <strong>Flexible Policy:</strong> Free rescheduling or cancellation up to 2 hours prior to your slot time.</div>
+                    <!-- 4. Consultation Demo Payment Section -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold text-dark m-0"><i class="bi bi-credit-card-2-front text-success me-1"></i> 4. Consultation Fee Payment</label>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill small">Demo Gateway</span>
+                        </div>
+
+                        <!-- Payment Method Radios -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="card p-3 border rounded-3 text-center cursor-pointer h-100 bg-light">
+                                    <input class="form-check-input mx-auto mb-2" type="radio" name="demoConsultPaymentMethod" value="UPI" checked />
+                                    <span class="fw-bold small text-dark"><i class="bi bi-qr-code text-success me-1"></i> UPI</span>
+                                    <div class="text-xs text-muted">GPay, PhonePe, Paytm</div>
+                                </label>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="card p-3 border rounded-3 text-center cursor-pointer h-100 bg-light">
+                                    <input class="form-check-input mx-auto mb-2" type="radio" name="demoConsultPaymentMethod" value="Card" />
+                                    <span class="fw-bold small text-dark"><i class="bi bi-credit-card text-primary me-1"></i> Card</span>
+                                    <div class="text-xs text-muted">Visa, MasterCard</div>
+                                </label>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="card p-3 border rounded-3 text-center cursor-pointer h-100 bg-light">
+                                    <input class="form-check-input mx-auto mb-2" type="radio" name="demoConsultPaymentMethod" value="NetBanking" />
+                                    <span class="fw-bold small text-dark"><i class="bi bi-bank text-warning me-1"></i> Net Banking</span>
+                                    <div class="text-xs text-muted">HDFC, SBI, ICICI</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Simulate Payment Failure Toggle -->
+                        <div class="p-3 border rounded-3 bg-danger-subtle border-danger-subtle mb-3">
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="simulateConsultFailureToggle" />
+                                <label class="form-check-label small fw-bold text-danger" for="simulateConsultFailureToggle">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Simulate Payment Failure
+                                </label>
+                                <div class="text-xs text-danger opacity-75 ps-4">
+                                    Toggle ON to simulate a gateway decline or bank timeout.
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-tga-gold w-100 py-3 fs-5 rounded-pill shadow-sm fw-bold">
-                        Confirm Appointment &amp; Schedule Room (₹@Model.ConsultationFee.ToString("N0"))
+                    <button type="button" id="btnInitiateConsultPayment" class="btn btn-tga-gold w-100 py-3 fs-5 rounded-pill shadow-sm fw-bold">
+                        <i class="bi bi-lock-fill me-1"></i> Pay Fee &amp; Book Room (₹@Model.ConsultationFee.ToString("N0"))
                     </button>
+                    <div class="text-center text-muted small mt-3">
+                        <i class="bi bi-shield-check text-success me-1"></i> Free rescheduling or cancellation up to 2 hours before appointment slot.
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- =========================================================================
+     MODAL: Realistic Payment Processing & Result Simulator for Doctor Fee
+     ========================================================================= -->
+<div class="modal fade" id="consultPaymentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center bg-light">
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 small">
+                    <i class="bi bi-shield-check me-1"></i> Demo Payment Gateway
+                </span>
+                <span class="text-muted small">Consultation Fee: <strong>₹@Model.ConsultationFee.ToString("N0")</strong></span>
+            </div>
+
+            <div class="modal-body p-4 text-center">
+                <!-- State 1: Processing Animation -->
+                <div id="consultModalStateProcessing">
+                    <div class="my-4">
+                        <div class="spinner-border text-success" role="status" style="width: 3.5rem; height: 3.5rem; border-width: 0.35em;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Processing Consultation Payment...</h5>
+                    <p class="text-muted small mb-3" id="consultProcessingStatusText">Authorizing fee for Dr. @Model.DoctorName...</p>
+                    <div class="progress rounded-pill mb-2" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="consultProgressBar" style="width: 25%;"></div>
+                    </div>
+                    <div class="text-xs text-muted"><i class="bi bi-lock-fill text-success me-1"></i> 256-Bit SSL Encrypted Sandbox Channel</div>
+                </div>
+
+                <!-- State 2: Simulated Failure Screen -->
+                <div id="consultModalStateFailure" class="d-none">
+                    <div class="my-3 text-danger">
+                        <i class="bi bi-x-circle-fill display-3"></i>
+                    </div>
+                    <h5 class="fw-bold text-danger mb-1">Payment Declined / Timed Out</h5>
+                    <p class="text-muted small mb-3">
+                        Simulation Result: Bank authorization declined for consultation fee.
+                    </p>
+                    <div class="alert alert-light border small text-start mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Error Code:</span>
+                            <span class="font-monospace text-danger fw-bold">ERR_DEMO_CONSULT_DECLINED</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Gateway Status:</span>
+                            <span class="text-danger">Failed to capture ₹@Model.ConsultationFee.ToString("N0")</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill flex-fill" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="button" class="btn btn-danger rounded-pill flex-fill" id="btnRetryConsultPayment">
+                            <i class="bi bi-arrow-repeat me-1"></i> Retry Payment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- State 3: Payment Success Tick -->
+                <div id="consultModalStateSuccess" class="d-none">
+                    <div class="my-3 text-success">
+                        <i class="bi bi-check-circle-fill display-3"></i>
+                    </div>
+                    <h5 class="fw-bold text-success mb-1">Fee Authorized Successfully!</h5>
+                    <p class="text-muted small mb-3">Generating video room link with Dr. @Model.DoctorName...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const btnPay = document.getElementById("btnInitiateConsultPayment");
+    const failureToggle = document.getElementById("simulateConsultFailureToggle");
+    const bookForm = document.getElementById("bookConsultationForm");
+
+    const modalEl = document.getElementById("consultPaymentModal");
+    const modal = new bootstrap.Modal(modalEl);
+
+    const stateProcessing = document.getElementById("consultModalStateProcessing");
+    const stateFailure = document.getElementById("consultModalStateFailure");
+    const stateSuccess = document.getElementById("consultModalStateSuccess");
+    const progressBar = document.getElementById("consultProgressBar");
+    const statusText = document.getElementById("consultProcessingStatusText");
+    const btnRetry = document.getElementById("btnRetryConsultPayment");
+
+    btnPay.addEventListener("click", function () {
+        // Validate form HTML5 required fields
+        if (!bookForm.checkValidity()) {
+            bookForm.reportValidity();
+            return;
+        }
+
+        // Show Processing Modal
+        stateProcessing.classList.remove("d-none");
+        stateFailure.classList.add("d-none");
+        stateSuccess.classList.add("d-none");
+        progressBar.style.width = "25%";
+        statusText.textContent = "Authorizing consultation fee for Dr. @Model.DoctorName...";
+        modal.show();
+
+        setTimeout(() => {
+            progressBar.style.width = "70%";
+            statusText.textContent = "Routing transaction through simulated gateway...";
+        }, 700);
+
+        setTimeout(() => {
+            if (failureToggle.checked) {
+                stateProcessing.classList.add("d-none");
+                stateFailure.classList.remove("d-none");
+            } else {
+                progressBar.style.width = "100%";
+                stateProcessing.classList.add("d-none");
+                stateSuccess.classList.remove("d-none");
+                setTimeout(() => {
+                    bookForm.submit();
+                }, 800);
+            }
+        }, 1500);
+    });
+
+    btnRetry.addEventListener("click", function () {
+        failureToggle.checked = false;
+        modal.hide();
+    });
+});
+</script>

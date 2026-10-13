@@ -8,7 +8,8 @@
                      class="rounded-circle border" 
                      alt="@Model.DoctorName" 
                      width="64" height="64" 
-                     style="object-fit: cover; background: #EAF4EE;" />
+                     style="object-fit: cover; background: #EAF4EE;" 
+                     onerror="this.onerror=null;this.src='/images/doctor-avatar.svg';" />
                 @if (Model.IsOnline)
                 {
                     <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" title="Online for instant consultation"></span>

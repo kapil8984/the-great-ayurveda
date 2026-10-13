@@ -29,6 +29,12 @@ public enum OrderStatus
     Returned = 7
 }
 
+public enum ReviewStatus
+{
+    NotReviewed = 0,
+    Reviewed = 1
+}
+
 public enum PaymentStatus
 {
     Pending = 0,

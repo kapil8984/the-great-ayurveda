@@ -2,8 +2,8 @@
 @{
     var scope = ViewData["Scope"] as string ?? "public";
     var placeholder = ViewData["Placeholder"] as string ?? (scope == "admin" 
-        ? "Search orders, customers, doctors, products..." 
-        : "Search Ayurvedic medicines, herbs, concerns or doctors...");
+        ? "Search orders, products, doctors..." 
+        : "Search medicines, herbs, doctors...");
     var initialQuery = ViewData["InitialQuery"] as string ?? "";
 }
 

@@ -7,7 +7,7 @@ using Ayurveda.Infrastructure.Data;
 
 namespace Ayurveda.Admin.Controllers;
 
-[Authorize(Roles = "SuperAdmin,SupportAgent,Admin")]
+[Authorize(Policy = "RequireCustomerSupport")]
 public class AppointmentsController : Controller
 {
     private readonly AyurvedaDbContext _context;
@@ -71,11 +71,52 @@ public class AppointmentsController : Controller
 
         if (appt == null) return NotFound();
 
+        ViewBag.ActiveDoctors = await _context.Doctors
+            .Where(d => d.DoctorDetail != null && d.DoctorDetail.Status == 1)
+            .OrderBy(d => d.DoctorName)
+            .ToListAsync();
+
         return View(appt);
     }
 
     // -------------------------------------------------------------------------
-    // 3. NO-SHOW HANDLING & DISPUTE RESOLUTION
+    // 3. CANCEL & REASSIGN ACTIONS
+    // -------------------------------------------------------------------------
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id, string? reason)
+    {
+        var appt = await _context.Appointments.FindAsync(id);
+        if (appt != null)
+        {
+            appt.Status = "Cancelled";
+            appt.PrescriptionNotes = $"Cancelled by Administrator: {reason ?? "Administrative Cancellation"}";
+            await _context.SaveChangesAsync();
+            await _auditService.LogAsync("AppointmentCancelled", "Appointment", id.ToString(), $"Cancelled appointment #{id}. Reason: {reason ?? "Admin request"}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            TempData["SuccessMessage"] = $"Appointment #{id} has been cancelled.";
+        }
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reassign(int id, int newDoctorId)
+    {
+        var appt = await _context.Appointments.FindAsync(id);
+        var doc = await _context.Doctors.FindAsync(newDoctorId);
+        if (appt != null && doc != null)
+        {
+            var oldDocId = appt.DoctorId;
+            appt.DoctorId = doc.Id;
+            await _context.SaveChangesAsync();
+            await _auditService.LogAsync("AppointmentReassigned", "Appointment", id.ToString(), $"Reassigned appointment #{id} from doctor #{oldDocId} to Dr. {doc.DoctorName}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            TempData["SuccessMessage"] = $"Appointment #{id} reassigned to Dr. {doc.DoctorName}.";
+        }
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. NO-SHOW HANDLING & DISPUTE RESOLUTION
     // -------------------------------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]

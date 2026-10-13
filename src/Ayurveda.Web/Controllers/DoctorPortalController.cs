@@ -29,6 +29,10 @@ public class DoctorPortalController : Controller
     private async Task<Doctor?> GetCurrentDoctorAsync()
     {
         var user = await _userManager.GetUserAsync(User);
+        if (user == null && User.Identity?.Name != null)
+        {
+            user = await _userManager.FindByEmailAsync(User.Identity.Name) ?? await _userManager.FindByNameAsync(User.Identity.Name);
+        }
         if (user == null) return null;
 
         return await _context.Doctors
@@ -45,16 +49,10 @@ public class DoctorPortalController : Controller
         var doctor = await GetCurrentDoctorAsync();
         if (doctor == null || doctor.DoctorDetail == null)
         {
-            // Demo fallback if doctor role is accessed
-            doctor = await _context.Doctors
-                .Include(d => d.DoctorDetail)
-                    .ThenInclude(dd => dd!.Specialization)
-                .FirstOrDefaultAsync(d => d.DoctorDetail != null && d.DoctorDetail.Status == 1);
-
-            if (doctor == null) return RedirectToAction("Login", "Account");
+            return RedirectToAction("Login", "Account");
         }
 
-        if (doctor.DoctorDetail?.Status == 0)
+        if (doctor.DoctorDetail.Status != 1)
         {
             return RedirectToAction(nameof(PendingApproval));
         }
@@ -86,10 +84,10 @@ public class DoctorPortalController : Controller
         {
             DoctorId = doctor.Id,
             DoctorName = doctor.DoctorName,
-            SpecializationName = doctor.DoctorDetail.Specialization?.Name ?? "General Ayurveda",
-            IsOnline = doctor.DoctorDetail.IsOnline,
-            Rating = doctor.DoctorDetail.Rating,
-            ReviewCount = doctor.DoctorDetail.ReviewCount,
+            SpecializationName = doctor.DoctorDetail?.Specialization?.Name ?? "General Ayurveda",
+            IsOnline = doctor.DoctorDetail?.IsOnline ?? false,
+            Rating = doctor.DoctorDetail?.Rating ?? 5.0,
+            ReviewCount = doctor.DoctorDetail?.ReviewCount ?? 0,
             TodayAppointmentsCount = todaySchedule.Count,
             TotalCompletedConsultations = completedCount,
             TotalGrossEarnings = grossEarnings,
@@ -104,24 +102,26 @@ public class DoctorPortalController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> PendingApproval()
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user != null)
+        var doctor = await GetCurrentDoctorAsync();
+        if (doctor != null && doctor.DoctorDetail != null)
         {
-            var doctor = await _context.Doctors
-                .Include(d => d.DoctorDetail)
-                .FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || d.Email == user.Email);
-
-            if (doctor?.DoctorDetail != null)
+            if (doctor.DoctorDetail.Status == 1)
             {
-                if (doctor.DoctorDetail.Status == 1)
-                    return RedirectToAction(nameof(Dashboard));
-
-                ViewBag.Status = doctor.DoctorDetail.Status;
-                ViewBag.RejectionReason = doctor.DoctorDetail.RejectionReason;
-                ViewBag.DoctorName = doctor.DoctorName;
-                ViewBag.SubmittedAt = doctor.CreatedAt;
+                return RedirectToAction(nameof(Dashboard));
             }
+
+            ViewBag.Status = doctor.DoctorDetail.Status;
+            ViewBag.RejectionReason = doctor.DoctorDetail.RejectionReason;
+            ViewBag.DoctorName = doctor.DoctorName;
+            ViewBag.SubmittedAt = doctor.CreatedAt;
         }
+        else
+        {
+            ViewBag.Status = 0;
+            ViewBag.DoctorName = "Physician";
+            ViewBag.SubmittedAt = DateTime.UtcNow;
+        }
+
         return View();
     }
 

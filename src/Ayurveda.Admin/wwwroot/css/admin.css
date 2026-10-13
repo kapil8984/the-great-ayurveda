@@ -1,0 +1,236 @@
+/* ==========================================================================
+   THE GREAT AYURVEDA — ADMIN PORTAL DESIGN SYSTEM & THEME
+   Features: Dark/Light Mode, Collapsible Sidebar, KPI Animations, Glass Cards
+   ========================================================================== */
+
+:root {
+    --admin-bg: #F4F6F5;
+    --admin-surface: #FFFFFF;
+    --admin-surface-subtle: #F9FAFB;
+    --admin-border: #E5E7EB;
+    --admin-text-main: #111827;
+    --admin-text-muted: #6B7280;
+    --admin-sidebar-bg: #14231B;
+    --admin-sidebar-hover: rgba(44, 126, 80, 0.25);
+    --admin-sidebar-text: #C5D4CC;
+    --admin-primary: #1F5E3B;
+    --admin-primary-light: #2C7E50;
+    --admin-gold: #E3A72F;
+    --admin-gold-soft: #FFF9ED;
+    --admin-danger: #DC2626;
+    --admin-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --admin-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --admin-shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] {
+    --admin-bg: #0C1410;
+    --admin-surface: #14211A;
+    --admin-surface-subtle: #192A21;
+    --admin-border: #243B2F;
+    --admin-text-main: #F3F4F6;
+    --admin-text-muted: #9CA3AF;
+    --admin-sidebar-bg: #0A130F;
+    --admin-sidebar-hover: rgba(44, 126, 80, 0.35);
+    --admin-sidebar-text: #D1D5DB;
+    --admin-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --admin-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --admin-shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+body {
+    background-color: var(--admin-bg) !important;
+    color: var(--admin-text-main) !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Page Transition */
+@keyframes adminFadeIn {
+    from { opacity: 0.85; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+main {
+    animation: adminFadeIn 0.3s ease-out;
+}
+
+/* Sidebar Styles */
+.admin-sidebar {
+    background-color: var(--admin-sidebar-bg) !important;
+    min-height: 100vh;
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-right: 1px solid var(--admin-border);
+}
+
+.admin-sidebar.collapsed {
+    width: 74px !important;
+}
+
+.admin-sidebar.collapsed .sidebar-text,
+.admin-sidebar.collapsed .sidebar-header-title,
+.admin-sidebar.collapsed #adminSidebarViewWebsiteBtn span {
+    display: none !important;
+}
+
+.admin-sidebar.collapsed .admin-sidebar-link {
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.admin-sidebar-link {
+    color: var(--admin-sidebar-text);
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9125rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.admin-sidebar-link:hover, .admin-sidebar-link.active {
+    background-color: var(--admin-sidebar-hover);
+    color: #FFFFFF;
+    transform: translateX(2px);
+}
+
+/* Header Styles */
+.admin-header {
+    background-color: var(--admin-surface) !important;
+    border-bottom: 1px solid var(--admin-border) !important;
+    transition: background-color 0.25s ease;
+}
+
+/* Card Theming */
+.card {
+    background-color: var(--admin-surface) !important;
+    border: 1px solid var(--admin-border) !important;
+    color: var(--admin-text-main) !important;
+    box-shadow: var(--admin-shadow-sm) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.25s ease;
+}
+
+.card:hover {
+    box-shadow: var(--admin-shadow-md) !important;
+}
+
+/* Animated KPI Cards */
+.admin-kpi-card {
+    border-radius: 16px !important;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.admin-kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--admin-shadow-lg) !important;
+}
+
+.admin-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+}
+
+/* Order Pipeline Funnel */
+.funnel-step {
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--admin-surface-subtle);
+    border: 1px solid var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.875rem;
+}
+
+/* Activity Feed */
+.activity-feed-item {
+    position: relative;
+    padding-left: 28px;
+    padding-bottom: 16px;
+    border-left: 2px solid var(--admin-border);
+}
+
+.activity-feed-item:last-child {
+    border-left-color: transparent;
+    padding-bottom: 0;
+}
+
+.activity-feed-dot {
+    position: absolute;
+    left: -7px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--admin-primary);
+    border: 2px solid var(--admin-surface);
+}
+
+/* Skeleton Loading Overlay */
+.admin-skeleton-loading {
+    display: none;
+}
+
+.admin-skeleton-loading.active {
+    display: block;
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: adminSkeletonShimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+[data-theme="dark"] .skeleton-shimmer {
+    background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+    background-size: 200% 100%;
+}
+
+@keyframes adminSkeletonShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Dark Mode Toggle Button */
+.theme-toggle-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: var(--admin-surface-subtle);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text-main);
+    transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+    background: var(--admin-sidebar-hover);
+    color: var(--admin-primary);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+    main {
+        animation: none !important;
+    }
+    .admin-kpi-card:hover, .card:hover, .admin-sidebar-link:hover {
+        transform: none !important;
+    }
+    .skeleton-shimmer {
+        animation: none !important;
+    }
+}

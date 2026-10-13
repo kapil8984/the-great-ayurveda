@@ -14,6 +14,9 @@
         <p class="text-muted small mb-0">Audit verified AYUSH physicians, manage fee schedules, and oversee practice status.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
+        <a asp-action="Create" class="btn btn-success btn-sm rounded-pill px-3 shadow-xs fw-semibold">
+            <i class="bi bi-plus-circle me-1"></i> Add Doctor
+        </a>
         <a asp-action="Pending" class="btn btn-warning btn-sm rounded-pill px-3 shadow-xs fw-semibold">
             <i class="bi bi-person-exclamation me-1"></i> Verification Queue
         </a>
@@ -97,9 +100,7 @@
                             <tr>
                                 <td class="ps-4">
                                     <div class="d-flex align-items-center gap-3">
-                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; flex-shrink: 0;">
-                                            @(doc.DoctorName.Length >= 2 ? doc.DoctorName.Substring(0, 2).ToUpper() : "DR")
-                                        </div>
+                                        <img src="@(string.IsNullOrEmpty(doc.ProfileImage) ? "/images/doctor-avatar.svg" : doc.ProfileImage)" alt="@doc.DoctorName" width="40" height="40" class="rounded-circle border bg-light" style="object-fit: cover;" onerror="this.onerror=null;this.src='/images/doctor-avatar.svg';" />
                                         <div>
                                             <a asp-action="Details" asp-route-id="@doc.Id" class="fw-bold text-dark text-decoration-none">
                                                 @doc.DoctorName
@@ -160,7 +161,8 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
                                             <li><a class="dropdown-item" asp-action="Details" asp-route-id="@doc.Id"><i class="bi bi-eye me-2"></i>360 View Profile</a></li>
-                                            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editDoctorModal-@doc.Id"><i class="bi bi-pencil me-2"></i>Edit Fee &amp; Practice</button></li>
+                                            <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@doc.Id"><i class="bi bi-pencil-square me-2"></i>Edit Full Profile</a></li>
+                                            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editDoctorModal-@doc.Id"><i class="bi bi-pencil me-2"></i>Quick Edit Fee</button></li>
                                             <li><hr class="dropdown-divider"></li>
                                             @if (detail?.Status == 1)
                                             {
@@ -183,7 +185,35 @@
                                                     </form>
                                                 </li>
                                             }
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteDocModal-@doc.Id">
+                                                    <i class="bi bi-trash me-2"></i>Delete Doctor
+                                                </button>
+                                            </li>
                                         </ul>
+                                    </div>
+
+                                    <!-- Delete Doctor Modal -->
+                                    <div class="modal fade text-start" id="deleteDocModal-@doc.Id" tabindex="-1">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content rounded-4 border-0 shadow">
+                                                <div class="modal-header border-0 pb-0">
+                                                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Delete Dr. @doc.DoctorName</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body py-3">
+                                                    <p class="small text-muted mb-0">If this doctor has active consultations or reviews, the account will be safely soft-deleted to maintain patient medical history while immediately removing the doctor from public directories.</p>
+                                                </div>
+                                                <div class="modal-footer border-0 pt-0">
+                                                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                                    <form asp-action="Delete" asp-route-id="@doc.Id" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-danger rounded-pill px-4">Confirm Delete</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Edit Fee & Experience Modal -->

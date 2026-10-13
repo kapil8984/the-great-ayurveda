@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <rect width="300" height="300" rx="16" fill="#F8F6F0" />
+  <rect x="90" y="80" width="120" height="150" rx="12" fill="#1F5E3B" />
+  <rect x="110" y="55" width="80" height="30" rx="6" fill="#E3A72F" />
+  <rect x="105" y="110" width="90" height="70" rx="4" fill="#FBF6EA" />
+  <circle cx="150" cy="135" r="14" fill="#1F5E3B" />
+  <text x="150" y="165" font-family="sans-serif" font-size="10" font-weight="bold" fill="#1B2A22" text-anchor="middle">AYURVEDA</text>
+  <text x="150" y="270" font-family="sans-serif" font-size="12" font-weight="600" fill="#5E6D64" text-anchor="middle">HAIR-OIL</text>
+</svg>

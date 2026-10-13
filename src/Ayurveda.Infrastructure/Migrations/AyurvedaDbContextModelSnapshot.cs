@@ -45,7 +45,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
@@ -101,7 +103,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -147,6 +151,11 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
@@ -166,6 +175,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<bool>("LockoutEnabled")
@@ -228,6 +240,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<DateTime>("AppointmentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("CallDurationSeconds")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("ConsultationFee")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -236,13 +251,30 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("DietaryAdvice")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("int");
 
+                    b.Property<string>("DoshaDiagnosis")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("FollowUpDateUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("HealthConcern")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("JoinedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LeftAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("MeetingRoomId")
                         .HasColumnType("nvarchar(max)");
@@ -264,6 +296,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<string>("PrescriptionNotes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PrescriptionProductsJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ReportUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -281,18 +316,13 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("UserId1");
-
                     b.HasIndex("DoctorId", "StartUtc")
                         .IsUnique()
-                        .HasFilter("[Status] NOT IN ('Cancelled', 'Declined')");
+                        .HasFilter("[Status] <> 'Cancelled' AND [Status] <> 'Declined'");
 
                     b.ToTable("Appointments", (string)null);
                 });
@@ -346,8 +376,16 @@ namespace Ayurveda.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
@@ -359,12 +397,27 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<string>("LinkUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Placement")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("home_hero");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Subtitle")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("Id");
 
@@ -419,22 +472,22 @@ namespace Ayurveda.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("UserId1")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
                         .IsUnique();
-
-                    b.HasIndex("UserId1")
-                        .IsUnique()
-                        .HasFilter("[UserId1] IS NOT NULL");
 
                     b.ToTable("Carts", (string)null);
                 });
@@ -503,9 +556,18 @@ namespace Ayurveda.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicableCategory")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<decimal>("DiscountAmount")
                         .HasPrecision(18, 2)
@@ -527,6 +589,14 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<decimal>("MinOrderAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("UsageCount")
                         .HasColumnType("int");
@@ -562,7 +632,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("DoctorName")
                         .IsRequired()
@@ -573,6 +645,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasColumnType("datetime2");
@@ -627,7 +702,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("int");
@@ -642,6 +719,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<string>("Gender")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDemoData")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsOnline")
                         .HasColumnType("bit");
@@ -692,6 +772,46 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.ToTable("DoctorDetails", (string)null);
                 });
 
+            modelBuilder.Entity("Ayurveda.Domain.Entities.DoctorReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewText")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId")
+                        .IsUnique();
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DoctorReviews", (string)null);
+                });
+
             modelBuilder.Entity("Ayurveda.Domain.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -701,7 +821,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
@@ -739,6 +861,9 @@ namespace Ayurveda.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("CourierName")
                         .HasColumnType("nvarchar(max)");
 
@@ -749,9 +874,16 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("DeliveryType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("DiscountAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
@@ -765,6 +897,12 @@ namespace Ayurveda.Infrastructure.Migrations
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReturnReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReturnStatus")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ShippingAddress")
@@ -788,14 +926,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
 
                     b.ToTable("Orders", (string)null);
                 });
@@ -816,6 +949,11 @@ namespace Ayurveda.Infrastructure.Migrations
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
+
+                    b.Property<int>("ReviewStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
@@ -842,7 +980,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -883,7 +1023,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -931,7 +1073,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1030,6 +1174,44 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.ToTable("ProductImages", (string)null);
                 });
 
+            modelBuilder.Entity("Ayurveda.Domain.Entities.ProductQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnswerText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AnsweredBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AskedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("QuestionText")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductQuestions", (string)null);
+                });
+
             modelBuilder.Entity("Ayurveda.Domain.Entities.ProductReview", b =>
                 {
                     b.Property<int>("Id")
@@ -1039,7 +1221,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("HelpfulVotes")
                         .HasColumnType("int");
@@ -1059,16 +1243,11 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
 
                     b.ToTable("ProductReviews", (string)null);
                 });
@@ -1171,7 +1350,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -1214,7 +1395,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
@@ -1250,7 +1433,9 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1292,7 +1477,9 @@ namespace Ayurveda.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("Rating")
                         .HasColumnType("int");
@@ -1303,17 +1490,12 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId1")
-                        .HasColumnType("int");
-
                     b.Property<int>("YogaId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
 
                     b.HasIndex("YogaId");
 
@@ -1478,12 +1660,6 @@ namespace Ayurveda.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Ayurveda.Domain.Entities.User", null)
-                        .WithMany("Appointments")
-                        .HasForeignKey("UserId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Doctor");
 
                     b.Navigation("User");
@@ -1507,10 +1683,6 @@ namespace Ayurveda.Infrastructure.Migrations
                         .HasForeignKey("Ayurveda.Domain.Entities.Cart", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Ayurveda.Domain.Entities.User", null)
-                        .WithOne("Cart")
-                        .HasForeignKey("Ayurveda.Domain.Entities.Cart", "UserId1");
 
                     b.Navigation("User");
                 });
@@ -1563,6 +1735,33 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Navigation("Specialization");
                 });
 
+            modelBuilder.Entity("Ayurveda.Domain.Entities.DoctorReview", b =>
+                {
+                    b.HasOne("Ayurveda.Domain.Entities.Appointment", "Appointment")
+                        .WithOne("Review")
+                        .HasForeignKey("Ayurveda.Domain.Entities.DoctorReview", "AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ayurveda.Domain.Entities.Doctor", "Doctor")
+                        .WithMany("Reviews")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ayurveda.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Ayurveda.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("Ayurveda.Domain.Entities.ApplicationUser", "User")
@@ -1579,12 +1778,6 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.HasOne("Ayurveda.Domain.Entities.ApplicationUser", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Ayurveda.Domain.Entities.User", null)
-                        .WithMany("Orders")
-                        .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1639,6 +1832,17 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Ayurveda.Domain.Entities.ProductQuestion", b =>
+                {
+                    b.HasOne("Ayurveda.Domain.Entities.Product", "Product")
+                        .WithMany("Questions")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Ayurveda.Domain.Entities.ProductReview", b =>
                 {
                     b.HasOne("Ayurveda.Domain.Entities.Product", "Product")
@@ -1650,12 +1854,6 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.HasOne("Ayurveda.Domain.Entities.ApplicationUser", "User")
                         .WithMany("ProductReviews")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Ayurveda.Domain.Entities.User", null)
-                        .WithMany("ProductReviews")
-                        .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1721,12 +1919,6 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.HasOne("Ayurveda.Domain.Entities.ApplicationUser", "User")
                         .WithMany("YogaReviews")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Ayurveda.Domain.Entities.User", null)
-                        .WithMany("YogaReviews")
-                        .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1813,6 +2005,11 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Navigation("YogaReviews");
                 });
 
+            modelBuilder.Entity("Ayurveda.Domain.Entities.Appointment", b =>
+                {
+                    b.Navigation("Review");
+                });
+
             modelBuilder.Entity("Ayurveda.Domain.Entities.Cart", b =>
                 {
                     b.Navigation("CartItems");
@@ -1834,6 +2031,8 @@ namespace Ayurveda.Infrastructure.Migrations
                     b.Navigation("Appointments");
 
                     b.Navigation("DoctorDetail");
+
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Ayurveda.Domain.Entities.Order", b =>
@@ -1849,6 +2048,8 @@ namespace Ayurveda.Infrastructure.Migrations
 
                     b.Navigation("OrderItems");
 
+                    b.Navigation("Questions");
+
                     b.Navigation("Reviews");
 
                     b.Navigation("Variants");
@@ -1859,19 +2060,6 @@ namespace Ayurveda.Infrastructure.Migrations
             modelBuilder.Entity("Ayurveda.Domain.Entities.Subcategory", b =>
                 {
                     b.Navigation("Products");
-                });
-
-            modelBuilder.Entity("Ayurveda.Domain.Entities.User", b =>
-                {
-                    b.Navigation("Appointments");
-
-                    b.Navigation("Cart");
-
-                    b.Navigation("Orders");
-
-                    b.Navigation("ProductReviews");
-
-                    b.Navigation("YogaReviews");
                 });
 
             modelBuilder.Entity("Ayurveda.Domain.Entities.Yoga", b =>

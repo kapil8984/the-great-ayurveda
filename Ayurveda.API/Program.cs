@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. Database Connection
 var connectionString = builder.Configuration.GetConnectionString("AyurvedaDbConnection")
-    ?? "Server=(localdb)\\mssqllocaldb;Database=AyurvedaDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+    ?? "Server=(localdb)\\mssqllocaldb;Database=AyurvedaApiDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
 
 builder.Services.AddDbContext<AyurvedaDbContext>(options =>
 {

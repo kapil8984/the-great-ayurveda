@@ -8,18 +8,88 @@ using Ayurveda.Infrastructure.Data;
 
 namespace Ayurveda.Admin.Controllers;
 
-[Authorize(Roles = "SuperAdmin,SupportAgent,Admin")]
+[Authorize(Policy = "RequireCustomerSupport")]
 public class DoctorsController : Controller
 {
     private readonly AyurvedaDbContext _context;
     private readonly IEmailSender _emailSender;
     private readonly IAuditService _auditService;
+    private readonly IFileStorageService _fileStorage;
 
-    public DoctorsController(AyurvedaDbContext context, IEmailSender emailSender, IAuditService auditService)
+    public DoctorsController(AyurvedaDbContext context, IEmailSender emailSender, IAuditService auditService, IFileStorageService fileStorage)
     {
         _context = context;
         _emailSender = emailSender;
         _auditService = auditService;
+        _fileStorage = fileStorage;
+    }
+
+    // -------------------------------------------------------------------------
+    // 0. CREATE DOCTOR
+    // -------------------------------------------------------------------------
+    public async Task<IActionResult> Create()
+    {
+        ViewBag.Specializations = await _context.Categories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(string doctorName, string email, string contactNumber, int specializationId, string? qualification, int experience, decimal consultationFee, string? clinicAddress, string? bio, IFormFile? profileImageFile)
+    {
+        if (string.IsNullOrWhiteSpace(doctorName) || string.IsNullOrWhiteSpace(email))
+        {
+            TempData["ErrorMessage"] = "Doctor name and email are required.";
+            ViewBag.Specializations = await _context.Categories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+            return View();
+        }
+
+        string profileImageUrl = "";
+        if (profileImageFile != null && profileImageFile.Length > 0)
+        {
+            using var stream = profileImageFile.OpenReadStream();
+            profileImageUrl = await _fileStorage.SaveFileAsync(stream, profileImageFile.FileName, profileImageFile.ContentType);
+        }
+        else
+        {
+            profileImageUrl = "/images/doctor-avatar.svg";
+        }
+
+        var doctor = new Doctor
+        {
+            DoctorName = doctorName.Trim(),
+            Email = email.Trim().ToLowerInvariant(),
+            ContactNumber = string.IsNullOrWhiteSpace(contactNumber) ? "+91 98765 00000" : contactNumber.Trim(),
+            ProfileImage = profileImageUrl,
+            Role = "Doctor",
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Doctors.Add(doctor);
+        await _context.SaveChangesAsync();
+
+        var detail = new DoctorDetail
+        {
+            DoctorId = doctor.Id,
+            SpecializationId = specializationId,
+            Qualification = string.IsNullOrWhiteSpace(qualification) ? "BAMS" : qualification.Trim(),
+            Experience = experience,
+            ConsultationFee = consultationFee > 0 ? consultationFee : 499m,
+            ClinicAddress = string.IsNullOrWhiteSpace(clinicAddress) ? "Ayurveda Consultation Chamber" : clinicAddress.Trim(),
+            Bio = string.IsNullOrWhiteSpace(bio) ? "Experienced Ayurvedic clinician." : bio.Trim(),
+            QualificationImage = profileImageUrl,
+            Status = 1, // Approved directly by Admin
+            IsOnline = true,
+            Rating = 5.0,
+            ReviewCount = 1,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.DoctorDetails.Add(detail);
+        await _context.SaveChangesAsync();
+
+        await _auditService.LogAsync("DoctorCreated", "Doctor", doctor.Id.ToString(), $"Admin created doctor Dr. {doctor.DoctorName}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+
+        TempData["SuccessMessage"] = $"Dr. {doctor.DoctorName} created and approved.";
+        return RedirectToAction(nameof(Index));
     }
 
     // -------------------------------------------------------------------------
@@ -28,6 +98,7 @@ public class DoctorsController : Controller
     public async Task<IActionResult> Index(string? status, string? specialization, string? search)
     {
         var q = _context.Doctors
+            .Where(d => !d.IsDeleted)
             .Include(d => d.DoctorDetail)
                 .ThenInclude(dd => dd!.Specialization)
             .AsQueryable();
@@ -178,6 +249,7 @@ public class DoctorsController : Controller
         {
             doctor.DoctorDetail.Status = 2; // Suspended
             doctor.DoctorDetail.IsOnline = false;
+            doctor.DoctorDetail.RejectionReason = string.IsNullOrWhiteSpace(reason) ? "Periodic compliance review and document re-verification required." : reason.Trim();
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("DoctorSuspended", "Doctor", doctorId.ToString(), $"Suspended Dr. {doctor.DoctorName}. Reason: {reason ?? "Administrative review"}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
@@ -202,21 +274,121 @@ public class DoctorsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // -------------------------------------------------------------------------
+    // 3B. EDIT DOCTOR PROFILE
+    // -------------------------------------------------------------------------
+    public async Task<IActionResult> Edit(int id)
+    {
+        var doctor = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.Id == id);
+        if (doctor == null) return NotFound();
+
+        ViewBag.Specializations = await _context.Categories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+
+        var model = new AdminDoctorEditViewModel
+        {
+            Id = doctor.Id,
+            DoctorName = doctor.DoctorName,
+            Email = doctor.Email,
+            ContactNumber = doctor.ContactNumber,
+            SpecializationId = doctor.DoctorDetail?.SpecializationId ?? 1,
+            Qualification = doctor.DoctorDetail?.Qualification ?? "BAMS",
+            Experience = doctor.DoctorDetail?.Experience ?? 5,
+            ConsultationFee = doctor.DoctorDetail?.ConsultationFee ?? 499m,
+            ClinicAddress = doctor.DoctorDetail?.ClinicAddress,
+            Bio = doctor.DoctorDetail?.Bio,
+            ProfileImage = doctor.ProfileImage,
+            IsOnline = doctor.DoctorDetail?.IsOnline ?? true,
+            Status = doctor.DoctorDetail?.Status ?? 1
+        };
+
+        return View(model);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditDetails(int doctorId, decimal fee, int experience, string? clinicAddress, string? bio)
+    public async Task<IActionResult> Edit(int id, AdminDoctorEditViewModel model, IFormFile? profileImageFile)
     {
-        var doctor = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.Id == doctorId);
-        if (doctor?.DoctorDetail != null)
-        {
-            doctor.DoctorDetail.ConsultationFee = fee;
-            doctor.DoctorDetail.Experience = experience;
-            if (clinicAddress != null) doctor.DoctorDetail.ClinicAddress = clinicAddress;
-            if (bio != null) doctor.DoctorDetail.Bio = bio;
-            await _context.SaveChangesAsync();
+        var doctor = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.Id == id);
+        if (doctor == null) return NotFound();
 
-            await _auditService.LogAsync("DoctorUpdated", "Doctor", doctorId.ToString(), $"Updated fee to ₹{fee}, experience to {experience} yrs for Dr. {doctor.DoctorName}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
-            TempData["SuccessMessage"] = $"Credentials and consultation fee updated for Dr. {doctor.DoctorName}.";
+        if (string.IsNullOrWhiteSpace(model.DoctorName) || string.IsNullOrWhiteSpace(model.Email))
+        {
+            ModelState.AddModelError(string.Empty, "Doctor name and email are required.");
+            ViewBag.Specializations = await _context.Categories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+            return View(model);
+        }
+
+        doctor.DoctorName = model.DoctorName.Trim();
+        doctor.Email = model.Email.Trim().ToLowerInvariant();
+        doctor.ContactNumber = model.ContactNumber.Trim();
+
+        if (profileImageFile != null && profileImageFile.Length > 0)
+        {
+            using var stream = profileImageFile.OpenReadStream();
+            doctor.ProfileImage = await _fileStorage.SaveFileAsync(stream, profileImageFile.FileName, profileImageFile.ContentType);
+        }
+
+        if (doctor.DoctorDetail != null)
+        {
+            doctor.DoctorDetail.SpecializationId = model.SpecializationId;
+            doctor.DoctorDetail.Qualification = model.Qualification.Trim();
+            doctor.DoctorDetail.Experience = model.Experience;
+            doctor.DoctorDetail.ConsultationFee = model.ConsultationFee > 0 ? model.ConsultationFee : 499m;
+            doctor.DoctorDetail.ClinicAddress = model.ClinicAddress?.Trim() ?? string.Empty;
+            doctor.DoctorDetail.Bio = model.Bio?.Trim() ?? string.Empty;
+            doctor.DoctorDetail.IsOnline = model.IsOnline;
+            doctor.DoctorDetail.Status = model.Status;
+        }
+
+        await _context.SaveChangesAsync();
+
+        await _auditService.LogAsync("DoctorUpdated", "Doctor", id.ToString(), $"Updated profile for Dr. {doctor.DoctorName}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        TempData["SuccessMessage"] = $"Profile for Dr. {doctor.DoctorName} updated successfully.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // -------------------------------------------------------------------------
+    // 3C. SAFE DELETE DOCTOR (SOFT DELETE IF REFERENCED, HARD DELETE IF CLEAN)
+    // -------------------------------------------------------------------------
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var doctor = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.Id == id);
+        if (doctor != null)
+        {
+            var name = doctor.DoctorName;
+            var hasAppointments = await _context.Appointments.AnyAsync(a => a.DoctorId == id);
+            var hasReviews = await _context.DoctorReviews.AnyAsync(r => r.DoctorId == id);
+
+            if (hasAppointments || hasReviews)
+            {
+                // Soft delete
+                doctor.IsDeleted = true;
+                if (doctor.DoctorDetail != null)
+                {
+                    doctor.DoctorDetail.Status = -1; // Inactive
+                    doctor.DoctorDetail.IsOnline = false;
+                }
+                await _context.SaveChangesAsync();
+
+                await _auditService.LogAsync("DoctorSoftDeleted", "Doctor", id.ToString(), $"Soft-deleted Dr. {name} (referenced by appointments/reviews)", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+                TempData["SuccessMessage"] = $"Dr. {name} has active appointment/review records and was safely soft-deleted (hidden from public directory, records kept).";
+            }
+            else
+            {
+                // Hard delete
+                if (doctor.DoctorDetail != null)
+                {
+                    _context.DoctorDetails.Remove(doctor.DoctorDetail);
+                }
+                _context.Doctors.Remove(doctor);
+                await _context.SaveChangesAsync();
+
+                await _auditService.LogAsync("DoctorHardDeleted", "Doctor", id.ToString(), $"Permanently deleted Dr. {name}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+                TempData["SuccessMessage"] = $"Dr. {name} had no references and was permanently deleted.";
+            }
         }
         return RedirectToAction(nameof(Index));
     }

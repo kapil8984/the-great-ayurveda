@@ -24,6 +24,21 @@
         </ol>
     </nav>
 
+    @{
+        var shopBanners = ViewBag.ShopBanners as List<Ayurveda.Domain.Entities.Banner> ?? new();
+    }
+    @if (shopBanners.Any())
+    {
+        <div class="mb-4">
+            @foreach (var sb in shopBanners)
+            {
+                <a href="@(sb.LinkUrl ?? "/Shop")" class="d-block mb-3 rounded-4 overflow-hidden shadow-sm">
+                    <img src="@sb.ImageUrl" alt="@sb.Title" class="w-100" style="max-height: 220px; object-fit: cover;" onerror="this.src='/images/banners/banner-newarrivals.svg'" />
+                </a>
+            }
+        </div>
+    }
+
     <!-- Top Headline Strip -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-3 border-bottom gap-3">
         <div>

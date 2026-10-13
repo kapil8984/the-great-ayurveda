@@ -1,0 +1,120 @@
+@model Ayurveda.Application.ViewModels.AdminDoctorEditViewModel
+@{
+    ViewData["Title"] = $"Edit Doctor Profile — Dr. {Model.DoctorName}";
+    var specializations = ViewBag.Specializations as List<Ayurveda.Domain.Entities.Category> ?? new();
+}
+
+<div class="mb-4">
+    <a asp-action="Details" asp-route-id="@Model.Id" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left me-1"></i> Back to Clinical Dossier
+    </a>
+    <h3 class="fw-bold text-dark mt-2">
+        <i class="bi bi-pencil-square text-success me-2"></i> Edit Doctor Credentials &amp; Profile
+    </h3>
+    <p class="text-muted small">Update consultation fees, experience, bio, clinic chamber address, and photo.</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" id="editDoctorForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="ProfileImage" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="DoctorName" class="form-label fw-semibold">Doctor Full Name <span class="text-danger">*</span></label>
+                            <input asp-for="DoctorName" id="inputDoctorName" class="form-control rounded-3" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <input asp-for="Email" id="inputDoctorEmail" type="email" class="form-control rounded-3" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="ContactNumber" class="form-label fw-semibold">Contact Mobile</label>
+                            <input asp-for="ContactNumber" id="inputDoctorPhone" class="form-control rounded-3" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="SpecializationId" class="form-label fw-semibold">Specialization <span class="text-danger">*</span></label>
+                            <select asp-for="SpecializationId" class="form-select rounded-3" required>
+                                @foreach (var spec in specializations)
+                                {
+                                    <option value="@spec.Id" selected="@(spec.Id == Model.SpecializationId)">@spec.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="Qualification" class="form-label fw-semibold">Qualification</label>
+                            <input asp-for="Qualification" class="form-control rounded-3" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Experience" class="form-label fw-semibold">Experience (Years)</label>
+                            <input asp-for="Experience" type="number" min="0" class="form-control rounded-3" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ConsultationFee" class="form-label fw-semibold">Consultation Fee (₹)</label>
+                            <input asp-for="ConsultationFee" id="inputDoctorFee" type="number" step="10" min="0" class="form-control rounded-3" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ClinicAddress" class="form-label fw-semibold">Clinic / Hospital Chamber Address</label>
+                        <input asp-for="ClinicAddress" class="form-control rounded-3" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Bio" class="form-label fw-semibold">Professional Bio &amp; Clinical Focus</label>
+                        <textarea asp-for="Bio" rows="3" class="form-control rounded-3"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Profile Photo / Artwork</label>
+                        <input type="file" name="profileImageFile" class="form-control rounded-3" accept="image/*" id="docEditImgInput" />
+                        <div class="mt-2 d-flex align-items-center gap-3">
+                            <img id="docCurrentPhoto" src="@(string.IsNullOrEmpty(Model.ProfileImage) ? "/images/doctor-avatar.svg" : Model.ProfileImage)" alt="Photo" class="rounded-circle border p-1" style="width: 72px; height: 72px; object-fit: cover;" onerror="this.src='/images/doctor-avatar.svg'" />
+                            <span class="small text-muted">Upload a new file to replace current portrait image.</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-4 mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="IsOnline" id="doctorOnlineSwitch">
+                            <label class="form-check-label small fw-semibold" for="doctorOnlineSwitch">Online for Immediate Consultations</label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" id="btnSaveDoctor" class="btn btn-success rounded-pill px-4 fw-semibold">
+                            <i class="bi bi-check-lg me-1"></i> Save Changes
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('docEditImgInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const img = document.getElementById('docCurrentPhoto');
+                    if (img) img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+}

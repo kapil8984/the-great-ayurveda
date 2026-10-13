@@ -16,9 +16,13 @@ public static class DbInitializer
     {
         try
         {
+            // 0. Schema Alignment, Foreign Key Repairs & Data Sync
+            await AlignDatabaseSchemaAndFixDataAsync(context, userManager, roleManager, logger);
+
             // 1. Seed Roles
             var roles = new[]
             {
+                "Admin",
                 UserRole.Customer.ToString(),
                 UserRole.Doctor.ToString(),
                 UserRole.SuperAdmin.ToString(),
@@ -36,26 +40,110 @@ public static class DbInitializer
                 }
             }
 
-            // 2. Seed Categories
+            // Seed Administrative Staff Accounts
+            var adminAccounts = new (string Email, string Name, string[] Roles, string Password)[]
+            {
+                ("admin@ayurveda.com", "System SuperAdmin", new[] { "SuperAdmin", "Admin", "CatalogManager", "SupportAgent", "FinanceManager" }, "Admin@123"),
+                ("admin@thegreatayurveda.com", "System SuperAdmin", new[] { "SuperAdmin", "Admin", "CatalogManager", "SupportAgent", "FinanceManager" }, "AdminSecure@2026"),
+                ("catalog@thegreatayurveda.com", "Catalog Manager", new[] { "CatalogManager" }, "AdminSecure@2026"),
+                ("support@thegreatayurveda.com", "Support Agent", new[] { "SupportAgent" }, "AdminSecure@2026"),
+                ("finance@thegreatayurveda.com", "Finance Manager", new[] { "FinanceManager" }, "AdminSecure@2026")
+            };
+
+            foreach (var acc in adminAccounts)
+            {
+                var adminUser = await userManager.FindByEmailAsync(acc.Email);
+                if (adminUser == null)
+                {
+                    adminUser = new ApplicationUser
+                    {
+                        UserName = acc.Email,
+                        Email = acc.Email,
+                        FullName = acc.Name,
+                        EmailConfirmed = true,
+                        IsActive = true,
+                        LockoutEnabled = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    var adminRes = await userManager.CreateAsync(adminUser, acc.Password);
+                    if (adminRes.Succeeded)
+                    {
+                        await userManager.AddToRolesAsync(adminUser, acc.Roles);
+                        logger.LogInformation("Seeded admin staff {Email} ({Roles})", acc.Email, string.Join(", ", acc.Roles));
+                    }
+                }
+                else
+                {
+                    adminUser.IsActive = true;
+                    adminUser.LockoutEnabled = false;
+                    adminUser.LockoutEnd = null;
+                    adminUser.AccessFailedCount = 0;
+                    await userManager.UpdateAsync(adminUser);
+
+                    var token = await userManager.GeneratePasswordResetTokenAsync(adminUser);
+                    await userManager.ResetPasswordAsync(adminUser, token, acc.Password);
+
+                    var existingRoles = await userManager.GetRolesAsync(adminUser);
+                    foreach (var reqRole in acc.Roles)
+                    {
+                        if (!existingRoles.Contains(reqRole))
+                        {
+                            await userManager.AddToRoleAsync(adminUser, reqRole);
+                        }
+                    }
+                }
+            }
+
+            // Item 2: Migrate any existing users with legacy "Admin" role to "SuperAdmin"
+            var legacyAdmins = await userManager.GetUsersInRoleAsync("Admin");
+            foreach (var legacyAdmin in legacyAdmins)
+            {
+                if (!await userManager.IsInRoleAsync(legacyAdmin, "SuperAdmin"))
+                {
+                    await userManager.AddToRoleAsync(legacyAdmin, "SuperAdmin");
+                    logger.LogInformation("Migrated legacy Admin user {Email} to SuperAdmin role.", legacyAdmin.Email);
+                }
+            }
+
+            // 2. Seed 26 Categories
             var categoryDefinitions = new (string Name, string Description, string ImageUrl)[]
             {
-                ("Immunity & Rasayana", "Traditional formulations to support vitality, Ojas, and natural defenses.", "/images/categories/immunity.svg"),
-                ("Digestive Care", "Holistic herbal churnas, deepana-pachana herbs, and gut wellness formulations.", "/images/categories/digestion.svg"),
-                ("Joint & Muscle Care", "Therapeutic classical massage oils, tailas, and soothing herbal balms.", "/images/categories/joints.svg"),
-                ("Skin Care", "Pure herbal ubtans, Kumkumadi face oils, and complexion balms.", "/images/categories/skin.svg"),
-                ("Hair Care", "Bhringraj, Amla, Brahmi, and cold-pressed hair wellness oils and shampoos.", "/images/categories/hair.svg"),
-                ("Stress, Sleep & Brain", "Pure Ashwagandha, Medhya Rasayanas, and calming botanical teas.", "/images/categories/sleep.svg"),
-                ("Diabetes & Metabolism Support", "Traditional herbs supporting healthy blood sugar and metabolic Agni.", "/images/categories/metabolism.svg"),
-                ("Women's Wellness", "Shatavari, hormonal harmony, cycle balance, and restorative tonics.", "/images/categories/womens.svg"),
-                ("Herbs & Raw Powders", "Single-herb churnas, ethically harvested roots, seeds, and spices.", "/images/categories/herbs.svg"),
-                ("Panchakarma & Therapy Kits", "Authentic Nasya oils, Basti accessories, and Abhyanga essentials.", "/images/categories/panchakarma.svg"),
-                ("Yoga & Wellness", "Organic cotton mats, meditation props, brass incense burners, and aromatherapy.", "/images/categories/yoga.svg"),
-                ("Honey, Ghee & Natural Foods", "Vedic A2 Gir Cow Bilona Ghee and wild raw multi-flora forest honey.", "/images/categories/foods.svg")
+                ("Immunity & Rasayana", "Traditional formulations to support vitality, Ojas, and natural defenses.", "/images/categories/immunity-rasayana.svg"),
+                ("Digestive Care", "Holistic herbal churnas, deepana-pachana herbs, and gut wellness formulations.", "/images/categories/digestive-care.svg"),
+                ("Joint & Muscle Care", "Therapeutic classical massage oils, tailas, and soothing herbal balms.", "/images/categories/joint-muscle-care.svg"),
+                ("Skin Care & Complexion", "Pure herbal ubtans, Kumkumadi face oils, and complexion balms.", "/images/categories/skin-care.svg"),
+                ("Hair Care & Scalp Health", "Bhringraj, Amla, Brahmi, and cold-pressed hair wellness oils and shampoos.", "/images/categories/hair-care.svg"),
+                ("Stress, Sleep & Brain", "Pure Ashwagandha, Medhya Rasayanas, and calming botanical teas.", "/images/categories/stress-sleep-brain.svg"),
+                ("Diabetic Care & Metabolism", "Traditional herbs supporting healthy blood sugar and metabolic Agni.", "/images/categories/diabetic-care.svg"),
+                ("Women's Wellness", "Shatavari, hormonal harmony, cycle balance, and restorative tonics.", "/images/categories/womens-wellness.svg"),
+                ("Men's Wellness", "Classical botanical tonics supporting masculine vitality, stamina, and Ojas.", "/images/categories/mens-wellness.svg"),
+                ("Herbal Teas & Kadhas", "Therapeutic whole leaf infusions, Ayurvedic spice kadhas, and botanical brews.", "/images/categories/herbal-teas.svg"),
+                ("Ghee & Honey", "Vedic A2 Gir Cow Bilona Ghee and wild raw multi-flora forest honey.", "/images/categories/ghee-honey.svg"),
+                ("Massage Oils & Tailas", "Traditional Abhyanga oils infused through classical Sneha Kalpana decoction.", "/images/categories/massage-oils.svg"),
+                ("Ubtan & Bath Rituals", "Ancient Snana churna scrubs, turmeric bathing pastes, and natural clay polishes.", "/images/categories/ubtan-bath.svg"),
+                ("Aromatherapy & Essential Oils", "Pure steam-distilled Indian botanical essences, natural attars, and diffusers.", "/images/categories/aromatherapy.svg"),
+                ("Baby Care & Motherhood", "Gentle traditional formulations for infants and nursing mothers.", "/images/categories/baby-care.svg"),
+                ("Eye Care & Netra Shodhana", "Ocular cooling botanical washes, classical Triphala eye solutions, and rose hydrosols.", "/images/categories/eye-care.svg"),
+                ("Oral Care & Danta Shodhana", "Herbal tooth powders, Bakul gum tonics, and classical oil pulling blends.", "/images/categories/oral-care.svg"),
+                ("Weight Management & Metabolism", "Traditional formulations to balance Medo Dhatu and kindle digestive fire.", "/images/categories/weight-management.svg"),
+                ("Pooja, Havan & Sacred Botanicals", "Ethically prepared sacred samagri, forest resin dhoop, and brass ritual vessels.", "/images/categories/pooja-havan.svg"),
+                ("Ayurvedic Books & Literature", "Authoritative guides on Charaka Samhita, home remedies, Ahara diet, and Dinacharya.", "/images/categories/ayurvedic-books.svg"),
+                ("Yoga Accessories & Props", "Eco-friendly organic cotton mats, meditation zafus, and natural cork blocks.", "/images/categories/yoga-accessories.svg"),
+                ("Gift Hampers & Wellness Sets", "Thoughtfully curated festive gifting boxes of authentic Ayurvedic self-care essentials.", "/images/categories/gift-hampers.svg"),
+                ("Festival Specials & Seasonal Ritu", "Ritucharya seasonal cleansing kits and traditional festive wellness elixirs.", "/images/categories/festival-specials.svg"),
+                ("Herbs & Raw Single Powders", "Single-herb churnas, ethically harvested roots, seeds, and sun-dried barks.", "/images/categories/herbs-powders.svg"),
+                ("Panchakarma & Therapy Kits", "Authentic Nasya oils, Kansa Vataki massage bowls, and Neti pot accessories.", "/images/categories/panchakarma-kits.svg"),
+                ("Respiratory & Prana Care", "Classical Sitopaladi, Talisadi churnas, and herbal chest calming balms.", "/images/categories/respiratory-care.svg")
             };
 
             foreach (var def in categoryDefinitions)
             {
                 var existing = await context.Categories.FirstOrDefaultAsync(c => c.Name == def.Name);
+                if (existing == null)
+                {
+                    existing = await context.Categories.FirstOrDefaultAsync(c => def.Name.StartsWith(c.Name) || c.Name.StartsWith(def.Name));
+                }
+
                 if (existing == null)
                 {
                     context.Categories.Add(new Category
@@ -66,24 +154,45 @@ public static class DbInitializer
                         IsActive = true
                     });
                 }
+                else
+                {
+                    existing.Name = def.Name;
+                    existing.Description = def.Description;
+                    existing.ImageUrl = def.ImageUrl;
+                    existing.IsActive = true;
+                }
             }
             await context.SaveChangesAsync();
 
-            // 3. Seed Subcategories (3 per category = 36 total)
+            // 3. Seed 78 Subcategories (3 per category)
             var subcategoryMap = new Dictionary<string, string[]>
             {
-                ["Immunity & Rasayana"] = new[] { "Chyawanprash", "Herbal Tonics", "Giloy & Tulsi" },
-                ["Digestive Care"] = new[] { "Churnas", "Tablets", "Herbal Teas" },
-                ["Joint & Muscle Care"] = new[] { "Massage Oils", "Balms", "Supplements" },
-                ["Skin Care"] = new[] { "Face Care", "Body Care", "Herbal Soaps & Ubtans" },
-                ["Hair Care"] = new[] { "Hair Oils", "Shampoos", "Herbal Powders" },
-                ["Stress, Sleep & Brain"] = new[] { "Ashwagandha", "Brahmi", "Sleep Support" },
-                ["Diabetes & Metabolism Support"] = new[] { "Herbal Juices", "Tablets", "Teas" },
-                ["Women's Wellness"] = new[] { "Cycle Support", "Pregnancy & Postnatal Care", "Hormonal Balance" },
-                ["Herbs & Raw Powders"] = new[] { "Single Herbs", "Powders", "Seeds & Spices" },
-                ["Panchakarma & Therapy Kits"] = new[] { "Oils", "Basti/Nasya/Abhyanga items", "Accessories" },
-                ["Yoga & Wellness"] = new[] { "Mats & Props", "Books", "Aromatherapy" },
-                ["Honey, Ghee & Natural Foods"] = new[] { "Honey", "Cow Ghee", "Herbal Sweeteners" }
+                ["Immunity & Rasayana"] = new[] { "Chyawanprash", "Herbal Tonics & Asavas", "Giloy & Tulsi Formulations" },
+                ["Digestive Care"] = new[] { "Digestive Churnas", "Gut Wellness Tablets", "Deepana Herbal Teas" },
+                ["Joint & Muscle Care"] = new[] { "Therapeutic Massage Oils", "Herbal Pain Balms", "Guggulu Bone Tablets" },
+                ["Skin Care & Complexion"] = new[] { "Kumkumadi Oils", "Herbal Face Ubtans", "Complexion Elixirs" },
+                ["Hair Care & Scalp Health"] = new[] { "Bhringraj Tailas", "Herbal Kesh Powders", "Scalp Cleansers" },
+                ["Stress, Sleep & Brain"] = new[] { "Ashwagandha Elixirs", "Brahmi Medhya Tonics", "Sleep Calming Infusions" },
+                ["Diabetic Care & Metabolism"] = new[] { "Karela Jamun Kwath", "Madhunashini Tablets", "Metabolic Balance Teas" },
+                ["Women's Wellness"] = new[] { "Shatavari Rasayana", "Menstrual Cycle Tonics", "Postnatal Restorative Care" },
+                ["Men's Wellness"] = new[] { "Shilajit Gold Resin", "Vajikarana Rasayana", "Stamina & Energy Herbs" },
+                ["Herbal Teas & Kadhas"] = new[] { "Classical Spiced Kadha", "Tulsi Green Infusions", "Chamomile Shankhpushpi Tea" },
+                ["Ghee & Honey"] = new[] { "A2 Gir Cow Bilona Ghee", "Raw Forest Honey", "Medicated Herbal Ghrithas" },
+                ["Massage Oils & Tailas"] = new[] { "Mahanarayan Taila", "Dhanwantharam Oil", "Bala Thailam Body Oil" },
+                ["Ubtan & Bath Rituals"] = new[] { "Royal Bridal Ubtan", "Sandalwood Body Polish", "Snana Ayurvedic Bath Powders" },
+                ["Aromatherapy & Essential Oils"] = new[] { "Pure Essential Oils", "Natural Herbal Attars", "Ceramic Aroma Diffusers" },
+                ["Baby Care & Motherhood"] = new[] { "Balashwagandhadi Baby Oil", "Gentle Infant Ubtan", "Mother Lactation Tonics" },
+                ["Eye Care & Netra Shodhana"] = new[] { "Triphala Netra Wash", "Herbal Cooling Eye Drops", "Cucumber Rose Hydrosol" },
+                ["Oral Care & Danta Shodhana"] = new[] { "Danta Manjan Powder", "Herbal Oil Pulling Rinse", "Clove Bakul Gum Gel" },
+                ["Weight Management & Metabolism"] = new[] { "Medohar Guggulu", "Metabolic Kindling Kwath", "Triphala Guggulu Tablets" },
+                ["Pooja, Havan & Sacred Botanicals"] = new[] { "Vedic Havan Samagri", "Pure Guggul Dhoop Cones", "Gomaya Natural Diyas" },
+                ["Ayurvedic Books & Literature"] = new[] { "Classical Text Translations", "Home Remedies Handbooks", "Ayurvedic Nutrition Guides" },
+                ["Yoga Accessories & Props"] = new[] { "Organic Cotton Yoga Mats", "Cork Yoga Blocks & Straps", "Meditation Buckwheat Cushions" },
+                ["Gift Hampers & Wellness Sets"] = new[] { "Royal Rasayana Hampers", "Abhyanga Self-Care Bundles", "Bridal Glow Gift Sets" },
+                ["Festival Specials & Seasonal Ritu"] = new[] { "Diwali Ojas Celebration Kit", "Navratri Sattvic Energy Blends", "Monsoon Shodhana Detox Box" },
+                ["Herbs & Raw Single Powders"] = new[] { "Single Herb Roots", "Fine Botanical Powders", "Sacred Herbal Seeds" },
+                ["Panchakarma & Therapy Kits"] = new[] { "Nasya Drops & Applicators", "Bronze Kansa Vataki Bowls", "Copper Jal Neti Pots" },
+                ["Respiratory & Prana Care"] = new[] { "Sitopaladi Formulations", "Talisadi Herbal Powders", "Eucalyptus Herb Inhalers" }
             };
 
             var categoriesInDb = await context.Categories.ToListAsync();
@@ -110,100 +219,132 @@ public static class DbInitializer
             }
             await context.SaveChangesAsync();
 
-            // 4. Seed At Least 72 Products (2 products per subcategory)
+            // 4. Seed 300+ Products from catalog_300plus.json
             var currentProductCount = await context.Products.CountAsync();
-            if (currentProductCount < 60)
+            if (currentProductCount < 300)
             {
                 var subcategories = await context.Subcategories.Include(s => s.Category).ToListAsync();
-                var catalogData = GetSeedCatalogData();
-
-                foreach (var item in catalogData)
+                
+                string[] candidates = new[]
                 {
-                    var sub = subcategories.FirstOrDefault(s => s.Category.Name == item.CategoryName && s.Name == item.SubcategoryName);
-                    if (sub == null) continue;
+                    Path.Combine(AppContext.BaseDirectory, "catalog_300plus.json"),
+                    Path.Combine(AppContext.BaseDirectory, "Data", "catalog_300plus.json"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "catalog_300plus.json"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "src", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "..", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json"),
+                    @"D:\TheGreatAyurveda\The-Great-Ayurveda\src\Ayurveda.Infrastructure\Data\catalog_300plus.json"
+                };
 
-                    var productExists = await context.Products.AnyAsync(p => p.Title == item.Title);
-                    if (!productExists)
-                    {
-                        var product = new Product
-                        {
-                            Title = item.Title,
-                            Brand = item.Brand,
-                            Description = item.Description,
-                            Price = item.Price,
-                            Mrp = item.Mrp,
-                            DiscountPercent = item.Mrp > 0 ? (int)Math.Round((1.0m - (item.Price / item.Mrp)) * 100) : 0,
-                            Stock = item.Stock,
-                            CategoryId = sub.CategoryId,
-                            SubcategoryId = sub.Id,
-                            ImageUrl = item.ImageUrl,
-                            AverageRating = item.Rating,
-                            Sku = item.Sku,
-                            Tags = item.Tags,
-                            TraditionallyUsedFor = item.TraditionallyUsedFor,
-                            Ingredients = item.Ingredients,
-                            HowToUse = item.HowToUse,
-                            Precautions = item.Precautions,
-                            IsPrescriptionRequired = item.IsPrescriptionRequired,
-                            IsActive = true
-                        };
-
-                        // Add Variants
-                        if (item.Variants != null && item.Variants.Any())
-                        {
-                            foreach (var v in item.Variants)
-                            {
-                                product.Variants.Add(new ProductVariant
-                                {
-                                    Title = v.Title,
-                                    SizeOrPack = v.SizeOrPack,
-                                    Price = v.Price,
-                                    Mrp = v.Mrp,
-                                    StockQuantity = v.Stock,
-                                    Sku = $"{product.Sku}-{v.SizeOrPack?.Replace(" ", "")}"
-                                });
-                            }
-                        }
-
-                        // Add Reviews
-                        if (item.Reviews != null && item.Reviews.Any())
-                        {
-                            foreach (var r in item.Reviews)
-                            {
-                                product.Reviews.Add(new ProductReview
-                                {
-                                    UserId = 1, // linked to default user
-                                    Rating = r.Rating,
-                                    ReviewText = r.Text,
-                                    HelpfulVotes = r.Helpful,
-                                    IsVerifiedPurchase = true,
-                                    CreatedAt = DateTime.UtcNow.AddDays(-r.DaysAgo)
-                                });
-                            }
-                        }
-
-                        // Add Q&A
-                        if (item.Faqs != null && item.Faqs.Any())
-                        {
-                            foreach (var f in item.Faqs)
-                            {
-                                product.Questions.Add(new ProductQuestion
-                                {
-                                    QuestionText = f.Question,
-                                    AnswerText = f.Answer,
-                                    AskedBy = f.AskedBy,
-                                    AnsweredBy = "Senior Ayurvedic Vaidya, Great Ayurveda Labs",
-                                    CreatedAt = DateTime.UtcNow.AddDays(-10)
-                                });
-                            }
-                        }
-
-                        context.Products.Add(product);
-                    }
+                string? jsonPath = candidates.FirstOrDefault(File.Exists);
+                List<ProductJsonItem>? catalogData = null;
+                if (!string.IsNullOrEmpty(jsonPath))
+                {
+                    var jsonContent = await File.ReadAllTextAsync(jsonPath);
+                    catalogData = System.Text.Json.JsonSerializer.Deserialize<List<ProductJsonItem>>(jsonContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 }
-                await context.SaveChangesAsync();
-                logger.LogInformation("Seeded complete 72+ item Ayurvedic catalogue across 36 subcategories.");
+
+                if (catalogData != null && catalogData.Any())
+                {
+                    foreach (var item in catalogData)
+                    {
+                        var sub = subcategories.FirstOrDefault(s => s.Category.Name == item.CategoryName && s.Name == item.SubcategoryName)
+                                  ?? subcategories.FirstOrDefault(s => s.Category.Name == item.CategoryName)
+                                  ?? subcategories.First();
+
+                        var productExists = await context.Products.AnyAsync(p => p.Title == item.Title);
+                        if (!productExists)
+                        {
+                            var s = GenerateProductSlug(item.Title);
+                            var product = new Product
+                            {
+                                Title = item.Title,
+                                Brand = item.Brand,
+                                Description = item.Description,
+                                Price = item.Price,
+                                Mrp = item.Mrp,
+                                DiscountPercent = item.Mrp > 0 ? (int)Math.Round((1.0m - (item.Price / item.Mrp)) * 100) : 0,
+                                Stock = item.Stock,
+                                CategoryId = sub.CategoryId,
+                                SubcategoryId = sub.Id,
+                                ImageUrl = $"/images/products/{s}.webp",
+                                AverageRating = item.Rating,
+                                Sku = item.Sku,
+                                Tags = item.Tags,
+                                TraditionallyUsedFor = item.TraditionallyUsedFor,
+                                Ingredients = item.Ingredients,
+                                HowToUse = item.HowToUse,
+                                Precautions = item.Precautions,
+                                IsPrescriptionRequired = item.IsPrescriptionRequired,
+                                IsActive = true
+                            };
+
+                            if (item.Variants != null && item.Variants.Any())
+                            {
+                                foreach (var v in item.Variants)
+                                {
+                                    product.Variants.Add(new ProductVariant
+                                    {
+                                        Title = v.Title,
+                                        SizeOrPack = v.SizeOrPack,
+                                        Price = v.Price,
+                                        Mrp = v.Mrp,
+                                        StockQuantity = v.Stock,
+                                        Sku = $"{product.Sku}-{v.SizeOrPack.Replace(" ", "")}"
+                                    });
+                                }
+                            }
+
+                            if (item.Reviews != null && item.Reviews.Any())
+                            {
+                                foreach (var r in item.Reviews)
+                                {
+                                    product.Reviews.Add(new ProductReview
+                                    {
+                                        UserId = 1,
+                                        Rating = r.Rating,
+                                        ReviewText = r.Text,
+                                        HelpfulVotes = r.Helpful,
+                                        IsVerifiedPurchase = true,
+                                        CreatedAt = DateTime.UtcNow.AddDays(-r.DaysAgo)
+                                    });
+                                }
+                            }
+
+                            if (item.Faqs != null && item.Faqs.Any())
+                            {
+                                foreach (var f in item.Faqs)
+                                {
+                                    product.Questions.Add(new ProductQuestion
+                                    {
+                                        QuestionText = f.Question,
+                                        AnswerText = f.Answer,
+                                        AskedBy = f.AskedBy,
+                                        AnsweredBy = "Senior Ayurvedic Vaidya, Great Ayurveda Labs",
+                                        CreatedAt = DateTime.UtcNow.AddDays(-10)
+                                    });
+                                }
+                            }
+
+                            context.Products.Add(product);
+                        }
+                    }
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Seeded {Count} rich Ayurvedic products across 26 categories.", catalogData.Count);
+                }
             }
+
+            // Ensure all product images and inventory distribution
+            var allProducts = await context.Products.ToListAsync();
+            int prdIndex = 0;
+            foreach (var p in allProducts)
+            {
+                var s = GenerateProductSlug(p.Title);
+                p.ImageUrl = $"/images/products/{s}.webp";
+                if (prdIndex % 15 == 0) p.Stock = 0; // Out of stock
+                else if (prdIndex % 7 == 0) p.Stock = 3; // Low stock
+                prdIndex++;
+            }
+            await context.SaveChangesAsync();
 
             // 5. Seed Promotional Coupons
             if (!await context.Coupons.AnyAsync())
@@ -254,8 +395,24 @@ public static class DbInitializer
                 logger.LogInformation("Seeded foundational yoga postures.");
             }
 
-            // 7. Seed 24 Fictional Ayurvedic Doctors (Phase 7)
+            // 7. Seed and Upsert 6 Hero & 4 Middle original WebP banners
+            await SeedOrUpdateBannersAsync(context, logger);
+
+            // 7b. Seed and Upsert Festival Coupons
+            await SeedFestivalOffersAsync(context, logger);
+
+            // 8. Seed 24 Fictional Ayurvedic Doctors (Phase 7)
             await SeedDoctorsAsync(context, userManager, logger);
+
+            // Ensure doctor avatars are unique and assigned
+            var allDoctors = await context.Doctors.Include(d => d.DoctorDetail).ToListAsync();
+            int dIndex = 1;
+            foreach (var d in allDoctors)
+            {
+                d.ProfileImage = $"/images/doctors/doctor-{((dIndex - 1) % 24) + 1}.svg";
+                dIndex++;
+            }
+            await context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -264,14 +421,19 @@ public static class DbInitializer
         }
     }
 
+    private static string GenerateProductSlug(string title)
+    {
+        var s = title.ToLowerInvariant();
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"[^a-z0-9\s-]", "");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"[\s-]+", "-").Trim('-');
+        return s;
+    }
+
     public static async Task SeedDoctorsAsync(
         AyurvedaDbContext context,
         UserManager<ApplicationUser> userManager,
         ILogger logger)
     {
-        if (await context.Doctors.CountAsync() >= 24)
-            return;
-
         var categories = await context.Categories.ToListAsync();
         var defaultCat = categories.FirstOrDefault() ?? throw new InvalidOperationException("Categories not seeded");
 
@@ -378,15 +540,13 @@ public static class DbInitializer
         var afternoonSlotsJson = "[\"02:00 PM\", \"02:30 PM\", \"03:00 PM\", \"03:30 PM\", \"04:00 PM\"]";
         var eveningSlotsJson = "[\"05:30 PM\", \"06:00 PM\", \"06:30 PM\", \"07:00 PM\", \"07:30 PM\"]";
 
+        int doctorCounter = 1;
         foreach (var def in doctorDefs)
         {
-            var existingDoctor = await context.Doctors.FirstOrDefaultAsync(d => d.Email == def.Email);
-            if (existingDoctor != null) continue;
+            var doctorContact = $"+91 98765 {43210 + doctorCounter:D5}";
+            doctorCounter++;
 
-            // Find matching category
-            var cat = categories.FirstOrDefault(c => c.Name.Equals(def.Specialization, StringComparison.OrdinalIgnoreCase)) ?? defaultCat;
-
-            // Create ApplicationUser for login
+            // 1. Ensure ApplicationUser exists with DoctorPass@2026
             var user = await userManager.FindByEmailAsync(def.Email);
             if (user == null)
             {
@@ -395,9 +555,10 @@ public static class DbInitializer
                     UserName = def.Email,
                     Email = def.Email,
                     FullName = def.Name,
-                    ContactNumber = "+91 98765 43210",
+                    ContactNumber = doctorContact,
                     Gender = def.Gender,
                     EmailConfirmed = true,
+                    IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
                 var userRes = await userManager.CreateAsync(user, "DoctorPass@2026");
@@ -406,44 +567,100 @@ public static class DbInitializer
                     await userManager.AddToRoleAsync(user, UserRole.Doctor.ToString());
                 }
             }
-
-            var doctor = new Doctor
+            else
             {
-                DoctorName = def.Name,
-                Email = def.Email,
-                ContactNumber = "+91 98765 43210",
-                ProfileImage = "/images/doctor-avatar.svg",
-                Role = "Doctor",
-                ApplicationUserId = user?.Id,
-                CreatedAt = DateTime.UtcNow
-            };
+                user.EmailConfirmed = true;
+                user.IsActive = true;
+                user.LockoutEnd = null;
+                user.AccessFailedCount = 0;
+                await userManager.UpdateAsync(user);
+                var token = await userManager.GeneratePasswordResetTokenAsync(user);
+                await userManager.ResetPasswordAsync(user, token, "DoctorPass@2026");
+                if (!await userManager.IsInRoleAsync(user, UserRole.Doctor.ToString()))
+                {
+                    await userManager.AddToRoleAsync(user, UserRole.Doctor.ToString());
+                }
+            }
 
-            var detail = new DoctorDetail
+            // 2. Ensure Doctor entity & DoctorDetail
+            var cat = categories.FirstOrDefault(c => c.Name.Equals(def.Specialization, StringComparison.OrdinalIgnoreCase)) ?? defaultCat;
+            var existingDoctor = await context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.Email == def.Email);
+
+            if (existingDoctor != null)
             {
-                Doctor = doctor,
-                Qualification = def.Qualification,
-                Experience = def.Experience,
-                Gender = def.Gender,
-                Language = def.Languages,
-                ConsultationFee = def.Fee,
-                Rating = def.Rating,
-                ReviewCount = def.Reviews,
-                IsOnline = def.IsOnline,
-                IsDemoData = true,
-                Bio = def.Bio,
-                RegistrationNumber = def.RegNo,
-                RegistrationCouncil = def.Council,
-                ClinicAddress = def.Address,
-                SpecializationId = cat.Id,
-                Status = 1, // Approved
-                MorningTimesJson = morningSlotsJson,
-                AfternoonTimesJson = afternoonSlotsJson,
-                EveningTimesJson = eveningSlotsJson,
-                CreatedAt = DateTime.UtcNow
-            };
+                existingDoctor.ApplicationUserId = user.Id;
+                existingDoctor.ProfileImage = $"/images/doctors/doctor-{((doctorCounter - 2) % 24) + 1}.webp";
+                if (existingDoctor.DoctorDetail != null)
+                {
+                    existingDoctor.DoctorDetail.Status = 1; // Approved
+                }
+                else
+                {
+                    existingDoctor.DoctorDetail = new DoctorDetail
+                    {
+                        DoctorId = existingDoctor.Id,
+                        Qualification = def.Qualification,
+                        Experience = def.Experience,
+                        Gender = def.Gender,
+                        Language = def.Languages,
+                        ConsultationFee = def.Fee,
+                        Rating = def.Rating,
+                        ReviewCount = def.Reviews,
+                        IsOnline = def.IsOnline,
+                        IsDemoData = true,
+                        Bio = def.Bio,
+                        RegistrationNumber = def.RegNo,
+                        RegistrationCouncil = def.Council,
+                        ClinicAddress = def.Address,
+                        SpecializationId = cat.Id,
+                        Status = 1,
+                        MorningTimesJson = morningSlotsJson,
+                        AfternoonTimesJson = afternoonSlotsJson,
+                        EveningTimesJson = eveningSlotsJson,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                }
+            }
+            else
+            {
+                var doctor = new Doctor
+                {
+                    DoctorName = def.Name,
+                    Email = def.Email,
+                    ContactNumber = doctorContact,
+                    ProfileImage = $"/images/doctors/doctor-{((doctorCounter - 2) % 24) + 1}.webp",
+                    Role = "Doctor",
+                    ApplicationUserId = user.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-            doctor.DoctorDetail = detail;
-            context.Doctors.Add(doctor);
+                var detail = new DoctorDetail
+                {
+                    Doctor = doctor,
+                    Qualification = def.Qualification,
+                    Experience = def.Experience,
+                    Gender = def.Gender,
+                    Language = def.Languages,
+                    ConsultationFee = def.Fee,
+                    Rating = def.Rating,
+                    ReviewCount = def.Reviews,
+                    IsOnline = def.IsOnline,
+                    IsDemoData = true,
+                    Bio = def.Bio,
+                    RegistrationNumber = def.RegNo,
+                    RegistrationCouncil = def.Council,
+                    ClinicAddress = def.Address,
+                    SpecializationId = cat.Id,
+                    Status = 1, // Approved
+                    MorningTimesJson = morningSlotsJson,
+                    AfternoonTimesJson = afternoonSlotsJson,
+                    EveningTimesJson = eveningSlotsJson,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                doctor.DoctorDetail = detail;
+                context.Doctors.Add(doctor);
+            }
         }
 
         await context.SaveChangesAsync();
@@ -523,6 +740,54 @@ public static class DbInitializer
         }
     }
 
+
+    public class ProductJsonItem
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Brand { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public string SubcategoryName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Mrp { get; set; }
+        public int Stock { get; set; }
+        public double Rating { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+        public string Sku { get; set; } = string.Empty;
+        public string Tags { get; set; } = string.Empty;
+        public string TraditionallyUsedFor { get; set; } = string.Empty;
+        public string Ingredients { get; set; } = string.Empty;
+        public string HowToUse { get; set; } = string.Empty;
+        public string Precautions { get; set; } = string.Empty;
+        public bool IsPrescriptionRequired { get; set; }
+        public List<ProductVariantJsonItem> Variants { get; set; } = new();
+        public List<ProductReviewJsonItem> Reviews { get; set; } = new();
+        public List<ProductFaqJsonItem> Faqs { get; set; } = new();
+    }
+
+    public class ProductVariantJsonItem
+    {
+        public string Title { get; set; } = string.Empty;
+        public string SizeOrPack { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Mrp { get; set; }
+        public int Stock { get; set; }
+    }
+
+    public class ProductReviewJsonItem
+    {
+        public int Rating { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public int Helpful { get; set; }
+        public int DaysAgo { get; set; }
+    }
+
+    public class ProductFaqJsonItem
+    {
+        public string Question { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;
+        public string AskedBy { get; set; } = string.Empty;
+    }
 
     private class ProductSeedDto
     {
@@ -1733,5 +1998,526 @@ public static class DbInitializer
                 Precautions = "Pure crystallized sugar; consume in moderation."
             }
         };
+    }
+
+    public static async Task AlignDatabaseSchemaAndFixDataAsync(
+        AyurvedaDbContext context,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole<int>> roleManager,
+        ILogger logger)
+    {
+        try
+        {
+            // 1. Schema repairs & constraint cleanup
+            var sqlSchemaRepair = @"
+-- Check and add/fix columns in Carts
+IF OBJECT_ID('Carts', 'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('Carts', 'UpdatedAt') IS NULL
+    BEGIN
+        ALTER TABLE [Carts] ADD [UpdatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE();
+    END
+    ELSE
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.default_constraints dc
+            JOIN sys.columns c ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
+            WHERE dc.parent_object_id = OBJECT_ID('Carts') AND c.name = 'UpdatedAt'
+        )
+        BEGIN
+            ALTER TABLE [Carts] ADD CONSTRAINT [DF_Carts_UpdatedAt] DEFAULT GETUTCDATE() FOR [UpdatedAt];
+        END
+        UPDATE [Carts] SET [UpdatedAt] = ISNULL([CreatedAt], GETUTCDATE()) WHERE [UpdatedAt] IS NULL;
+    END
+END
+
+-- Drop legacy foreign keys pointing to Users table
+IF OBJECT_ID('FK_Appointments_Users_UserId', 'F') IS NOT NULL
+    ALTER TABLE [Appointments] DROP CONSTRAINT [FK_Appointments_Users_UserId];
+IF OBJECT_ID('FK_Appointments_Users_UserId1', 'F') IS NOT NULL
+    ALTER TABLE [Appointments] DROP CONSTRAINT [FK_Appointments_Users_UserId1];
+IF OBJECT_ID('FK_Carts_Users_UserId', 'F') IS NOT NULL
+    ALTER TABLE [Carts] DROP CONSTRAINT [FK_Carts_Users_UserId];
+IF OBJECT_ID('FK_Orders_Users_UserId', 'F') IS NOT NULL
+    ALTER TABLE [Orders] DROP CONSTRAINT [FK_Orders_Users_UserId];
+IF OBJECT_ID('FK_Orders_Users_UserId1', 'F') IS NOT NULL
+    ALTER TABLE [Orders] DROP CONSTRAINT [FK_Orders_Users_UserId1];
+IF OBJECT_ID('FK_ProductReviews_Users_UserId', 'F') IS NOT NULL
+    ALTER TABLE [ProductReviews] DROP CONSTRAINT [FK_ProductReviews_Users_UserId];
+IF OBJECT_ID('FK_YogaReviews_Users_UserId', 'F') IS NOT NULL
+    ALTER TABLE [YogaReviews] DROP CONSTRAINT [FK_YogaReviews_Users_UserId];
+
+-- Reconcile any orphan UserIds before adding foreign keys
+DECLARE @fallbackUserId int = (SELECT TOP 1 Id FROM AspNetUsers WHERE Email = 'customer@ayurveda.com');
+IF @fallbackUserId IS NULL SET @fallbackUserId = (SELECT TOP 1 Id FROM AspNetUsers ORDER BY Id);
+IF @fallbackUserId IS NOT NULL
+BEGIN
+    UPDATE Appointments SET UserId = @fallbackUserId WHERE UserId NOT IN (SELECT Id FROM AspNetUsers);
+    UPDATE Carts SET UserId = @fallbackUserId WHERE UserId NOT IN (SELECT Id FROM AspNetUsers);
+    UPDATE Orders SET UserId = @fallbackUserId WHERE UserId NOT IN (SELECT Id FROM AspNetUsers);
+    UPDATE ProductReviews SET UserId = @fallbackUserId WHERE UserId NOT IN (SELECT Id FROM AspNetUsers);
+    UPDATE YogaReviews SET UserId = @fallbackUserId WHERE UserId NOT IN (SELECT Id FROM AspNetUsers);
+END
+
+-- Re-point FK constraints to AspNetUsers if missing
+IF OBJECT_ID('FK_Appointments_AspNetUsers_UserId', 'F') IS NULL
+    ALTER TABLE [Appointments] ADD CONSTRAINT [FK_Appointments_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION;
+IF OBJECT_ID('FK_Carts_AspNetUsers_UserId', 'F') IS NULL
+    ALTER TABLE [Carts] ADD CONSTRAINT [FK_Carts_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION;
+IF OBJECT_ID('FK_Orders_AspNetUsers_UserId', 'F') IS NULL
+    ALTER TABLE [Orders] ADD CONSTRAINT [FK_Orders_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION;
+IF OBJECT_ID('FK_ProductReviews_AspNetUsers_UserId', 'F') IS NULL
+    ALTER TABLE [ProductReviews] ADD CONSTRAINT [FK_ProductReviews_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION;
+IF OBJECT_ID('FK_YogaReviews_AspNetUsers_UserId', 'F') IS NULL
+    ALTER TABLE [YogaReviews] ADD CONSTRAINT [FK_YogaReviews_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION;
+
+-- Ensure Banner columns exist
+IF OBJECT_ID('Banners', 'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('Banners', 'Placement') IS NULL
+        ALTER TABLE [Banners] ADD [Placement] nvarchar(50) NOT NULL DEFAULT 'home_hero';
+    IF COL_LENGTH('Banners', 'StartDate') IS NULL
+        ALTER TABLE [Banners] ADD [StartDate] datetime2 NULL;
+    IF COL_LENGTH('Banners', 'EndDate') IS NULL
+        ALTER TABLE [Banners] ADD [EndDate] datetime2 NULL;
+    IF COL_LENGTH('Banners', 'UpdatedAt') IS NULL
+        ALTER TABLE [Banners] ADD [UpdatedAt] datetime2 NULL DEFAULT GETUTCDATE();
+END
+
+-- Ensure Coupon columns exist
+IF OBJECT_ID('Coupons', 'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('Coupons', 'StartDate') IS NULL
+        ALTER TABLE [Coupons] ADD [StartDate] datetime2 NULL;
+    IF COL_LENGTH('Coupons', 'ApplicableCategory') IS NULL
+        ALTER TABLE [Coupons] ADD [ApplicableCategory] nvarchar(100) NULL;
+    IF COL_LENGTH('Coupons', 'UpdatedAt') IS NULL
+        ALTER TABLE [Coupons] ADD [UpdatedAt] datetime2 NULL DEFAULT GETUTCDATE();
+END
+
+IF COL_LENGTH('Banners', 'UpdatedAt') IS NOT NULL AND COL_LENGTH('Banners', 'CreatedAt') IS NOT NULL
+    EXEC('UPDATE [Banners] SET [UpdatedAt] = ISNULL([CreatedAt], GETUTCDATE()) WHERE [UpdatedAt] IS NULL;');
+IF COL_LENGTH('Coupons', 'UpdatedAt') IS NOT NULL AND COL_LENGTH('Coupons', 'CreatedAt') IS NOT NULL
+    EXEC('UPDATE [Coupons] SET [UpdatedAt] = ISNULL([CreatedAt], GETUTCDATE()) WHERE [UpdatedAt] IS NULL;');
+IF COL_LENGTH('Carts', 'UpdatedAt') IS NOT NULL AND COL_LENGTH('Carts', 'CreatedAt') IS NOT NULL
+    EXEC('UPDATE [Carts] SET [UpdatedAt] = ISNULL([CreatedAt], GETUTCDATE()) WHERE [UpdatedAt] IS NULL;');
+";
+            await context.Database.ExecuteSqlRawAsync(sqlSchemaRepair);
+
+            // 2. Sync AspNetUsers and legacy Users table bidirectionally
+            var sqlSyncUsers = @"
+IF OBJECT_ID('Users', 'U') IS NOT NULL AND OBJECT_ID('AspNetUsers', 'U') IS NOT NULL
+BEGIN
+    SET IDENTITY_INSERT Users ON;
+    INSERT INTO Users (Id, Username, Email, PasswordHash, Contact, CreatedAt)
+    SELECT u.Id, 
+           ISNULL(u.UserName, u.Email), 
+           ISNULL(u.Email, 'user' + CAST(u.Id AS nvarchar(20)) + '@thegreatayurveda.com'), 
+           ISNULL(u.PasswordHash, ''), 
+           ISNULL(u.ContactNumber, ''), 
+           ISNULL(u.CreatedAt, GETUTCDATE())
+    FROM AspNetUsers u
+    WHERE NOT EXISTS (SELECT 1 FROM Users lu WHERE lu.Id = u.Id);
+    SET IDENTITY_INSERT Users OFF;
+
+    SET IDENTITY_INSERT AspNetUsers ON;
+    INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, PhoneNumber, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount, FullName, CreatedAt, IsActive)
+    SELECT lu.Id, 
+           lu.Username, 
+           UPPER(lu.Username), 
+           lu.Email, 
+           UPPER(lu.Email), 
+           1, 
+           lu.PasswordHash, 
+           NEWID(), 
+           NEWID(), 
+           lu.Contact, 
+           0, 0, 0, 0, 
+           lu.Username, 
+           ISNULL(lu.CreatedAt, GETUTCDATE()), 
+           1
+    FROM Users lu
+    WHERE NOT EXISTS (SELECT 1 FROM AspNetUsers au WHERE au.Id = lu.Id);
+    SET IDENTITY_INSERT AspNetUsers OFF;
+END
+";
+            await context.Database.ExecuteSqlRawAsync(sqlSyncUsers);
+
+            // 3. Seed Default Customer user: customer@ayurveda.com / Customer@123
+            var customerEmail = "customer@ayurveda.com";
+            var customerUser = await userManager.FindByEmailAsync(customerEmail);
+            if (customerUser == null)
+            {
+                customerUser = new ApplicationUser
+                {
+                    UserName = customerEmail,
+                    Email = customerEmail,
+                    FullName = "Aarav Patel",
+                    ContactNumber = "+91 98765 12345",
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var custRes = await userManager.CreateAsync(customerUser, "Customer@123");
+                if (custRes.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(customerUser, UserRole.Customer.ToString());
+                    logger.LogInformation("Seeded standard demo customer {Email} with Customer@123", customerEmail);
+                }
+            }
+            else
+            {
+                customerUser.EmailConfirmed = true;
+                customerUser.IsActive = true;
+                customerUser.LockoutEnabled = false;
+                customerUser.LockoutEnd = null;
+                customerUser.AccessFailedCount = 0;
+                await userManager.UpdateAsync(customerUser);
+                var token = await userManager.GeneratePasswordResetTokenAsync(customerUser);
+                await userManager.ResetPasswordAsync(customerUser, token, "Customer@123");
+            }
+
+            // 4. Seed/Restore Doctor user: dr.sharma@ayurveda.com / Doctor@123
+            var doctorDemoEmail = "dr.sharma@ayurveda.com";
+            var doctorDemoUser = await userManager.FindByEmailAsync(doctorDemoEmail);
+            if (doctorDemoUser == null)
+            {
+                doctorDemoUser = new ApplicationUser
+                {
+                    UserName = doctorDemoEmail,
+                    Email = doctorDemoEmail,
+                    FullName = "Dr. Rajeshwar Sharma",
+                    ContactNumber = "+91 98765 00001",
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var docRes = await userManager.CreateAsync(doctorDemoUser, "DoctorPass@2026");
+                if (docRes.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(doctorDemoUser, UserRole.Doctor.ToString());
+                    logger.LogInformation("Seeded demo doctor {Email} with DoctorPass@2026", doctorDemoEmail);
+                }
+            }
+            else
+            {
+                doctorDemoUser.EmailConfirmed = true;
+                doctorDemoUser.IsActive = true;
+                doctorDemoUser.LockoutEnabled = false;
+                doctorDemoUser.LockoutEnd = null;
+                doctorDemoUser.AccessFailedCount = 0;
+                await userManager.UpdateAsync(doctorDemoUser);
+                var token = await userManager.GeneratePasswordResetTokenAsync(doctorDemoUser);
+                await userManager.ResetPasswordAsync(doctorDemoUser, token, "DoctorPass@2026");
+            }
+
+            // Ensure Doctor entity exists in Doctors table and has DoctorDetail
+            var docRecord = await context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.Email == doctorDemoEmail);
+            if (docRecord == null)
+            {
+                var firstCat = await context.Categories.FirstOrDefaultAsync();
+                docRecord = new Doctor
+                {
+                    DoctorName = "Dr. Rajeshwar Sharma",
+                    Email = doctorDemoEmail,
+                    ContactNumber = "+91 98765 00001",
+                    ProfileImage = "/images/doctors/doctor-1.svg",
+                    Role = "Doctor",
+                    ApplicationUserId = doctorDemoUser.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Doctors.Add(docRecord);
+                await context.SaveChangesAsync();
+
+                var docDetail = new DoctorDetail
+                {
+                    DoctorId = docRecord.Id,
+                    SpecializationId = firstCat?.Id ?? 1,
+                    Qualification = "BAMS, MD (Ayurveda)",
+                    Experience = 15,
+                    ConsultationFee = 499.00m,
+                    ClinicAddress = "Ayurveda Wellness Chamber, Civil Lines, Jaipur",
+                    Bio = "Specialist in classical pulse diagnosis, gut metabolism (Agni), and chronic Panchakarma rehabilitation.",
+                    QualificationImage = "/images/doctors/doctor-1.svg",
+                    Status = 1, // Approved
+                    IsOnline = true,
+                    Rating = 4.9,
+                    ReviewCount = 42,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.DoctorDetails.Add(docDetail);
+                await context.SaveChangesAsync();
+            }
+            else
+            {
+                docRecord.ApplicationUserId = doctorDemoUser.Id;
+                if (string.IsNullOrWhiteSpace(docRecord.ProfileImage) || !ImageFileExists(docRecord.ProfileImage))
+                {
+                    docRecord.ProfileImage = "/images/doctors/doctor-1.svg";
+                }
+                if (docRecord.DoctorDetail == null)
+                {
+                    var firstCat = await context.Categories.FirstOrDefaultAsync();
+                    docRecord.DoctorDetail = new DoctorDetail
+                    {
+                        DoctorId = docRecord.Id,
+                        SpecializationId = firstCat?.Id ?? 1,
+                        Qualification = "BAMS, MD (Ayurveda)",
+                        Experience = 15,
+                        ConsultationFee = 499.00m,
+                        ClinicAddress = "Ayurveda Wellness Chamber, Civil Lines, Jaipur",
+                        Bio = "Specialist in classical pulse diagnosis and gut metabolism.",
+                        QualificationImage = docRecord.ProfileImage,
+                        Status = 1,
+                        IsOnline = true,
+                        Rating = 4.9,
+                        ReviewCount = 42,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                }
+                else
+                {
+                    docRecord.DoctorDetail.Status = 1; // Approved
+                    if (string.IsNullOrWhiteSpace(docRecord.DoctorDetail.QualificationImage) || !ImageFileExists(docRecord.DoctorDetail.QualificationImage))
+                    {
+                        docRecord.DoctorDetail.QualificationImage = "/images/doctors/doctor-1.svg";
+                    }
+                }
+                await context.SaveChangesAsync();
+            }
+
+            // 5. Image Repair Step
+            await RepairBrokenImagesAsync(context, logger);
+
+            // 6. Seed 8+ Banners
+            await SeedOrUpdateBannersAsync(context, logger);
+
+            // 7. Seed Festival Offers
+            await SeedFestivalOffersAsync(context, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error executing AlignDatabaseSchemaAndFixDataAsync");
+        }
+    }
+
+    private static bool ImageFileExists(string? relativeUrl)
+    {
+        if (string.IsNullOrWhiteSpace(relativeUrl)) return false;
+        var trimmed = relativeUrl.TrimStart('~').TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var cur = Directory.GetCurrentDirectory();
+        
+        var paths = new[]
+        {
+            Path.Combine(cur, "wwwroot", trimmed),
+            Path.Combine(cur, "..", "Ayurveda.Web", "wwwroot", trimmed),
+            Path.Combine(cur, "..", "Ayurveda.Admin", "wwwroot", trimmed),
+            Path.Combine(cur, "src", "Ayurveda.Web", "wwwroot", trimmed),
+            Path.Combine(cur, "src", "Ayurveda.Admin", "wwwroot", trimmed)
+        };
+
+        foreach (var p in paths)
+        {
+            try
+            {
+                if (File.Exists(p)) return true;
+            }
+            catch { }
+        }
+        return false;
+    }
+
+    private static async Task RepairBrokenImagesAsync(AyurvedaDbContext context, ILogger logger)
+    {
+        // 1. Categories
+        var categories = await context.Categories.ToListAsync();
+        var catSvgMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Digestive Care", "/images/categories/digestion.svg" },
+            { "Digestive Health", "/images/categories/digestion.svg" },
+            { "Skin Care", "/images/categories/skin.svg" },
+            { "Hair & Skin Care", "/images/categories/skin.svg" },
+            { "Immunity & Rasayana", "/images/categories/immunity.svg" },
+            { "Immunity & Rejuvenation", "/images/categories/immunity.svg" },
+            { "Joint & Muscle Care", "/images/categories/joints.svg" },
+            { "Joint & Bone Care", "/images/categories/joints.svg" },
+            { "Stress, Sleep & Brain", "/images/categories/sleep.svg" },
+            { "Mental Wellness", "/images/categories/sleep.svg" },
+            { "Hair Care", "/images/categories/hair.svg" },
+            { "Diabetes & Metabolism Support", "/images/categories/metabolism.svg" },
+            { "Women's Wellness", "/images/categories/womens.svg" },
+            { "Herbs & Raw Powders", "/images/categories/herbs.svg" },
+            { "Panchakarma & Therapy Kits", "/images/categories/panchakarma.svg" },
+            { "Yoga & Wellness", "/images/categories/yoga.svg" },
+            { "Honey, Ghee & Natural Foods", "/images/categories/foods.svg" }
+        };
+
+        foreach (var c in categories)
+        {
+            if (string.IsNullOrWhiteSpace(c.ImageUrl) || !ImageFileExists(c.ImageUrl) || c.ImageUrl.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                if (catSvgMap.TryGetValue(c.Name, out var targetSvg))
+                {
+                    c.ImageUrl = targetSvg;
+                }
+                else
+                {
+                    c.ImageUrl = "/images/categories/digestion.svg";
+                }
+            }
+        }
+
+        // 2. Doctors
+        var doctors = await context.Doctors.ToListAsync();
+        foreach (var d in doctors)
+        {
+            if (string.IsNullOrWhiteSpace(d.ProfileImage) || !ImageFileExists(d.ProfileImage))
+            {
+                int idx = ((d.Id - 1) % 24) + 1;
+                d.ProfileImage = $"/images/doctors/doctor-{idx}.svg";
+            }
+        }
+
+        // 3. Products
+        var products = await context.Products.Include(p => p.Category).Include(p => p.Images).ToListAsync();
+        foreach (var p in products)
+        {
+            if (string.IsNullOrWhiteSpace(p.ImageUrl) || !ImageFileExists(p.ImageUrl))
+            {
+                p.ImageUrl = "/images/products/placeholder.svg";
+            }
+
+            if (!p.Images.Any(pi => pi.IsPrimary && ImageFileExists(pi.ImageUrl)))
+            {
+                p.Images.Add(new ProductImage
+                {
+                    ProductId = p.Id,
+                    ImageUrl = p.ImageUrl,
+                    IsPrimary = true
+                });
+            }
+        }
+
+        // 4. Yoga
+        var yogas = await context.Yogas.ToListAsync();
+        foreach (var y in yogas)
+        {
+            if (string.IsNullOrWhiteSpace(y.ImageUrl) || !ImageFileExists(y.ImageUrl))
+            {
+                if (y.YogaName.Contains("Surya", StringComparison.OrdinalIgnoreCase))
+                    y.ImageUrl = "/images/yoga/surya-namaskar.svg";
+                else if (y.YogaName.Contains("Vriksh", StringComparison.OrdinalIgnoreCase))
+                    y.ImageUrl = "/images/yoga/vrikshasana.svg";
+                else if (y.YogaName.Contains("Trikon", StringComparison.OrdinalIgnoreCase))
+                    y.ImageUrl = "/images/yoga/trikonasana.svg";
+                else
+                    y.ImageUrl = "/images/yoga/pranayama.svg";
+            }
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Image repair completed: All category, doctor, product, and yoga images verified on disk.");
+    }
+
+    private static async Task SeedOrUpdateBannersAsync(AyurvedaDbContext context, ILogger logger)
+    {
+        var requiredBanners = new (string Title, string Subtitle, string ImageUrl, string LinkUrl, string Placement, int DisplayOrder)[]
+        {
+            // 6 Distinct Hero Banners (1920x640 WebP)
+            ("Diwali Ojas Mahotsav", "Divine Radiance & Rejuvenation — Flat 30% Off on Classical Formulations & Gold Rasayanas", "/images/banners/banner-hero-diwali.webp", "/Shop?search=diwali", "home_hero", 1),
+            ("Navratri Sattvic Shuddhi", "Kindle Digestive Agni & Pacify Pitta with Classical Churnas, Organic Vrat Ghee & Herbal Teas", "/images/banners/banner-hero-navratri.webp", "/Shop?search=navratri", "home_hero", 2),
+            ("Dhanteras Arogya & Gift Hampers", "Bless Loved Ones with Authentic Wooden Chests, Pure Gir Cow Bilona Ghee & Shilajit Elixirs", "/images/banners/banner-hero-dhanteras.webp", "/Shop?category=Gift%20Hampers%20%26%20Wellness%20Sets", "home_hero", 3),
+            ("Winter Immunity Shield", "Pacify Vata & Fortify Lungs — Wild Forest Amla Chyawanprash, Ginger Kadhas & Warm Body Oils", "/images/banners/banner-hero-winter.webp", "/Shop?category=Immunity%20%26%20Rasayana", "home_hero", 4),
+            ("Free First Vaidya Consultation", "Discover Your Unique Prakriti & Imbalances with Senior BAMS Doctors via Private Video Call", "/images/banners/banner-hero-consult.webp", "/Doctors", "home_hero", 5),
+            ("Sacred Herbal Teas & Yoga Harmony", "Infuse Your Sadhana with Handcrafted Whole-Leaf Botanical Brews, Tulsi Kadhas & Organic Cotton Mats", "/images/banners/banner-hero-teayoga.webp", "/Yoga", "home_hero", 6),
+
+            // 4 Distinct Middle-of-Page Banners (1920x640 WebP)
+            ("Authentic Panchakarma Home Kits", "Ancient Detox Tools: Pure Copper Neti Pots, Bronze Kansa Vatki Bowls & Massage Tailas", "/images/banners/banner-mid-panchakarma.webp", "/Shop?category=Panchakarma%20%26%20Therapy%20Kits", "home_middle", 1),
+            ("Himalayan Wild Harvest & Raw Herbs", "Wild-Crafted Grade-A Shilajit, Ashwagandha Roots, Shatavari & Giloy from the Himalayas", "/images/banners/banner-mid-herbs.webp", "/Shop?category=Herbs%20%26%20Raw%20Powders", "home_middle", 2),
+            ("Royal Kumkumadi & Ubtan Glow", "Infused with Kashmiri Saffron, Sandalwood & 24 Classical Herbs for Natural Radiance", "/images/banners/banner-mid-skinrituals.webp", "/Shop?category=Skin%20Care%20%26%20Complexion", "home_middle", 3),
+            ("Daily Dinacharya Circadian Rituals", "Oil Pulling, Pure Copper Scrapers, Nasya Drops & Restful Brahmi Infusions", "/images/banners/banner-mid-dinacharya.webp", "/#dinacharya", "home_middle", 4)
+        };
+
+        var allBanners = await context.Banners.ToListAsync();
+        foreach (var def in requiredBanners)
+        {
+            var existing = allBanners.FirstOrDefault(b => b.Title == def.Title)
+                        ?? allBanners.FirstOrDefault(b => (b.Placement == def.Placement || (string.IsNullOrEmpty(b.Placement) && def.Placement == "home_hero")) && b.DisplayOrder == def.DisplayOrder);
+
+            if (existing == null)
+            {
+                context.Banners.Add(new Banner
+                {
+                    Title = def.Title,
+                    Subtitle = def.Subtitle,
+                    ImageUrl = def.ImageUrl,
+                    LinkUrl = def.LinkUrl,
+                    Placement = def.Placement,
+                    DisplayOrder = def.DisplayOrder,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                existing.Title = def.Title;
+                existing.Subtitle = def.Subtitle;
+                existing.ImageUrl = def.ImageUrl;
+                existing.LinkUrl = def.LinkUrl;
+                existing.Placement = def.Placement;
+                existing.DisplayOrder = def.DisplayOrder;
+                existing.IsActive = true;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded and upserted 6 Hero and 4 Middle original WebP banners.");
+    }
+
+    private static async Task SeedFestivalOffersAsync(AyurvedaDbContext context, ILogger logger)
+    {
+        var requiredCoupons = new (string Code, DiscountType Type, decimal Amount, decimal MinOrder, decimal MaxDiscount, string Category)[]
+        {
+            ("DIWALI30", DiscountType.Percentage, 30m, 500m, 1000m, "All Categories"),
+            ("NAVRATRI20", DiscountType.Percentage, 20m, 300m, 500m, "Digestive Care"),
+            ("AYUSH15", DiscountType.Percentage, 15m, 250m, 300m, "All Categories"),
+            ("VAIDYA100", DiscountType.Flat, 100m, 499m, 100m, "All Categories")
+        };
+
+        foreach (var def in requiredCoupons)
+        {
+            var existing = await context.Coupons.FirstOrDefaultAsync(c => c.Code == def.Code);
+            if (existing == null)
+            {
+                context.Coupons.Add(new Coupon
+                {
+                    Code = def.Code,
+                    DiscountType = def.Type,
+                    DiscountAmount = def.Amount,
+                    MinOrderAmount = def.MinOrder,
+                    MaxDiscountAmount = def.MaxDiscount,
+                    ApplicableCategory = def.Category,
+                    StartDate = DateTime.UtcNow.AddDays(-10),
+                    ExpiryDate = DateTime.UtcNow.AddDays(60),
+                    UsageLimit = 5000,
+                    UsageCount = 0,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                existing.IsActive = true;
+                existing.DiscountAmount = def.Amount;
+                existing.MinOrderAmount = def.MinOrder;
+                existing.MaxDiscountAmount = def.MaxDiscount;
+                existing.ApplicableCategory = def.Category;
+            }
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded and verified Diwali & Navratri festival offers/coupons.");
     }
 }

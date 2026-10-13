@@ -1,23 +1,66 @@
 @model List<Ayurveda.Domain.Entities.Banner>
 @{
-    ViewData["Title"] = "Storefront Hero Banners";
+    ViewData["Title"] = "Storefront Promotional Banners";
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
-        <h2 class="fw-bold mb-1"><i class="bi bi-images text-success me-2"></i>Storefront Banners</h2>
-        <p class="text-muted small mb-0">Manage visual promotional banners rendered on the public storefront.</p>
+        <h2 class="fw-bold mb-1"><i class="bi bi-images text-success me-2"></i> Promotional Banners</h2>
+        <p class="text-muted small mb-0">Control hero carousel slides, festive middle strips, shop page offers, cart promotions, and doctor consultation banners.</p>
     </div>
-    <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-xs fw-semibold" data-bs-toggle="modal" data-bs-target="#createBannerModal">
-        <i class="bi bi-plus-circle me-1"></i> Add Promotional Banner
+    <button type="button" class="btn btn-success rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#createBannerModal">
+        <i class="bi bi-plus-circle me-1"></i> Add Banner
     </button>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Total Banners</span>
+                <span class="p-2 bg-success-subtle text-success rounded-circle"><i class="bi bi-images"></i></span>
+            </div>
+            <div class="fs-3 fw-bold text-dark">@Model.Count</div>
+            <div class="text-xs text-muted">All configured placements</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Active &amp; Published</span>
+                <span class="p-2 bg-primary-subtle text-primary rounded-circle"><i class="bi bi-eye"></i></span>
+            </div>
+            <div class="fs-3 fw-bold text-success">@Model.Count(b => b.IsActive)</div>
+            <div class="text-xs text-muted">Visible to visitors</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Hero Carousel Slides</span>
+                <span class="p-2 bg-warning-subtle text-warning rounded-circle"><i class="bi bi-sliders2"></i></span>
+            </div>
+            <div class="fs-3 fw-bold text-dark">@Model.Count(b => b.Placement == "home_hero" || string.IsNullOrEmpty(b.Placement))</div>
+            <div class="text-xs text-muted">Top auto-sliding deck</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Middle &amp; Promo Strips</span>
+                <span class="p-2 bg-info-subtle text-info rounded-circle"><i class="bi bi-layout-split"></i></span>
+            </div>
+            <div class="fs-3 fw-bold text-dark">@Model.Count(b => b.Placement != "home_hero" && !string.IsNullOrEmpty(b.Placement))</div>
+            <div class="text-xs text-muted">Page section banners</div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-4">
     @if (!Model.Any())
     {
         <div class="col-12 text-center py-5 text-muted card border-0 shadow-sm rounded-4">
-            <i class="bi bi-image display-4 d-block mb-2"></i>
+            <i class="bi bi-image display-4 d-block mb-2 text-secondary"></i>
             No promotional banners active. Default brand assets rendered on storefront.
         </div>
     }
@@ -27,22 +70,123 @@
         {
             <div class="col-md-6 col-xl-4">
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 bg-white">
-                    <img src="@b.ImageUrl" alt="@b.Title" class="card-img-top bg-light" style="height: 180px; object-fit: cover;" onerror="this.src='/images/hero-mandala.svg'" />
-                    <div class="card-body p-4">
+                    <div class="position-relative">
+                        <img src="@b.ImageUrl" alt="@b.Title" class="card-img-top bg-light" style="height: 180px; object-fit: cover;" onerror="this.src='/images/banners/banner-diwali.svg'" />
+                        <span class="position-absolute top-0 start-0 m-2 badge @(b.IsActive ? "bg-success" : "bg-secondary") rounded-pill">
+                            @(b.IsActive ? "Active" : "Disabled")
+                        </span>
+                        <span class="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75 text-white rounded-pill">
+                            <i class="bi bi-pin-angle me-1"></i>@b.Placement
+                        </span>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h5 class="fw-bold text-dark mb-0">@b.Title</h5>
                             <span class="badge bg-light text-dark border">Order: @b.DisplayOrder</span>
                         </div>
-                        <p class="small text-muted mb-3">@(b.Subtitle ?? "Promotional campaign asset")</p>
-                        <div class="small text-truncate text-muted mb-3">Link: <code>@(b.LinkUrl ?? "/")</code></div>
-                        <div class="text-end">
-                            <form asp-action="DeleteBanner" asp-route-id="@b.Id" method="post" class="d-inline" onsubmit="return confirm('Remove this banner?');">
+                        <p class="small text-muted mb-2">@(b.Subtitle ?? "Promotional campaign asset")</p>
+                        <div class="small text-truncate text-muted mb-2">Link: <code>@(b.LinkUrl ?? "/Shop")</code></div>
+                        
+                        @if (b.StartDate.HasValue || b.EndDate.HasValue)
+                        {
+                            <div class="small text-secondary mb-3">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                @(b.StartDate?.ToString("dd MMM yyyy") ?? "Immediate") &rarr; @(b.EndDate?.ToString("dd MMM yyyy") ?? "No Expiry")
+                            </div>
+                        }
+
+                        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                            <form asp-action="ToggleBanner" asp-route-id="@b.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-                                    <i class="bi bi-trash3 me-1"></i> Delete
+                                <button type="submit" class="btn btn-sm rounded-pill @(b.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                    <i class="bi bi-@(b.IsActive ? "eye-slash" : "eye") me-1"></i> @(b.IsActive ? "Disable" : "Enable")
                                 </button>
                             </form>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editBannerModal-@b.Id">
+                                    <i class="bi bi-pencil me-1"></i> Edit
+                                </button>
+                                <form asp-action="DeleteBanner" asp-route-id="@b.Id" method="post" class="d-inline" onsubmit="return confirm('Remove banner \'@b.Title\'?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Banner Modal -->
+            <div class="modal fade" id="editBannerModal-@b.Id" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content rounded-4 border-0 shadow">
+                        <form asp-action="EditBanner" method="post" enctype="multipart/form-data">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@b.Id" />
+                            <div class="modal-header border-0 pb-0">
+                                <h5 class="modal-title fw-bold">Edit Banner: @b.Title</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body py-3">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Banner Heading *</label>
+                                    <input type="text" name="title" value="@b.Title" class="form-control rounded-3" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Subtitle / Tagline</label>
+                                    <input type="text" name="subtitle" value="@b.Subtitle" class="form-control rounded-3" />
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Placement Slot *</label>
+                                        <select name="placement" class="form-select rounded-3">
+                                            <option value="home_hero" selected="@(b.Placement == "home_hero")">Home Hero Carousel</option>
+                                            <option value="home_middle" selected="@(b.Placement == "home_middle")">Home Middle Strip</option>
+                                            <option value="shop" selected="@(b.Placement == "shop")">Shop / Catalog Page</option>
+                                            <option value="cart" selected="@(b.Placement == "cart")">Cart & Checkout Page</option>
+                                            <option value="doctors" selected="@(b.Placement == "doctors")">Doctors Consultation Page</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Display Sequence</label>
+                                        <input type="number" name="displayOrder" value="@b.DisplayOrder" class="form-control rounded-3" />
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Destination URL</label>
+                                    <input type="text" name="linkUrl" value="@b.LinkUrl" class="form-control rounded-3" />
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Start Date (Optional)</label>
+                                        <input type="date" name="startDate" value="@(b.StartDate?.ToString("yyyy-MM-dd"))" class="form-control rounded-3" />
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">End Date (Optional)</label>
+                                        <input type="date" name="endDate" value="@(b.EndDate?.ToString("yyyy-MM-dd"))" class="form-control rounded-3" />
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Current Image Asset URL</label>
+                                    <input type="text" name="imageUrl" value="@b.ImageUrl" class="form-control rounded-3 mb-2" />
+                                    <label class="form-label small fw-semibold">Replace Image File</label>
+                                    <input type="file" name="imageFile" class="form-control rounded-3 banner-edit-file-input" accept="image/*" data-preview-id="bannerEditPreviewImg-@b.Id" />
+                                    <div class="mt-2 text-center" id="bannerEditPreview-@b.Id" style="display:none;">
+                                        <img id="bannerEditPreviewImg-@b.Id" src="#" alt="Preview" class="rounded-3 border" style="max-height: 120px; width: 100%; object-fit: cover;" />
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input name="isActive" value="true" type="checkbox" class="form-check-input" id="isActive-@b.Id" @(b.IsActive ? "checked" : "") />
+                                    <label class="form-check-label small fw-semibold" for="isActive-@b.Id">Active on storefront</label>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0 pt-0">
+                                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4">Save Changes</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -54,32 +198,59 @@
 <div class="modal fade" id="createBannerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow">
-            <form asp-action="CreateBanner" method="post">
+            <form asp-action="CreateBanner" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">Create Storefront Banner</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-images text-success me-2"></i>Create Storefront Banner</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body py-3">
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Banner Heading *</label>
-                        <input type="text" name="title" class="form-control rounded-3" placeholder="e.g. Ritucharya Spring Rejuvenation" required />
+                        <input type="text" name="title" class="form-control rounded-3" placeholder="e.g. Shubh Deepawali Health Mahotsav" required />
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Subtitle / Tagline</label>
-                        <input type="text" name="subtitle" class="form-control rounded-3" placeholder="e.g. Up to 25% OFF Shastriya Rasayanas" />
+                        <input type="text" name="subtitle" class="form-control rounded-3" placeholder="e.g. Flat 30% OFF Classical Formulations" />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Image Asset URL *</label>
-                        <input type="text" name="imageUrl" class="form-control rounded-3" placeholder="/images/hero-mandala.svg" required />
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Placement Slot *</label>
+                            <select name="placement" class="form-select rounded-3">
+                                <option value="home_hero">Home Hero Carousel</option>
+                                <option value="home_middle">Home Middle Strip</option>
+                                <option value="shop">Shop / Catalog Page</option>
+                                <option value="cart">Cart & Checkout Page</option>
+                                <option value="doctors">Doctors Consultation Page</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Display Sequence</label>
+                            <input type="number" name="displayOrder" value="1" class="form-control rounded-3" />
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Destination URL</label>
                         <input type="text" name="linkUrl" class="form-control rounded-3" placeholder="/Shop" />
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small fw-semibold">Display Sequence</label>
-                        <input type="number" name="displayOrder" value="1" class="form-control rounded-3" />
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Start Date (Optional)</label>
+                            <input type="date" name="startDate" class="form-control rounded-3" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">End Date (Optional)</label>
+                            <input type="date" name="endDate" class="form-control rounded-3" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Image URL (or select file below)</label>
+                        <input type="text" name="imageUrl" class="form-control rounded-3 mb-2" placeholder="/images/banners/banner-diwali.svg" />
+                        <label class="form-label small fw-semibold">Upload Image File</label>
+                        <input type="file" name="imageFile" class="form-control rounded-3" accept="image/*" id="bannerCreateFileInput" />
+                        <div class="mt-2 text-center" id="bannerCreatePreview" style="display:none;">
+                            <img id="bannerCreatePreviewImg" src="#" alt="Preview" class="rounded-3 border" style="max-height: 120px; width: 100%; object-fit: cover;" />
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -90,3 +261,38 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.getElementById('bannerCreateFileInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const preview = document.getElementById('bannerCreatePreviewImg');
+                    preview.src = evt.target.result;
+                    document.getElementById('bannerCreatePreview').style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.querySelectorAll('.banner-edit-file-input').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const previewId = e.target.getAttribute('data-preview-id');
+                if (file && previewId) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const img = document.getElementById(previewId);
+                        if (img) {
+                            img.src = evt.target.result;
+                            img.parentElement.style.display = 'block';
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+}

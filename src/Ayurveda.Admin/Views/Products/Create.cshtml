@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Add New Ayurvedic Formulation";
     var categories = ViewBag.Categories as List<Ayurveda.Domain.Entities.Category> ?? new();
+    var subcategories = ViewBag.Subcategories as List<Ayurveda.Domain.Entities.Subcategory> ?? new();
 }
 
 <div class="mb-4">
@@ -9,27 +10,27 @@
         <i class="bi bi-arrow-left me-1"></i> Back to Inventory
     </a>
     <h2 class="fw-bold mb-1">Add Classical Ayurvedic Formulation</h2>
-    <p class="text-muted small mb-0">Record product information, botanical ingredients, dosage, and stock quantity.</p>
+    <p class="text-muted small mb-0">Record product information, botanical ingredients, dosage, stock, main image, and gallery images.</p>
 </div>
 
-<div class="card border-0 shadow-sm rounded-4 p-4 bg-white" style="max-width: 900px;">
-    <form asp-action="Create" method="post">
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-white" style="max-width: 950px;">
+    <form asp-action="Create" method="post" enctype="multipart/form-data" id="createProductForm">
         @Html.AntiForgeryToken()
 
         <div class="row g-3">
             <div class="col-md-8">
                 <label asp-for="Title" class="form-label small fw-semibold">Formulation Title *</label>
-                <input asp-for="Title" class="form-control rounded-3" placeholder="e.g. Maha Sudarshan Churna" required />
+                <input asp-for="Title" id="inputProductTitle" class="form-control rounded-3" placeholder="e.g. Classical Ashwagandha Lehyam" required />
             </div>
 
             <div class="col-md-4">
                 <label asp-for="Sku" class="form-label small fw-semibold">SKU Code</label>
-                <input asp-for="Sku" class="form-control rounded-3" placeholder="Auto-generated if empty" />
+                <input asp-for="Sku" id="inputProductSku" class="form-control rounded-3" placeholder="Auto-generated if empty" />
             </div>
 
             <div class="col-md-6">
-                <label asp-for="CategoryId" class="form-label small fw-semibold">Shastriya Category *</label>
-                <select asp-for="CategoryId" class="form-select rounded-3" required>
+                <label asp-for="CategoryId" class="form-label small fw-semibold">Primary Category *</label>
+                <select asp-for="CategoryId" id="selectCategory" class="form-select rounded-3" required>
                     <option value="">-- Select Category --</option>
                     @foreach (var c in categories)
                     {
@@ -39,43 +40,67 @@
             </div>
 
             <div class="col-md-6">
+                <label asp-for="SubcategoryId" class="form-label small fw-semibold">Subcategory (Optional)</label>
+                <select asp-for="SubcategoryId" id="selectSubcategory" class="form-select rounded-3">
+                    <option value="">-- None / Select Subcategory --</option>
+                    @foreach (var s in subcategories)
+                    {
+                        <option value="@s.Id" data-cat="@s.CategoryId">@s.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-6">
                 <label asp-for="Brand" class="form-label small fw-semibold">Apothecary / Brand</label>
                 <input asp-for="Brand" class="form-control rounded-3" placeholder="The Great Ayurveda Labs" />
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label asp-for="Price" class="form-label small fw-semibold">Selling Price (₹) *</label>
-                <input asp-for="Price" type="number" step="1" min="0" class="form-control rounded-3" required />
+                <input asp-for="Price" id="inputProductPrice" type="number" step="1" min="0" class="form-control rounded-3" required />
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label asp-for="Mrp" class="form-label small fw-semibold">Maximum Retail Price (MRP ₹)</label>
-                <input asp-for="Mrp" type="number" step="1" min="0" class="form-control rounded-3" />
+                <input asp-for="Mrp" id="inputProductMrp" type="number" step="1" min="0" class="form-control rounded-3" />
             </div>
 
             <div class="col-md-4">
                 <label asp-for="StockQuantity" class="form-label small fw-semibold">Initial Warehouse Stock *</label>
-                <input asp-for="StockQuantity" type="number" min="0" class="form-control rounded-3" required />
+                <input asp-for="StockQuantity" id="inputProductStock" type="number" min="0" class="form-control rounded-3" required />
             </div>
 
+            <!-- Main Image Upload with Preview -->
+            <div class="col-md-8">
+                <label class="form-label small fw-semibold">Main Product Image (SVG / PNG / WebP / JPG, Max 5MB)</label>
+                <input type="file" name="imageFile" id="mainImageInput" class="form-control rounded-3" accept="image/*,.svg" />
+                <div class="d-flex align-items-center gap-3 mt-2">
+                    <img id="mainImgPreview" src="/images/products/placeholder.svg" alt="Preview" class="rounded-3 border p-1" style="width: 80px; height: 80px; object-fit: contain; background: #fafafa;" />
+                    <span class="text-xs text-muted" id="mainImgTip">If no image is uploaded, an original customized botanical SVG placeholder will be generated automatically.</span>
+                </div>
+            </div>
+
+            <!-- Gallery Images Multiple Upload with Preview Grid -->
             <div class="col-12">
-                <label asp-for="ImageUrl" class="form-label small fw-semibold">Primary Image SVG/WebP URL</label>
-                <input asp-for="ImageUrl" class="form-control rounded-3" placeholder="/images/products/placeholder.svg" />
+                <label class="form-label small fw-semibold">Gallery Images (Multiple Upload, Max 5MB each)</label>
+                <input type="file" name="galleryFiles" id="galleryFilesInput" class="form-control rounded-3" accept="image/*,.svg" multiple />
+                <div class="form-text">Select one or more secondary angles, ingredient shots, or packaging photos.</div>
+                <div id="galleryPreviewGrid" class="d-flex flex-wrap gap-2 mt-2"></div>
             </div>
 
             <div class="col-12">
                 <label asp-for="Description" class="form-label small fw-semibold">Classical Description &amp; Textual Reference *</label>
-                <textarea asp-for="Description" rows="4" class="form-control rounded-3" placeholder="Therapeutic properties, references from Charaka or Sushruta Samhita..." required></textarea>
+                <textarea asp-for="Description" id="inputProductDesc" rows="3" class="form-control rounded-3" placeholder="Therapeutic properties, references from Charaka or Sushruta Samhita..." required></textarea>
             </div>
 
             <div class="col-md-6">
                 <label asp-for="KeyIngredients" class="form-label small fw-semibold">Key Botanical Ingredients (Dravyas)</label>
-                <input asp-for="KeyIngredients" class="form-control rounded-3" placeholder="e.g. Amla, Haritaki, Bibhitaki, Pippali" />
+                <input asp-for="KeyIngredients" id="inputProductIngredients" class="form-control rounded-3" placeholder="e.g. Amla, Haritaki, Bibhitaki, Pippali" />
             </div>
 
             <div class="col-md-6">
                 <label asp-for="HowToUse" class="form-label small fw-semibold">Dosage &amp; Anupana (How to Use)</label>
-                <input asp-for="HowToUse" class="form-control rounded-3" placeholder="e.g. 1 teaspoon twice daily with warm water" />
+                <input asp-for="HowToUse" id="inputProductHowToUse" class="form-control rounded-3" placeholder="e.g. 1 teaspoon twice daily with warm water" />
             </div>
 
             <div class="col-12">
@@ -84,22 +109,58 @@
                         <input class="form-check-input" type="checkbox" role="switch" asp-for="IsActive" id="activeSwitch" checked>
                         <label class="form-check-label small fw-semibold" for="activeSwitch">Publish Live</label>
                     </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" asp-for="IsFeatured" id="featuredSwitch">
-                        <label class="form-check-label small fw-semibold" for="featuredSwitch">Feature on Home</label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" asp-for="IsBestseller" id="bestsellerSwitch">
-                        <label class="form-check-label small fw-semibold" for="bestsellerSwitch">Mark Bestseller</label>
-                    </div>
                 </div>
             </div>
 
             <div class="col-12 text-end pt-3 border-top">
-                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm">
+                <button type="submit" id="btnSubmitCreateProduct" class="btn btn-success rounded-pill px-4 py-2 shadow-sm">
                     <i class="bi bi-check-lg me-1"></i> Create Formulation
                 </button>
             </div>
         </div>
     </form>
 </div>
+
+@section Scripts {
+    <script>
+        // Main Image live preview
+        document.getElementById('mainImageInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File exceeds 5MB size limit.');
+                    this.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const img = document.getElementById('mainImgPreview');
+                    if (img) img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Gallery multiple files live preview
+        document.getElementById('galleryFilesInput')?.addEventListener('change', function(e) {
+            const grid = document.getElementById('galleryPreviewGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            Array.from(e.target.files).forEach(file => {
+                if (file.size <= 5 * 1024 * 1024) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const thumb = document.createElement('img');
+                        thumb.src = evt.target.result;
+                        thumb.className = 'rounded-3 border p-1';
+                        thumb.style.width = '60px';
+                        thumb.style.height = '60px';
+                        thumb.style.objectFit = 'cover';
+                        grid.appendChild(thumb);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+}

@@ -11,9 +11,13 @@ document.addEventListener("DOMContentLoaded", function () {
     initPrakritiQuiz();
     initCountdownTimer();
     initTouchCarousel();
+    initHeroCarousel();
     initDinacharyaTabs();
     initScrollReveal();
     initCouponCopy();
+    initStickyHeader();
+    initAnimatedCounters();
+    initHeaderDropdowns();
 });
 
 // --------------------------------------------------------------------------
@@ -716,7 +720,7 @@ function initIdleTimeoutModal() {
 // 3. AJAX ADD-TO-CART ENGINE
 // --------------------------------------------------------------------------
 function initAjaxCart() {
-    const addButtons = document.querySelectorAll(".btn-add-to-cart-ajax");
+    const addButtons = document.querySelectorAll(".btn-add-to-cart-ajax, .ajax-add-to-cart");
 
     addButtons.forEach(btn => {
         btn.addEventListener("click", function (e) {
@@ -1033,6 +1037,57 @@ function initTouchCarousel() {
 }
 
 // --------------------------------------------------------------------------
+// 6b. EXPLICIT HERO CAROUSEL INITIALIZATION & AUTO-SLIDE (~4s)
+// --------------------------------------------------------------------------
+function initHeroCarousel() {
+    const heroEl = document.getElementById("homeHeroCarousel");
+    if (!heroEl) return;
+
+    if (typeof bootstrap !== "undefined" && bootstrap.Carousel) {
+        const bsCarousel = bootstrap.Carousel.getOrCreateInstance(heroEl, {
+            interval: 4500,
+            ride: "carousel",
+            pause: "hover",
+            wrap: true,
+            touch: true
+        });
+        bsCarousel.cycle();
+
+        // Restart progress bar animation on slide transition
+        heroEl.addEventListener("slide.bs.carousel", function (e) {
+            const indicators = heroEl.querySelectorAll(".tga-indicator-dot .progress-bar-fill");
+            indicators.forEach(fill => {
+                fill.style.animation = "none";
+                void fill.offsetHeight; // force reflow
+                fill.style.animation = "";
+            });
+        });
+
+        // Touch swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        heroEl.addEventListener("touchstart", function (e) {
+            if (e.changedTouches && e.changedTouches[0]) {
+                touchStartX = e.changedTouches[0].screenX;
+            }
+        }, { passive: true });
+
+        heroEl.addEventListener("touchend", function (e) {
+            if (e.changedTouches && e.changedTouches[0]) {
+                touchEndX = e.changedTouches[0].screenX;
+                const threshold = 40;
+                if (touchEndX < touchStartX - threshold) {
+                    bsCarousel.next();
+                } else if (touchEndX > touchStartX + threshold) {
+                    bsCarousel.prev();
+                }
+            }
+        }, { passive: true });
+    }
+}
+
+// --------------------------------------------------------------------------
 // 7. DINACHARYA (DAILY ROUTINE) CLOCK TABS
 // --------------------------------------------------------------------------
 function initDinacharyaTabs() {
@@ -1128,3 +1183,166 @@ function escapeHtml(string) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+function initStickyHeader() {
+    const headerWrapper = document.getElementById("tgaSiteHeaderWrapper");
+    if (!headerWrapper) return;
+
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    function handleScroll() {
+        const currentScrollY = window.scrollY;
+
+        if (currentScrollY > 20) {
+            headerWrapper.classList.add("header-scrolled");
+        } else {
+            headerWrapper.classList.remove("header-scrolled");
+        }
+
+        // Only trigger hide/show past the header threshold (100px)
+        if (currentScrollY > 100) {
+            if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 5) {
+                // Scrolling DOWN: slide up and hide smoothly
+                headerWrapper.classList.add("header-hidden");
+            } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 5) {
+                // Scrolling UP: reveal smoothly
+                headerWrapper.classList.remove("header-hidden");
+            }
+        } else {
+            headerWrapper.classList.remove("header-hidden");
+        }
+
+        lastScrollY = Math.max(0, currentScrollY);
+        ticking = false;
+    }
+
+    window.addEventListener("scroll", function () {
+        if (!ticking) {
+            window.requestAnimationFrame(handleScroll);
+            ticking = true;
+        }
+    }, { passive: true });
+
+    handleScroll();
+}
+
+// --------------------------------------------------------------------------
+// 10. ANIMATED KPI COUNTERS WITH EASING & REDUCED-MOTION RESPECT
+// --------------------------------------------------------------------------
+function initAnimatedCounters() {
+    const counters = document.querySelectorAll(".counter-number");
+    if (!counters.length) return;
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!("IntersectionObserver" in window)) {
+        counters.forEach(el => {
+            const target = parseFloat(el.getAttribute("data-target")) || 0;
+            const suffix = el.getAttribute("data-suffix") || "";
+            const decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
+            el.textContent = (decimals > 0 ? target.toFixed(decimals) : target.toLocaleString("en-IN")) + suffix;
+        });
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                const target = parseFloat(el.getAttribute("data-target")) || 0;
+                const suffix = el.getAttribute("data-suffix") || "";
+                const decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
+
+                if (prefersReducedMotion) {
+                    el.textContent = (decimals > 0 ? target.toFixed(decimals) : target.toLocaleString("en-IN")) + suffix;
+                    obs.unobserve(el);
+                    return;
+                }
+
+                const duration = 1600; // ms
+                const start = performance.now();
+
+                function step(now) {
+                    const elapsed = now - start;
+                    const progress = Math.min(elapsed / duration, 1);
+                    // easeOutQuart
+                    const ease = 1 - Math.pow(1 - progress, 4);
+                    const current = target * ease;
+                    el.textContent = (decimals > 0 ? current.toFixed(decimals) : Math.round(current).toLocaleString("en-IN")) + suffix;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        el.textContent = (decimals > 0 ? target.toFixed(decimals) : target.toLocaleString("en-IN")) + suffix;
+                    }
+                }
+                requestAnimationFrame(step);
+                obs.unobserve(el);
+            }
+        });
+    }, { threshold: 0.15 });
+
+    counters.forEach(c => observer.observe(c));
+}
+
+// --------------------------------------------------------------------------
+// 11. HEADER DROPDOWNS: DESKTOP HOVER + CLICK + ESC + OUTSIDE CLICK
+// --------------------------------------------------------------------------
+function initHeaderDropdowns() {
+    // 1. Initialize Bootstrap dropdowns
+    const dropdownToggles = document.querySelectorAll('#tgaMainHeader [data-bs-toggle="dropdown"]');
+    dropdownToggles.forEach(toggle => {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+            bootstrap.Dropdown.getOrCreateInstance(toggle);
+        }
+    });
+
+    // 2. Desktop hover & keyboard accessibility
+    const navDropdowns = document.querySelectorAll('.tga-header-nav-row .nav-item.dropdown');
+    navDropdowns.forEach(dd => {
+        const toggle = dd.querySelector('[data-bs-toggle="dropdown"]');
+        const menu = dd.querySelector('.dropdown-menu');
+        if (!toggle || !menu) return;
+
+        let timeoutId = null;
+
+        dd.addEventListener('mouseenter', function () {
+            if (window.innerWidth >= 992 && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                clearTimeout(timeoutId);
+                const instance = bootstrap.Dropdown.getOrCreateInstance(toggle);
+                instance.show();
+            }
+        });
+
+        dd.addEventListener('mouseleave', function () {
+            if (window.innerWidth >= 992 && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                timeoutId = setTimeout(() => {
+                    const instance = bootstrap.Dropdown.getInstance(toggle);
+                    if (instance) instance.hide();
+                }, 120);
+            }
+        });
+    });
+
+    // 3. Esc key closes open dropdowns
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.tga-header-nav-row .dropdown-menu').forEach(m => {
+                m.classList.remove('show');
+                m.style.setProperty('display', 'none', 'important');
+                setTimeout(() => { m.style.removeProperty('display'); }, 400);
+                const toggle = m.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
+                if (toggle) {
+                    toggle.classList.remove('show');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                        const instance = bootstrap.Dropdown.getInstance(toggle);
+                        if (instance) instance.hide();
+                    }
+                }
+            });
+        }
+    });
+}
+

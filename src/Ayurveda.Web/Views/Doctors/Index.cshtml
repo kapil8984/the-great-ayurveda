@@ -8,7 +8,7 @@
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">Home</a></li>
-            <li class="breadcrumb-item active text-success fw-semibold" aria-current="page">Consult AYUSH Vaidyas</li>
+            <li class="breadcrumb-item active text-success fw-semibold" aria-current="page">Consult Ayurvedic Vaidyas</li>
         </ol>
     </nav>
 
@@ -16,8 +16,8 @@
     <div class="p-4 p-md-5 mb-4 rounded-4 text-white shadow-sm position-relative overflow-hidden" style="background: linear-gradient(135deg, #18221D 0%, #1F5E3B 100%);">
         <div class="row align-items-center position-relative" style="z-index: 2;">
             <div class="col-lg-8">
-                <span class="badge bg-warning text-dark mb-2 px-3 py-1 fw-bold text-uppercase">Ministry of AYUSH Standards</span>
-                <h1 class="display-6 fw-bold mb-2 font-serif">Consult Verified Classical Ayurvedic Physicians</h1>
+                <span class="badge bg-warning text-dark mb-2 px-3 py-1 fw-bold text-uppercase">Holistic Wellness Care</span>
+                <h1 class="display-6 fw-bold mb-2 font-serif">Consult Classical Ayurvedic Physicians</h1>
                 <p class="lead mb-0 text-light-emphasis" style="font-size: 1.05rem;">
                     Personalized Prakriti &amp; Nadi evaluation, chronic disorder treatment, and root-cause herbal medicine from BAMS &amp; MD Vaidyas via encrypted HD video.
                 </p>
@@ -30,6 +30,21 @@
             </div>
         </div>
     </div>
+
+    @{
+        var docBanners = ViewBag.DoctorBanners as List<Ayurveda.Domain.Entities.Banner> ?? new();
+    }
+    @if (docBanners.Any())
+    {
+        <div class="mb-4">
+            @foreach (var db in docBanners)
+            {
+                <a href="@(db.LinkUrl ?? "/Doctors")" class="d-block mb-3 rounded-4 overflow-hidden shadow-sm">
+                    <img src="@db.ImageUrl" alt="@db.Title" class="w-100" style="max-height: 200px; object-fit: cover;" onerror="this.src='/images/banners/banner-freeconsult.svg'" />
+                </a>
+            }
+        </div>
+    }
 
     <!-- Mandatory Medical Emergency Banner -->
     <div class="alert alert-warning border-0 rounded-4 shadow-sm d-flex align-items-center gap-3 p-3 mb-4" role="alert">
@@ -144,8 +159,8 @@
         <div class="col-lg-9">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
                 <div>
-                    <h5 class="fw-bold mb-0 text-dark font-serif">Verified Ayurvedic Physicians</h5>
-                    <span class="small text-muted">Showing @Model.TotalCount doctors registered with AYUSH state boards</span>
+                    <h5 class="fw-bold mb-0 text-dark font-serif">Ayurvedic Physicians</h5>
+                    <span class="small text-muted">Showing @Model.TotalCount doctors registered with AYUSH qualifications</span>
                 </div>
 
                 <!-- Sort Control -->

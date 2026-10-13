@@ -13,6 +13,21 @@
         </a>
     </div>
 
+    @{
+        var cartBanners = ViewBag.CartBanners as List<Ayurveda.Domain.Entities.Banner> ?? new();
+    }
+    @if (cartBanners.Any())
+    {
+        <div class="mb-4">
+            @foreach (var cb in cartBanners)
+            {
+                <a href="@(cb.LinkUrl ?? "/Shop")" class="d-block mb-3 rounded-4 overflow-hidden shadow-sm">
+                    <img src="@cb.ImageUrl" alt="@cb.Title" class="w-100" style="max-height: 180px; object-fit: cover;" onerror="this.src='/images/banners/banner-yoga.svg'" />
+                </a>
+            }
+        </div>
+    }
+
     <!-- Alert Messages -->
     @if (!string.IsNullOrEmpty(Model.CouponSuccess))
     {
@@ -238,7 +253,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between mb-3 small">
-                        <span class="text-muted">Estimated GST (5% AYUSH):</span>
+                        <span class="text-muted">Estimated GST (5%):</span>
                         <span>₹@Model.TaxAmount.ToString("N2")</span>
                     </div>
 
@@ -259,7 +274,7 @@
                     </a>
 
                     <div class="mt-3 text-center small text-muted">
-                        <i class="bi bi-shield-lock-fill text-success me-1"></i> 256-Bit SSL Encrypted & AYUSH Verified
+                        <i class="bi bi-shield-lock-fill text-success me-1"></i> 256-Bit SSL Encrypted &amp; Secure Checkout
                     </div>
                 </div>
             </div>

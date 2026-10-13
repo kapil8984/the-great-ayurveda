@@ -139,75 +139,244 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   4. ANNOUNCEMENT BAR & TOP HEADER
+   4. SLIM 32PX ANNOUNCEMENT & OFFERS MARQUEE STRIP
    -------------------------------------------------------------------------- */
-.announcement-bar {
-    background: var(--tga-forest-deep);
-    color: var(--tga-cream);
-    font-size: 0.8125rem;
-    padding: 8px 0;
-    letter-spacing: 0.025em;
-    border-bottom: 1px solid rgba(227, 167, 47, 0.25);
+.tga-header-wrapper {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+    will-change: transform;
+    background: transparent;
 }
 
-.announcement-bar .badge-code {
-    background: rgba(227, 167, 47, 0.2);
+.tga-header-wrapper.header-hidden {
+    transform: translateY(-100%);
+}
+
+.tga-header-wrapper.header-scrolled {
+    box-shadow: 0 4px 20px rgba(27, 42, 34, 0.1);
+}
+
+.tga-top-bar {
+    height: 32px;
+    max-height: 32px;
+    line-height: 32px;
+    background: linear-gradient(90deg, #0d2819 0%, #143F27 50%, #0d2819 100%);
+    color: var(--tga-cream);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid rgba(227, 167, 47, 0.25);
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+}
+
+.tga-top-bar .tga-marquee-track {
+    display: inline-flex;
+    align-items: center;
+    gap: 3rem;
+    animation: tgaMarqueeScroll 35s linear infinite;
+    white-space: nowrap;
+    will-change: transform;
+}
+
+.tga-top-bar .tga-marquee-track:hover {
+    animation-play-state: paused;
+}
+
+.tga-top-bar .badge-code {
+    background: rgba(227, 167, 47, 0.25);
     border: 1px dashed var(--tga-gold);
     color: var(--tga-gold-light);
     font-weight: 700;
-    letter-spacing: 0.05em;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 9999px;
     cursor: pointer;
     transition: all 0.2s;
+    display: inline-block;
+    line-height: 1.2;
 }
 
-.announcement-bar .badge-code:hover {
+.tga-top-bar .badge-code:hover {
     background: var(--tga-gold);
     color: var(--tga-forest-deep);
 }
 
 /* --------------------------------------------------------------------------
-   5. STICKY GLASS HEADER & NAVIGATION
+   5. COMPACT STICKY HEADER & NON-WRAPPING NAVIGATION (<= 110px Total)
    -------------------------------------------------------------------------- */
 .tga-navbar {
-    background: rgba(251, 246, 234, 0.92);
+    background: rgba(251, 246, 234, 0.96);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--tga-border);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 1040;
+    padding: 0;
+    margin: 0;
+    transition: background 0.2s ease;
 }
 
-.tga-navbar.scrolled {
-    background: rgba(251, 246, 234, 0.98);
-    box-shadow: var(--tga-shadow-md);
+.tga-header-row-1 {
+    height: 44px;
+    max-height: 46px;
+    padding: 4px 0;
 }
 
-.tga-brand {
-    font-family: var(--tga-font-serif);
-    font-weight: 700;
-    color: var(--tga-forest);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
+.tga-header-logo {
+    height: 36px;
+    max-height: 38px;
+    width: auto;
+    object-fit: contain;
     transition: transform 0.2s ease;
 }
 
-.tga-brand:hover {
+.tga-header-logo:hover {
     transform: scale(1.02);
+}
+
+.tga-header-search-wrap {
+    max-width: 560px;
+}
+
+.tga-header-search-wrap .input-group,
+.tga-mobile-search .input-group {
+    height: 34px;
+}
+
+.tga-header-search-wrap .input-group .form-control,
+.tga-mobile-search .input-group .form-control {
+    height: 34px;
+    font-size: 0.85rem;
+    padding: 4px 10px;
+}
+
+.tga-header-search-wrap .input-group-text,
+.tga-mobile-search .input-group-text {
+    height: 34px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+}
+
+.tga-header-search-wrap .btn,
+.tga-mobile-search .btn {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 0.825rem;
+    line-height: 34px;
+}
+
+.tga-btn-consult {
+    height: 32px;
+    line-height: 30px;
+    font-size: 0.8rem;
+    padding: 0 12px;
+}
+
+.tga-icon-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+}
+
+.tga-header-nav-row {
+    height: 32px;
+    max-height: 34px;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid rgba(229, 222, 210, 0.7);
+    overflow: visible;
+    position: relative;
+    z-index: 1045;
+}
+
+.tga-nav-list {
+    display: flex;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 4px;
+    height: 32px;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: visible;
 }
 
 .tga-nav-link {
     color: var(--tga-ink);
     font-weight: 500;
-    font-size: 0.9375rem;
-    padding: 0.55rem 0.9rem !important;
+    font-size: 0.85rem;
+    height: 28px;
+    line-height: 28px;
+    padding: 0 10px !important;
     border-radius: var(--tga-radius-sm);
     transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
 }
 
 .tga-nav-link:hover, .tga-nav-link.active {
     color: var(--tga-forest);
     background-color: var(--tga-forest-soft);
+}
+
+/* Header Dropdowns (Shop by Concern, More) */
+.tga-header-nav-row .dropdown {
+    position: relative;
+}
+
+.tga-header-nav-row .dropdown-menu {
+    z-index: 1060 !important;
+    margin-top: 4px !important;
+    border: 1px solid rgba(44, 126, 80, 0.18) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 35px rgba(15, 43, 27, 0.18) !important;
+    background: #FFFFFF !important;
+    min-width: 250px;
+    padding: 8px 6px !important;
+}
+
+.tga-header-nav-row .dropdown-item {
+    font-size: 0.835rem;
+    padding: 7px 12px !important;
+    color: var(--tga-ink);
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+}
+
+.tga-header-nav-row .dropdown-item:hover,
+.tga-header-nav-row .dropdown-item:focus {
+    background-color: var(--tga-forest-soft) !important;
+    color: var(--tga-forest) !important;
+    transform: translateX(3px);
+}
+
+@media (min-width: 992px) {
+    .tga-header-nav-row .nav-item.dropdown:hover > .dropdown-menu {
+        display: block;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        animation: tgaDropdownFadeIn 0.15s ease-out;
+    }
+}
+
+@keyframes tgaDropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Mega-Menu Styling */
@@ -1036,4 +1205,562 @@ body {
     padding: 8px 14px;
     font-size: 0.85rem;
 }
+
+/* ==========================================================================
+   HERO CAROUSEL & BANNER MOTION ANIMATIONS
+   ========================================================================== */
+#homeHeroCarousel .carousel-item {
+    transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s ease-in-out;
+    background-color: #0b1a13;
+}
+
+#homeHeroCarousel .carousel-item .banner-img {
+    transition: transform 6s cubic-bezier(0.25, 1, 0.5, 1);
+    transform: scale(1);
+}
+
+#homeHeroCarousel .carousel-item.active .banner-img {
+    transform: scale(1.06);
+}
+
+#homeHeroCarousel .banner-caption-box {
+    background: linear-gradient(135deg, rgba(13, 37, 24, 0.85) 0%, rgba(20, 50, 35, 0.45) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    max-width: 600px;
+    bottom: 40px;
+    left: 48px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+#homeHeroCarousel .carousel-item.active .banner-caption-title {
+    animation: bannerSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#homeHeroCarousel .carousel-item.active .banner-caption-subtitle {
+    animation: bannerSlideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+    opacity: 0;
+}
+
+#homeHeroCarousel .carousel-item.active .banner-caption-btn {
+    animation: bannerSlideUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+    opacity: 0;
+}
+
+@keyframes bannerSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #homeHeroCarousel .carousel-item,
+    #homeHeroCarousel .carousel-item .banner-img,
+    #homeHeroCarousel .banner-caption-title,
+    #homeHeroCarousel .banner-caption-subtitle,
+    #homeHeroCarousel .banner-caption-btn {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+    }
+}
+
+/* ==========================================================================
+   TASK 4: TOP-LEVEL LUXURY UI, SKELETONS, MARQUEE & FESTIVE STYLES
+   ========================================================================== */
+
+/* 1. Page Smooth Fade-In Transition */
+@keyframes tgaPageFadeIn {
+    from {
+        opacity: 0.88;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+body {
+    animation: tgaPageFadeIn 0.3s ease-out;
+}
+
+/* 2. Scroll-Reveal System */
+.reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 3. Marquee Ticker of Offers */
+.tga-marquee-wrapper {
+    background: linear-gradient(90deg, #0d2819 0%, #143F27 50%, #0d2819 100%);
+    color: #FFFDF9;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(227, 167, 47, 0.35);
+    position: relative;
+    z-index: 1025;
+    overflow: hidden;
+}
+
+.tga-marquee-track {
+    display: inline-flex;
+    gap: 3.5rem;
+    animation: tgaMarqueeScroll 35s linear infinite;
+    will-change: transform;
+}
+
+.tga-marquee-track:hover {
+    animation-play-state: paused;
+}
+
+@keyframes tgaMarqueeScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.marquee-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 2px 0;
+}
+
+/* 4. Festive Promotional Strips (Diwali & Navratri) */
+.festive-diwali-banner {
+    background: radial-gradient(circle at 85% 30%, rgba(227, 167, 47, 0.25) 0%, transparent 60%),
+                linear-gradient(135deg, #1A0D00 0%, #3D1E04 40%, #1F5E3B 100%);
+    border: 2px solid rgba(227, 167, 47, 0.4);
+    box-shadow: 0 16px 40px rgba(61, 30, 4, 0.35);
+}
+
+.festive-navratri-banner {
+    background: radial-gradient(circle at 15% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                linear-gradient(135deg, #0A331E 0%, #175432 50%, #2A784B 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.badge-code-lg {
+    background: rgba(227, 167, 47, 0.22);
+    border: 1.5px dashed #F7CD6E;
+    color: #F7CD6E;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.badge-code-lg:hover {
+    background: #E3A72F;
+    color: #0D2819;
+    transform: translateY(-1px);
+}
+
+/* 5. Animated Category Luxury Tiles */
+.category-luxury-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #FFFFFF;
+    border: 1px solid var(--tga-border);
+    border-radius: var(--tga-radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.category-luxury-card:hover {
+    transform: translateY(-7px);
+    box-shadow: 0 14px 32px rgba(31, 94, 59, 0.16);
+    border-color: var(--tga-forest-light);
+}
+
+.category-luxury-card .category-img-box {
+    background: #FDFBF7;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.35s ease;
+}
+
+.category-luxury-card:hover .category-img-box img {
+    transform: scale(1.08);
+}
+
+.category-luxury-card .category-img-box img {
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 6. Product Card Lift & Quick-Add Button */
+.product-card-hover {
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card-hover:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--tga-shadow-xl) !important;
+}
+
+.btn-quick-add-animated {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+.btn-quick-add-animated:active {
+    transform: scale(0.96);
+}
+
+/* 7. Skeleton Loaders */
+.skeleton-shimmer {
+    background: linear-gradient(90deg, #edeae3 25%, #f7f5ef 50%, #edeae3 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.4s ease-in-out infinite;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+@keyframes skeletonShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-box {
+    width: 100%;
+    height: 180px;
+    border-radius: 12px;
+}
+
+.skeleton-text {
+    height: 14px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.skeleton-title {
+    height: 20px;
+    width: 70%;
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+/* 8. Testimonials Slider & Avatars */
+.testimonial-card-hover {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.testimonial-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--tga-shadow-md);
+}
+
+.avatar-circle-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+/* 9. Full Reduced Motion Fallback */
+@media (prefers-reduced-motion: reduce) {
+    body {
+        animation: none !important;
+    }
+    .reveal-on-scroll {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+    .tga-marquee-track {
+        animation: none !important;
+        overflow-x: auto;
+    }
+    .floating-leaf-1, .floating-leaf-2, .hero-mandala-bg {
+        animation: none !important;
+    }
+    .category-luxury-card:hover,
+    .product-card-hover:hover,
+    .testimonial-card-hover:hover,
+    .hero-stat-card:hover {
+        transform: none !important;
+    }
+    .skeleton-shimmer {
+        animation: none !important;
+        background: #edeae3 !important;
+    }
+}
+
+/* ==========================================================================
+   HERO CAROUSEL & BANNERS (Ken Burns Zoom, Progress Dots, Slide-in Captions)
+   ========================================================================== */
+.hero-carousel-container {
+    width: 100%;
+    position: relative;
+    background: #111e15;
+}
+
+#homeHeroCarousel .carousel-item {
+    height: 520px;
+    background: #14271c;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    #homeHeroCarousel .carousel-item {
+        height: 400px;
+    }
+}
+
+.hero-slide-link {
+    height: 100%;
+    width: 100%;
+    display: block;
+    position: relative;
+}
+
+.hero-slide-img-wrap {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+.hero-kenburns-img {
+    width: 100%;
+    height: 100% !important;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 6s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transform: scale(1);
+    will-change: transform;
+}
+
+.carousel-item.active .hero-kenburns-img {
+    animation: kenBurnsZoom 6s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes kenBurnsZoom {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.08);
+    }
+}
+
+.hero-overlay-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, rgba(13, 27, 20, 0.88) 0%, rgba(13, 27, 20, 0.55) 50%, rgba(13, 27, 20, 0.15) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.banner-caption-box {
+    position: absolute;
+    bottom: 12%;
+    left: 6%;
+    right: auto;
+    max-width: 680px;
+    z-index: 2;
+    padding: 0 !important;
+}
+
+@media (max-width: 768px) {
+    .banner-caption-box {
+        bottom: 8%;
+        left: 5%;
+        right: 5%;
+        max-width: 90%;
+    }
+}
+
+.carousel-item.active .banner-caption-box {
+    animation: bannerSlideIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes bannerSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.banner-caption-title {
+    font-size: 2.5rem;
+    line-height: 1.15;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 768px) {
+    .banner-caption-title {
+        font-size: 1.6rem;
+    }
+}
+
+.banner-caption-subtitle {
+    font-size: 1.05rem;
+    line-height: 1.45;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+    .banner-caption-subtitle {
+        font-size: 0.88rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+}
+
+.banner-caption-btn {
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.35);
+    transition: all 0.25s ease;
+}
+
+.banner-caption-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+}
+
+/* Indicators with Dynamic Progress Fill */
+.tga-carousel-indicators {
+    bottom: 16px;
+    margin-bottom: 0 !important;
+    gap: 8px;
+    z-index: 3;
+}
+
+.tga-indicator-dot {
+    width: 48px;
+    height: 5px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.35);
+    border: none;
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.tga-indicator-dot.active {
+    width: 68px;
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.tga-indicator-dot .progress-bar-fill {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: #E3A72F;
+    border-radius: 4px;
+}
+
+.tga-indicator-dot.active .progress-bar-fill {
+    animation: progressBarFill 4.5s linear forwards;
+}
+
+#homeHeroCarousel:hover .tga-indicator-dot.active .progress-bar-fill {
+    animation-play-state: paused;
+}
+
+@keyframes progressBarFill {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+/* Navigation Arrow Buttons */
+.tga-carousel-nav-btn {
+    width: 50px;
+    height: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.75;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 3;
+}
+
+.tga-carousel-nav-btn:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.08);
+}
+
+.carousel-nav-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(13, 27, 20, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(227, 167, 47, 0.3);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.tga-carousel-nav-btn:hover .carousel-nav-icon {
+    background: rgba(20, 63, 39, 0.95);
+    border-color: #E3A72F;
+    color: #E3A72F;
+}
+
+/* Middle Promo Banners Grid */
+.middle-promo-banner-card {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+}
+
+.middle-promo-banner-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.middle-promo-banner-img {
+    height: 180px;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.middle-promo-banner-card:hover .middle-promo-banner-img {
+    transform: scale(1.04);
+}
+
+
 

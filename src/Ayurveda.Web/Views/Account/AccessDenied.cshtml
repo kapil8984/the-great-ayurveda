@@ -1,0 +1,36 @@
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div class="container py-5 my-auto">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 text-center">
+            <div class="card p-5 border-0 shadow-lg rounded-4 bg-white">
+                <div class="d-inline-flex p-3 rounded-circle bg-danger-subtle text-danger fs-1 mb-3 mx-auto" style="width: 80px; height: 80px; align-items: center; justify-content: center;">
+                    <i class="bi bi-shield-x"></i>
+                </div>
+                <h2 class="fw-bold font-serif text-dark mb-2">Access Restricted</h2>
+                <p class="text-muted small mb-4">
+                    You do not have permission to access this portal page. Doctor portal sections require a verified physician account, while shopping and order tracking pages are reserved for patient customer accounts.
+                </p>
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary px-4 rounded-pill">
+                        <i class="bi bi-house me-1"></i> Return to Storefront
+                    </a>
+                    @if (User.IsInRole("Doctor"))
+                    {
+                        <a asp-controller="DoctorPortal" asp-action="Dashboard" class="btn btn-success px-4 rounded-pill text-white fw-semibold">
+                            <i class="bi bi-hospital me-1"></i> Go to Clinical Desk
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-success px-4 rounded-pill text-white fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In with Correct Account
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

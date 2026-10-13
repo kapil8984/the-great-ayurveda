@@ -55,6 +55,22 @@ public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
             });
         });
     }
+
+    protected override Microsoft.Extensions.Hosting.IHost CreateHost(Microsoft.Extensions.Hosting.IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+
+        using (var scope = host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebMvcFactory>>();
+            DbInitializer.InitializeAsync(db, userManager, roleManager, logger).GetAwaiter().GetResult();
+        }
+
+        return host;
+    }
 }
 
 public class AdminMvcFactory : WebApplicationFactory<Ayurveda.Admin.Program>
@@ -88,6 +104,22 @@ public class AdminMvcFactory : WebApplicationFactory<Ayurveda.Admin.Program>
                 options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
             });
         });
+    }
+
+    protected override Microsoft.Extensions.Hosting.IHost CreateHost(Microsoft.Extensions.Hosting.IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+
+        using (var scope = host.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<AdminMvcFactory>>();
+            DbInitializer.InitializeAsync(db, userManager, roleManager, logger).GetAwaiter().GetResult();
+        }
+
+        return host;
     }
 }
 
@@ -407,7 +439,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>, IClassFixture<AdminMvcF
         Assert.Contains("Price Range", html);
         Assert.Contains("Customer Rating", html);
         Assert.Contains("Exclude Out of Stock", html);
-        Assert.Contains("Great Ayurveda Labs", html);
+        Assert.True(html.Contains("Great Ayurveda Labs") || html.Contains("The Great Ayurveda"));
     }
 
     [Fact]

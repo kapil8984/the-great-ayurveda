@@ -1,3 +1,5 @@
+using Ayurveda.Domain.Enums;
+
 namespace Ayurveda.Domain.Entities;
 
 public class Order
@@ -34,6 +36,7 @@ public class OrderItem
     public int ProductId { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public ReviewStatus ReviewStatus { get; set; } = ReviewStatus.NotReviewed;
 
     public virtual Order Order { get; set; } = null!;
     public virtual Product Product { get; set; } = null!;

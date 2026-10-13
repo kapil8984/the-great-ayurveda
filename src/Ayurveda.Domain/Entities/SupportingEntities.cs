@@ -40,10 +40,14 @@ public class Coupon
     public decimal DiscountAmount { get; set; }
     public decimal MinOrderAmount { get; set; } = 0.0m;
     public decimal MaxDiscountAmount { get; set; } = 0.0m;
+    public DateTime? StartDate { get; set; }
     public DateTime? ExpiryDate { get; set; }
+    public string? ApplicableCategory { get; set; }
     public int UsageLimit { get; set; } = 1000;
     public int UsageCount { get; set; } = 0;
     public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class Banner
@@ -53,8 +57,13 @@ public class Banner
     public string? Subtitle { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public string? LinkUrl { get; set; }
+    public string Placement { get; set; } = "home_hero"; // home_hero, home_middle, shop, cart, doctors
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public int DisplayOrder { get; set; } = 0;
     public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class AuditLog

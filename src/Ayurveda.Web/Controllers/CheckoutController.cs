@@ -49,6 +49,12 @@ public class CheckoutController : Controller
 
     public async Task<IActionResult> Index()
     {
+        if (User.IsInRole("Doctor"))
+        {
+            TempData["ErrorMessage"] = "Physician accounts cannot place retail customer orders. Please sign in with a patient account.";
+            return RedirectToAction("Dashboard", "DoctorPortal");
+        }
+
         var user = await GetCurrentUserAsync();
 
         var cart = await _context.Carts
@@ -227,7 +233,8 @@ public class CheckoutController : Controller
                     {
                         ProductId = product.Id,
                         Quantity = item.Quantity,
-                        UnitPrice = product.Price
+                        UnitPrice = product.Price,
+                        ReviewStatus = ReviewStatus.NotReviewed
                     });
                 }
 

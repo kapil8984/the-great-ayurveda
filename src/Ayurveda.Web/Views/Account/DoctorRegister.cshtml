@@ -19,7 +19,7 @@
                     </div>
                     <h2 class="display-6 fw-bold font-serif mb-2">Join India's Leading Vaidya Tele-Health Network</h2>
                     <p class="text-light opacity-90 small mb-0" style="max-width: 650px;">
-                        Expand your classical Ayurvedic practice. Connect with thousands of verified patients across India for HD video consultations and integrated herbal dispensary fulfillment.
+                        Expand your classical Ayurvedic practice. Connect with thousands of patients across India for HD video consultations and integrated herbal dispensary fulfillment.
                     </p>
 
                     <!-- Wizard Step Indicator -->
@@ -61,7 +61,7 @@
                         </div>
                     }
 
-                    <form asp-action="DoctorRegister" method="post" enctype="multipart/form-data" id="doctorWizardForm">
+                    <form asp-action="DoctorRegister" method="post" enctype="multipart/form-data" id="doctorWizardForm" novalidate>
                         @Html.AntiForgeryToken()
 
                         <!-- STEP 1: ACCOUNT CREDENTIALS -->
@@ -117,7 +117,7 @@
                         <!-- STEP 2: PROFESSIONAL DETAILS -->
                         <div class="wizard-step d-none" id="wizardStep2">
                             <h4 class="fw-bold font-serif text-dark mb-1">Step 2: AYUSH Academic &amp; Clinical Credentials</h4>
-                            <p class="text-muted small mb-4">Verified by our medical board against state council registries.</p>
+                            <p class="text-muted small mb-4">Credentials reviewed against state council registries.</p>
 
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
@@ -195,10 +195,10 @@
 
                             <div class="mb-3 p-3 bg-light rounded-3 border">
                                 <label class="form-label small fw-semibold text-dark mb-1">
-                                    <i class="bi bi-file-earmark-medical text-teal me-1"></i> 1. Medical Degree Certificate (BAMS / MD) *
+                                    <i class="bi bi-file-earmark-medical text-teal me-1"></i> 1. Medical Degree Certificate (BAMS / MD) <span class="badge bg-secondary-subtle text-secondary ms-1">Optional</span>
                                 </label>
-                                <input asp-for="DegreeCertificate" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg" required />
-                                <div class="text-xs text-muted mt-1">Clear copy of university degree certificate.</div>
+                                <input asp-for="DegreeCertificate" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp" />
+                                <div class="text-xs text-muted mt-1">Optional: You may upload your university degree certificate now or provide it during the medical review process.</div>
                             </div>
 
                             <div class="mb-3 p-3 bg-light rounded-3 border">

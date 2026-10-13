@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Ayurveda.Application.Interfaces;
 
@@ -6,6 +7,8 @@ namespace Ayurveda.Infrastructure.Services;
 public class FileStorageService : IFileStorageService
 {
     private readonly ILogger<FileStorageService> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly string _sharedUploadsDir;
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5MB
 
     private static readonly Dictionary<string, byte[]> MagicBytes = new(StringComparer.OrdinalIgnoreCase)
@@ -16,9 +19,35 @@ public class FileStorageService : IFileStorageService
         { "image/webp", new byte[] { 0x52, 0x49, 0x46, 0x46 } }
     };
 
-    public FileStorageService(ILogger<FileStorageService> logger)
+    public FileStorageService(ILogger<FileStorageService> logger, IConfiguration configuration)
     {
         _logger = logger;
+        _configuration = configuration;
+        _sharedUploadsDir = ResolveSharedUploadsPath(configuration);
+        if (!Directory.Exists(_sharedUploadsDir))
+        {
+            Directory.CreateDirectory(_sharedUploadsDir);
+        }
+    }
+
+    public static string ResolveSharedUploadsPath(IConfiguration configuration)
+    {
+        var configPath = configuration["Storage:UploadsPath"] ?? "shared/uploads";
+        if (Path.IsPathRooted(configPath))
+            return Path.GetFullPath(configPath);
+
+        var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (current != null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "TheGreatAyurveda.slnx")) ||
+                Directory.Exists(Path.Combine(current.FullName, ".git")))
+            {
+                return Path.GetFullPath(Path.Combine(current.FullName, configPath));
+            }
+            current = current.Parent;
+        }
+
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", configPath));
     }
 
     public async Task<string> SaveFileAsync(Stream stream, string originalFileName, string contentType)
@@ -30,12 +59,12 @@ public class FileStorageService : IFileStorageService
             throw new InvalidOperationException("File size exceeds 5MB limit.");
 
         var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".pdf" };
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".pdf", ".svg" };
         if (!allowedExtensions.Contains(ext))
             throw new InvalidOperationException("Invalid file extension.");
 
-        // Check magic bytes for images
-        if (MagicBytes.TryGetValue(contentType, out var expectedBytes))
+        // Check magic bytes for images if content type is specified
+        if (!string.IsNullOrEmpty(contentType) && MagicBytes.TryGetValue(contentType, out var expectedBytes))
         {
             var header = new byte[expectedBytes.Length];
             var originalPos = stream.Position;
@@ -46,12 +75,10 @@ public class FileStorageService : IFileStorageService
                 throw new InvalidOperationException("File content magic bytes do not match declared content type.");
         }
 
-        var webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        var uploadsDir = Path.Combine(webRoot, "uploads");
-        Directory.CreateDirectory(uploadsDir);
+        Directory.CreateDirectory(_sharedUploadsDir);
 
         var safeFileName = $"{Guid.NewGuid():N}{ext}";
-        var fullPath = Path.Combine(uploadsDir, safeFileName);
+        var fullPath = Path.Combine(_sharedUploadsDir, safeFileName);
 
         using (var dest = new FileStream(fullPath, FileMode.Create))
         {
@@ -66,10 +93,10 @@ public class FileStorageService : IFileStorageService
     {
         if (string.IsNullOrWhiteSpace(relativeFilePath)) return;
 
-        var webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        var fullPath = Path.GetFullPath(Path.Combine(webRoot, relativeFilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+        var fileName = Path.GetFileName(relativeFilePath);
+        var fullPath = Path.Combine(_sharedUploadsDir, fileName);
 
-        if (fullPath.StartsWith(webRoot) && File.Exists(fullPath))
+        if (File.Exists(fullPath))
         {
             try
             {

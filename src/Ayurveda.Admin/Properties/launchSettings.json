@@ -1,10 +1,20 @@
 {
+  "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "Ayurveda.Admin": {
+    "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "https://localhost:7200;http://localhost:5200",
+      "applicationUrl": "http://localhost:7200",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:7201;http://localhost:7200",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

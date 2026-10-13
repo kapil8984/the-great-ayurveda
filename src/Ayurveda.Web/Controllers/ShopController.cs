@@ -307,6 +307,11 @@ public class ShopController : Controller
             ViewMode = viewMode
         };
 
+        ViewBag.ShopBanners = await _context.Banners
+            .Where(b => b.IsActive && b.Placement == "shop")
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
         return View(model);
     }
 

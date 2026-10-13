@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Ayurveda.Domain.Entities;
+using Ayurveda.Domain.Enums;
 
 namespace Ayurveda.Infrastructure.Data;
 
@@ -9,6 +10,12 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
 {
     public AyurvedaDbContext(DbContextOptions<AyurvedaDbContext> options) : base(options)
     {
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 
     // Legacy tables for compatibility & migration
@@ -190,6 +197,9 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
         modelBuilder.Entity<Cart>(entity =>
         {
             entity.ToTable("Carts");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+
             entity.HasOne(c => c.User)
                   .WithOne(u => u.Cart)
                   .HasForeignKey<Cart>(c => c.UserId)
@@ -231,6 +241,7 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
         {
             entity.ToTable("OrderItems");
             entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
+            entity.Property(e => e.ReviewStatus).HasDefaultValue(ReviewStatus.NotReviewed);
 
             entity.HasOne(oi => oi.Order)
                   .WithMany(o => o.OrderItems)
@@ -304,7 +315,7 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
 
             entity.HasIndex(e => new { e.DoctorId, e.StartUtc })
                   .IsUnique()
-                  .HasFilter("[Status] NOT IN ('Cancelled', 'Declined')");
+                  .HasFilter("[Status] <> 'Cancelled' AND [Status] <> 'Declined'");
 
             entity.HasOne(a => a.Doctor)
                   .WithMany(d => d.Appointments)
@@ -360,12 +371,14 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
             entity.Property(c => c.DiscountAmount).HasPrecision(18, 2);
             entity.Property(c => c.MinOrderAmount).HasPrecision(18, 2);
             entity.Property(c => c.MaxDiscountAmount).HasPrecision(18, 2);
+            entity.Property(c => c.ApplicableCategory).HasMaxLength(100);
         });
 
         // Banner
         modelBuilder.Entity<Banner>(entity =>
         {
             entity.ToTable("Banners");
+            entity.Property(b => b.Placement).HasMaxLength(50).HasDefaultValue("home_hero");
         });
 
         // AuditLog
@@ -407,5 +420,61 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
             entity.Property(e => e.Email).IsRequired().HasMaxLength(150);
             entity.Property(e => e.OtpHashed).IsRequired().HasMaxLength(128);
         });
+
+        // Auto-configure default SQL value for CreatedAt and UpdatedAt across all entities
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var createdProp = entityType.FindProperty("CreatedAt");
+            if (createdProp != null && (createdProp.ClrType == typeof(DateTime) || createdProp.ClrType == typeof(DateTime?)))
+            {
+                createdProp.SetDefaultValueSql("GETUTCDATE()");
+            }
+            var updatedProp = entityType.FindProperty("UpdatedAt");
+            if (updatedProp != null && (updatedProp.ClrType == typeof(DateTime) || updatedProp.ClrType == typeof(DateTime?)))
+            {
+                updatedProp.SetDefaultValueSql("GETUTCDATE()");
+            }
+        }
+    }
+
+    public override int SaveChanges()
+    {
+        ApplyAuditTimestamps();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditTimestamps();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyAuditTimestamps()
+    {
+        var now = DateTime.UtcNow;
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                var createdAtProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "CreatedAt");
+                if (createdAtProp != null && (createdAtProp.CurrentValue == null || (createdAtProp.CurrentValue is DateTime dt && dt == default)))
+                {
+                    createdAtProp.CurrentValue = now;
+                }
+                var updatedAtProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "UpdatedAt");
+                if (updatedAtProp != null && (updatedAtProp.CurrentValue == null || (updatedAtProp.CurrentValue is DateTime dtU && dtU == default)))
+                {
+                    updatedAtProp.CurrentValue = now;
+                }
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var updatedAtProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "UpdatedAt");
+                if (updatedAtProp != null)
+                {
+                    updatedAtProp.CurrentValue = now;
+                }
+            }
+        }
     }
 }

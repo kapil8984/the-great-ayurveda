@@ -1,42 +1,107 @@
 @model Ayurveda.Application.ViewModels.OrderDetailViewModel
 @{
-    ViewData["Title"] = "Order Confirmed";
+    ViewData["Title"] = "Payment Successful — Order Confirmed";
+    var expectedDelivery = DateTime.UtcNow.AddDays(4).ToString("dddd, dd MMMM yyyy");
 }
 
 <div class="container py-5 text-center">
-    <div class="card p-5 shadow-sm border-0 rounded-4 mx-auto" style="max-width: 650px;">
-        <div class="text-success mb-3">
-            <i class="bi bi-check-circle-fill display-3"></i>
+    <div class="card p-4 p-md-5 shadow-lg border-0 rounded-4 mx-auto bg-white position-relative overflow-hidden" style="max-width: 650px;">
+        <!-- Demo Mode Ribbon / Badge -->
+        <div class="position-absolute top-0 end-0 m-3">
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 small fw-semibold">
+                <i class="bi bi-shield-check me-1"></i> Demo mode - no real payment
+            </span>
         </div>
-        <h2 class="fw-bold mb-2" style="font-family: Georgia, serif;">Order Successfully Placed!</h2>
-        <p class="text-muted">Thank you for choosing authentic Ayurvedic wellness. We are preparing your botanical order with utmost care.</p>
-        
-        <div class="bg-light p-3 rounded-3 text-start my-4">
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted">Order Number:</span>
-                <span class="fw-bold">@Model.OrderNumber</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted">Total Paid / Payable:</span>
-                <span class="fw-bold text-success">₹@Model.TotalAmount.ToString("N2")</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted">Payment Mode:</span>
-                <span>@Model.PaymentMethod (@Model.PaymentStatus)</span>
-            </div>
-            <div class="d-flex justify-content-between">
-                <span class="text-muted">Shipping Destination:</span>
-                <span class="text-end" style="max-width: 280px;">@Model.ShippingAddress</span>
+
+        <!-- Animated Checkmark -->
+        <div class="mb-3 d-flex justify-content-center">
+            <div class="tga-check-circle-anim">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
+                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                </svg>
             </div>
         </div>
 
-        <div class="d-flex justify-content-center gap-3">
-            <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.OrderId" class="btn btn-tga-primary rounded-pill px-4">
-                Track Order Status
+        <h2 class="fw-bold mb-2 text-dark" style="font-family: Georgia, serif;">Payment Successful!</h2>
+        <p class="text-muted small">Your Ayurvedic formulation order has been confirmed and placed with our dispensary.</p>
+        
+        <div class="bg-light p-4 rounded-4 text-start my-4 border">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted small">Order Reference:</span>
+                <span class="fw-bold font-monospace text-dark">@Model.OrderNumber</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted small">Total Paid:</span>
+                <span class="fw-bold fs-5 text-success">₹@Model.TotalAmount.ToString("N0")</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted small">Payment Mode:</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    <i class="bi bi-check-circle me-1"></i> @Model.PaymentMethod (@Model.PaymentStatus)
+                </span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted small">Estimated Delivery:</span>
+                <span class="fw-bold text-dark"><i class="bi bi-truck text-success me-1"></i> @expectedDelivery</span>
+            </div>
+            <hr class="my-2" />
+            <div class="d-flex justify-content-between">
+                <span class="text-muted small">Shipping To:</span>
+                <span class="text-end small text-dark fw-medium" style="max-width: 280px;">@Model.ShippingAddress</span>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.OrderId" class="btn btn-tga-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                <i class="bi bi-geo-alt me-1"></i> Track Order Status
             </a>
-            <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
-                Continue Shopping
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
+                <i class="bi bi-bag-plus me-1"></i> Continue Shopping
             </a>
         </div>
     </div>
 </div>
+
+<style>
+.tga-check-circle-anim {
+    width: 76px;
+    height: 76px;
+}
+.checkmark {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    display: block;
+    stroke-width: 3;
+    stroke: #2E7D32;
+    stroke-miterlimit: 10;
+    box-shadow: inset 0px 0px 0px #2E7D32;
+    animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+}
+.checkmark__circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke-width: 3;
+    stroke-miterlimit: 10;
+    stroke: #2E7D32;
+    fill: none;
+    animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+.checkmark__check {
+    transform-origin: 50% 50%;
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+@@keyframes stroke {
+    100% { stroke-dashoffset: 0; }
+}
+@@keyframes scale {
+    0%, 100% { transform: none; }
+    50% { transform: scale3d(1.1, 1.1, 1); }
+}
+@@keyframes fill {
+    100% { box-shadow: inset 0px 0px 0px 40px rgba(46, 125, 50, 0.1); }
+}
+</style>

@@ -4,9 +4,9 @@
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Onion-success)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/src)
 [![Security](https://img.shields.io/badge/Security-OWASP%20Top%2010%20Hardened-blue)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/SECURITY_FIXES.md)
 [![Tests](https://img.shields.io/badge/Tests-106%20Passed%20(100%25)-brightgreen)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/tests/Ayurveda.API.Tests)
-[![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA%20(100%2F100)-success)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/docs/quality/axe-accessibility-report.md)
+[![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA%20Compliant-success)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/docs/quality/axe-accessibility-report.md)
 
-**The Great Ayurveda** is an enterprise-grade digital health and Ayurvedic wellness platform designed in accordance with **AYUSH ministry standards**. Built on **ASP.NET Core 10 (MVC)** and **Clean Architecture**, the platform provides:
+**The Great Ayurveda** is a digital health and Ayurvedic wellness demonstration platform crafted following classical Ayurvedic traditions. Built on **ASP.NET Core 10 (MVC)** and **Clean Architecture**, the platform provides:
 1. **Public E-Commerce & Wellness Storefront:** Classical formulation dispensary, Dosha-specific recommendations, fast multi-attribute search suggestions, pincode delivery estimators, and streamlined checkout.
 2. **Vaidya Clinical Desk (Doctor Portal):** Tele-consultation bookings (Video, Audio, Chat), encrypted virtual chambers, digital Shastriya prescription generation with one-click cart conversion.
 3. **Dedicated Administrative Console (`Ayurveda.Admin`):** Isolated host application for executive KPIs, doctor credential verification, catalog lifecycle, audit logging, finance reconciliation, and role-based staff management.

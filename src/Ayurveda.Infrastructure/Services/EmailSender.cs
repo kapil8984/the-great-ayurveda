@@ -25,15 +25,20 @@ public class EmailSender : IEmailSender
         var smtpPass = _configuration["Smtp:Password"];
         var fromEmail = _configuration["Smtp:FromEmail"] ?? "noreply@thegreatayurveda.com";
 
-        // In development or when SMTP is not configured, write to outbox folder
-        if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUser))
+        var isDemo = _configuration.GetValue<bool>("DemoMode", false);
+        // In DemoMode, development or when SMTP is not configured, write to local outbox without network calls
+        if (isDemo || string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUser))
         {
-            var outboxDir = Path.Combine(Directory.GetCurrentDirectory(), "outbox");
-            Directory.CreateDirectory(outboxDir);
-            var filePath = Path.Combine(outboxDir, $"{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.txt");
-            var content = $"To: {toEmail}\nSubject: {subject}\nDate: {DateTime.UtcNow}\n\n{bodyHtml}";
-            await File.WriteAllTextAsync(filePath, content);
-            _logger.LogInformation("Email written to local outbox file: {FilePath}", filePath);
+            _logger.LogInformation("[DemoMode] Suppressed external SMTP network call to {ToEmail}. Subject: {Subject}", toEmail, subject);
+            try
+            {
+                var outboxDir = Path.Combine(Directory.GetCurrentDirectory(), "outbox");
+                Directory.CreateDirectory(outboxDir);
+                var filePath = Path.Combine(outboxDir, $"{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.txt");
+                var content = $"To: {toEmail}\nSubject: {subject}\nDate: {DateTime.UtcNow}\n\n{bodyHtml}";
+                await File.WriteAllTextAsync(filePath, content);
+            }
+            catch { }
             return;
         }
 

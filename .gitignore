@@ -43,4 +43,7 @@ yarn-error.log*
 *.ldf
 outbox/
 uploads/
+scratch/
+shared/
 TestResults/
+

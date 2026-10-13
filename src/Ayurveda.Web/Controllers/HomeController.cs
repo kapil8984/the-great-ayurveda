@@ -23,6 +23,23 @@ public class HomeController : Controller
             HeroVariant = _configuration["HomeHeroVariant"] ?? "VaidyaHeritage"
         };
 
+        var now = DateTime.UtcNow;
+        ViewBag.HeroBanners = await _context.Banners
+            .Where(b => b.IsActive &&
+                        (b.Placement == "home_hero" || string.IsNullOrEmpty(b.Placement)) &&
+                        (b.StartDate == null || b.StartDate <= now) &&
+                        (b.EndDate == null || b.EndDate >= now))
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
+        ViewBag.MiddleBanners = await _context.Banners
+            .Where(b => b.IsActive &&
+                        b.Placement == "home_middle" &&
+                        (b.StartDate == null || b.StartDate <= now) &&
+                        (b.EndDate == null || b.EndDate >= now))
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
         // 1. Categories
         model.Categories = await _context.Categories
             .Where(c => c.IsActive)

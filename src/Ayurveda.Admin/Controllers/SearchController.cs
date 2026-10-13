@@ -5,7 +5,7 @@ using Ayurveda.Application.Interfaces;
 
 namespace Ayurveda.Admin.Controllers;
 
-[Authorize(Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager,Admin")]
+[Authorize(Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager")]
 [Route("search")]
 public class SearchController : Controller
 {

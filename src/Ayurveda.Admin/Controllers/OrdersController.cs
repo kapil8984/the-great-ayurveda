@@ -8,7 +8,7 @@ using Ayurveda.Infrastructure.Data;
 
 namespace Ayurveda.Admin.Controllers;
 
-[Authorize(Roles = "SuperAdmin,SupportAgent,FinanceManager,Admin")]
+[Authorize(Roles = "SuperAdmin,SupportAgent,FinanceManager")]
 public class OrdersController : Controller
 {
     private readonly AyurvedaDbContext _context;

@@ -5,7 +5,7 @@ using Ayurveda.Infrastructure.Data;
 
 namespace Ayurveda.Admin.Controllers;
 
-[Authorize(Roles = "SuperAdmin,CatalogManager,Admin")]
+[Authorize(Policy = "RequireCatalogManagement")]
 public class YogaController : Controller
 {
     private readonly AyurvedaDbContext _context;

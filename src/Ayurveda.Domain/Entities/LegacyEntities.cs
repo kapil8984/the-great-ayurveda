@@ -14,12 +14,6 @@ public class User
     public int AccessFailedCount { get; set; }
     public DateTime? LockoutEndUtc { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public virtual Cart? Cart { get; set; }
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-    public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
-    public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
-    public virtual ICollection<YogaReview> YogaReviews { get; set; } = new List<YogaReview>();
 }
 
 public class Admin

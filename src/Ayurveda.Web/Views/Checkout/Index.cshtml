@@ -4,13 +4,21 @@
 }
 
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 fw-bold m-0" style="font-family: var(--tga-font-heading); color: var(--tga-primary);">
-            Finalize Your Order
-        </h1>
-        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
-            <i class="bi bi-shield-lock-fill me-1"></i> 256-Bit SSL Encrypted
-        </span>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h1 class="h3 fw-bold m-0" style="font-family: var(--tga-font-heading); color: var(--tga-primary);">
+                Finalize Your Order
+            </h1>
+            <p class="text-muted small mb-0">Express botanical checkout with classical pharmacy fulfillment.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill small fw-semibold">
+                <i class="bi bi-shield-check me-1"></i> Demo mode - no real payment
+            </span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+                <i class="bi bi-shield-lock-fill me-1"></i> 256-Bit SSL Encrypted
+            </span>
+        </div>
     </div>
 
     <form asp-action="PlaceOrder" method="post" id="checkoutForm">
@@ -52,27 +60,27 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-semibold">Recipient Full Name *</label>
-                                <input asp-for="NewAddress.RecipientName" class="form-control form-control-sm" placeholder="Full Name" />
+                                <input asp-for="NewAddress.RecipientName" class="form-control form-control-sm rounded-pill" placeholder="Full Name" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-semibold">10-Digit Mobile Number *</label>
-                                <input asp-for="NewAddress.Phone" class="form-control form-control-sm" placeholder="e.g. 9876543210" />
+                                <input asp-for="NewAddress.Phone" class="form-control form-control-sm rounded-pill" placeholder="e.g. 9876543210" />
                             </div>
                             <div class="col-12">
                                 <label class="form-label small fw-semibold">Flat / House No., Building & Street Address *</label>
-                                <input asp-for="NewAddress.AddressLine1" class="form-control form-control-sm" placeholder="e.g. 204, Lotus Meadows, MG Road" />
+                                <input asp-for="NewAddress.AddressLine1" class="form-control form-control-sm rounded-3" placeholder="e.g. 204, Lotus Meadows, MG Road" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">City *</label>
-                                <input asp-for="NewAddress.City" class="form-control form-control-sm" placeholder="City" />
+                                <input asp-for="NewAddress.City" class="form-control form-control-sm rounded-pill" placeholder="City" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">State *</label>
-                                <input asp-for="NewAddress.State" class="form-control form-control-sm" placeholder="State" />
+                                <input asp-for="NewAddress.State" class="form-control form-control-sm rounded-pill" placeholder="State" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">PIN Code *</label>
-                                <input asp-for="NewAddress.PostalCode" class="form-control form-control-sm" placeholder="6-digit PIN" maxlength="6" />
+                                <input asp-for="NewAddress.PostalCode" class="form-control form-control-sm rounded-pill" placeholder="6-digit PIN" maxlength="6" />
                             </div>
                         </div>
                     </div>
@@ -87,7 +95,7 @@
                                 <input class="form-check-input" type="radio" asp-for="DeliveryType" id="delStandard" value="Standard" checked />
                                 <label class="form-check-label small" for="delStandard">
                                     <strong class="text-dark">Standard Delivery (3-5 Days)</strong><br />
-                                    <span class="text-success fw-semibold">FREE on orders > ₹499</span> (else ₹40)
+                                    <span class="text-success fw-semibold">FREE on orders &gt; ₹499</span> (else ₹40)
                                 </label>
                             </div>
                         </div>
@@ -103,24 +111,131 @@
                     </div>
                 </div>
 
-                <!-- 3. Payment Method Section -->
+                <!-- 3. Payment Method Section (Realistic Interactive Demo UI) -->
                 <div class="card p-4 shadow-sm border-0 rounded-4 bg-white mb-4">
-                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-credit-card-2-front text-success me-2"></i> 3. Payment Method</h5>
-                    
-                    <div class="form-check p-3 border rounded-3 mb-2 bg-light">
-                        <input class="form-check-input" type="radio" asp-for="SelectedPaymentMethod" id="payRazorpay" value="Razorpay" checked />
-                        <label class="form-check-label fw-semibold text-dark" for="payRazorpay">
-                            <i class="bi bi-shield-check text-success me-1"></i> Razorpay Secure Gateway (UPI / Credit & Debit Cards / Net Banking)
-                        </label>
-                        <div class="small text-muted ps-4">Instant payment verification in TEST mode. 100% encrypted transaction.</div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark m-0"><i class="bi bi-credit-card-2-front text-success me-2"></i> 3. Payment Method</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-secondary border border-secondary-subtle rounded-pill px-2 py-1 small">
+                                <i class="bi bi-shield-check me-1"></i> Razorpay Secure Gateway
+                            </span>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small">
+                                <i class="bi bi-info-circle me-1"></i> Demo Simulator
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="form-check p-3 border rounded-3 bg-light">
-                        <input class="form-check-input" type="radio" asp-for="SelectedPaymentMethod" id="payCod" value="CashOnDelivery" />
-                        <label class="form-check-label fw-semibold text-dark" for="payCod">
-                            <i class="bi bi-cash-stack text-warning me-1"></i> Cash on Delivery (COD)
-                        </label>
-                        <div class="small text-muted ps-4">Pay cash or UPI directly to the courier agent upon package receipt.</div>
+                    <!-- Payment Option Tabs / Radios -->
+                    <div class="row g-2 mb-3" id="paymentOptionsGroup">
+                        <!-- UPI -->
+                        <div class="col-md-6">
+                            <label class="card p-3 border rounded-3 h-100 cursor-pointer payment-method-card active-card" data-method="UPI">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <input class="form-check-input mt-0" type="radio" asp-for="SelectedPaymentMethod" value="Razorpay" id="payUpi" checked />
+                                    <span class="fw-bold small text-dark"><i class="bi bi-qr-code-scan text-success me-1"></i> UPI (Instant)</span>
+                                </div>
+                                <div class="text-xs text-muted">Google Pay, PhonePe, Paytm, BHIM or any UPI ID</div>
+                            </label>
+                        </div>
+                        <!-- Cards -->
+                        <div class="col-md-6">
+                            <label class="card p-3 border rounded-3 h-100 cursor-pointer payment-method-card" data-method="Card">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <input class="form-check-input mt-0" type="radio" asp-for="SelectedPaymentMethod" value="Razorpay" id="payCard" />
+                                    <span class="fw-bold small text-dark"><i class="bi bi-credit-card text-primary me-1"></i> Credit / Debit Card</span>
+                                </div>
+                                <div class="text-xs text-muted">Visa, MasterCard, RuPay, Maestro</div>
+                            </label>
+                        </div>
+                        <!-- Net Banking -->
+                        <div class="col-md-6">
+                            <label class="card p-3 border rounded-3 h-100 cursor-pointer payment-method-card" data-method="NetBanking">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <input class="form-check-input mt-0" type="radio" asp-for="SelectedPaymentMethod" value="Razorpay" id="payNetBanking" />
+                                    <span class="fw-bold small text-dark"><i class="bi bi-bank text-warning me-1"></i> Net Banking</span>
+                                </div>
+                                <div class="text-xs text-muted">HDFC, SBI, ICICI, Axis, Kotak, 50+ Banks</div>
+                            </label>
+                        </div>
+                        <!-- COD -->
+                        <div class="col-md-6">
+                            <label class="card p-3 border rounded-3 h-100 cursor-pointer payment-method-card" data-method="COD">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <input class="form-check-input mt-0" type="radio" asp-for="SelectedPaymentMethod" value="CashOnDelivery" id="payCod" />
+                                    <span class="fw-bold small text-dark"><i class="bi bi-cash-stack text-success me-1"></i> Cash on Delivery</span>
+                                </div>
+                                <div class="text-xs text-muted">Pay cash or UPI upon package arrival</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Details Panel for Selected Method -->
+                    <div class="p-3 border rounded-4 bg-light mb-3" id="paymentDetailsPanel">
+                        <!-- UPI View -->
+                        <div class="payment-detail-view" id="view-UPI">
+                            <h6 class="fw-bold small text-dark mb-2"><i class="bi bi-phone me-1 text-success"></i> Enter UPI Virtual Private Address (VPA):</h6>
+                            <div class="input-group input-group-sm mb-2" style="max-width: 360px;">
+                                <input type="text" class="form-control" id="upiVpaInput" placeholder="username@okhdfcbank" value="ayurveda.customer@upi" />
+                                <span class="input-group-text bg-white text-success fw-bold"><i class="bi bi-check2"></i> Verified</span>
+                            </div>
+                            <div class="d-flex gap-2 align-items-center small text-muted">
+                                <span>Popular apps:</span>
+                                <span class="badge bg-white text-dark border">GPay</span>
+                                <span class="badge bg-white text-dark border">PhonePe</span>
+                                <span class="badge bg-white text-dark border">Paytm</span>
+                                <span class="badge bg-white text-dark border">BHIM</span>
+                            </div>
+                        </div>
+
+                        <!-- Card View -->
+                        <div class="payment-detail-view d-none" id="view-Card">
+                            <h6 class="fw-bold small text-dark mb-3"><i class="bi bi-credit-card me-1 text-primary"></i> Card Details:</h6>
+                            <div class="row g-2" style="max-width: 420px;">
+                                <div class="col-12">
+                                    <label class="form-label text-xs text-muted mb-1">Card Number</label>
+                                    <input type="text" class="form-control form-control-sm" placeholder="4532 •••• •••• 8892" value="4532 8900 1234 8892" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-xs text-muted mb-1">Expiry (MM/YY)</label>
+                                    <input type="text" class="form-control form-control-sm" placeholder="12/28" value="10/28" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-xs text-muted mb-1">CVV</label>
+                                    <input type="password" class="form-control form-control-sm" placeholder="•••" value="789" maxlength="3" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Net Banking View -->
+                        <div class="payment-detail-view d-none" id="view-NetBanking">
+                            <h6 class="fw-bold small text-dark mb-2"><i class="bi bi-bank me-1 text-warning"></i> Select Bank:</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                <button type="button" class="btn btn-sm btn-white border rounded-pill px-3 active fw-semibold">HDFC Bank</button>
+                                <button type="button" class="btn btn-sm btn-white border rounded-pill px-3">State Bank of India</button>
+                                <button type="button" class="btn btn-sm btn-white border rounded-pill px-3">ICICI Bank</button>
+                                <button type="button" class="btn btn-sm btn-white border rounded-pill px-3">Axis Bank</button>
+                            </div>
+                        </div>
+
+                        <!-- COD View -->
+                        <div class="payment-detail-view d-none" id="view-COD">
+                            <div class="small text-muted">
+                                <i class="bi bi-info-circle text-success me-1"></i> You can pay cash or scan the courier's dynamic QR code on delivery. Please keep exact change ready.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulate Payment Failure Toggle -->
+                    <div class="p-3 border rounded-3 bg-danger-subtle border-danger-subtle">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="simulateFailureToggle" />
+                            <label class="form-check-label small fw-bold text-danger" for="simulateFailureToggle">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Simulate Payment Failure
+                            </label>
+                            <div class="text-xs text-danger opacity-75 ps-4">
+                                Toggle ON to test the error recovery UI (declined card / bank timeout simulation with retry button).
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -138,7 +253,7 @@
                         {
                             <div class="d-flex align-items-center justify-content-between mb-2 small pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
-                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" width="38" height="38" class="rounded border p-1" style="object-fit: contain;" alt="@item.Title" />
+                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" width="38" height="38" class="rounded border p-1" style="object-fit: contain;" alt="@item.Title" onerror="this.onerror=null;this.src='/images/products/ashwagandha.svg';" />
                                     <div>
                                         <div class="text-truncate fw-semibold" style="max-width: 140px;">@item.Title</div>
                                         <div class="text-muted" style="font-size: 0.72rem;">Qty: @item.Quantity</div>
@@ -169,24 +284,196 @@
                     </div>
 
                     <div class="d-flex justify-content-between mb-3 small">
-                        <span class="text-muted">GST (5% AYUSH):</span>
+                        <span class="text-muted">GST (5%):</span>
                         <span>₹@Model.Cart.TaxAmount.ToString("N2")</span>
                     </div>
 
                     <div class="d-flex justify-content-between mb-4 fs-5 fw-bold text-success border-top pt-2">
                         <span>Total Payable:</span>
-                        <span>₹@Model.Cart.GrandTotal.ToString("N2")</span>
+                        <span id="displayGrandTotal">₹@Model.Cart.GrandTotal.ToString("N2")</span>
                     </div>
 
-                    <button type="submit" class="btn btn-tga-gold w-100 py-3 fs-6 rounded-pill shadow-sm fw-bold">
-                        <i class="bi bi-lock-fill me-1"></i> Place Order (₹@Model.Cart.GrandTotal.ToString("N0"))
+                    <button type="button" id="btnInitiatePayment" class="btn btn-tga-gold w-100 py-3 fs-6 rounded-pill shadow-sm fw-bold">
+                        <i class="bi bi-lock-fill me-1"></i> Pay &amp; Place Order (₹@Model.Cart.GrandTotal.ToString("N0"))
                     </button>
 
                     <div class="medical-disclaimer-banner mt-3 text-center" style="font-size: 0.72rem;">
-                        <i class="bi bi-info-circle me-1"></i> By placing order, you acknowledge understanding traditional Ayurvedic application guidelines.
+                        <i class="bi bi-shield-check me-1 text-success"></i> 100% Secure Simulated Transaction • Demo Mode
                     </div>
                 </div>
             </div>
         </div>
     </form>
 </div>
+
+<!-- =========================================================================
+     MODAL: Realistic Payment Processing & Result Simulator
+     ========================================================================= -->
+<div class="modal fade" id="paymentProcessModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <!-- Modal Header with Demo Tag -->
+            <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center bg-light">
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 small">
+                    <i class="bi bi-shield-check me-1"></i> Demo Payment Gateway
+                </span>
+                <span class="text-muted small">Total: <strong>₹@Model.Cart.GrandTotal.ToString("N0")</strong></span>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4 text-center">
+                <!-- State 1: Processing Animation -->
+                <div id="modalStateProcessing">
+                    <div class="my-4">
+                        <div class="spinner-border text-success" role="status" style="width: 3.5rem; height: 3.5rem; border-width: 0.35em;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Processing Payment...</h5>
+                    <p class="text-muted small mb-3" id="processingStatusText">Contacting simulated bank gateway & verifying credentials...</p>
+                    <div class="progress rounded-pill mb-2" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="paymentProgressBar" style="width: 20%;"></div>
+                    </div>
+                    <div class="text-xs text-muted"><i class="bi bi-lock-fill text-success me-1"></i> 256-Bit SSL Encrypted Sandbox Channel</div>
+                </div>
+
+                <!-- State 2: Simulated Failure Screen -->
+                <div id="modalStateFailure" class="d-none">
+                    <div class="my-3 text-danger">
+                        <i class="bi bi-x-circle-fill display-3"></i>
+                    </div>
+                    <h5 class="fw-bold text-danger mb-1">Payment Declined / Failed</h5>
+                    <p class="text-muted small mb-3">
+                        Simulation Result: The issuing bank rejected the transaction or the session timed out.
+                    </p>
+                    <div class="alert alert-light border small text-start mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Error Code:</span>
+                            <span class="font-monospace text-danger fw-bold">ERR_DEMO_DECLINED_402</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Gateway Status:</span>
+                            <span class="text-danger">Card / Bank Declined</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill flex-fill" data-bs-dismiss="modal">
+                            Cancel &amp; Review Cart
+                        </button>
+                        <button type="button" class="btn btn-danger rounded-pill flex-fill" id="btnRetryPayment">
+                            <i class="bi bi-arrow-repeat me-1"></i> Retry Payment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- State 3: Payment Success Tick -->
+                <div id="modalStateSuccess" class="d-none">
+                    <div class="my-3 text-success">
+                        <i class="bi bi-check-circle-fill display-3"></i>
+                    </div>
+                    <h5 class="fw-bold text-success mb-1">Payment Successful!</h5>
+                    <p class="text-muted small mb-3">Your transaction has been authorized. Placing order...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const methodCards = document.querySelectorAll(".payment-method-card");
+    const detailViews = document.querySelectorAll(".payment-detail-view");
+    const btnPay = document.getElementById("btnInitiatePayment");
+    const failureToggle = document.getElementById("simulateFailureToggle");
+    const checkoutForm = document.getElementById("checkoutForm");
+    
+    const paymentModalEl = document.getElementById("paymentProcessModal");
+    const paymentModal = new bootstrap.Modal(paymentModalEl);
+    
+    const stateProcessing = document.getElementById("modalStateProcessing");
+    const stateFailure = document.getElementById("modalStateFailure");
+    const stateSuccess = document.getElementById("modalStateSuccess");
+    const progressBar = document.getElementById("paymentProgressBar");
+    const statusText = document.getElementById("processingStatusText");
+    const btnRetry = document.getElementById("btnRetryPayment");
+
+    // Method selection handling
+    methodCards.forEach(card => {
+        card.addEventListener("click", function () {
+            methodCards.forEach(c => c.classList.remove("active-card", "border-success", "bg-success-subtle"));
+            this.classList.add("active-card", "border-success");
+            
+            const radio = this.querySelector("input[type='radio']");
+            if (radio) radio.checked = true;
+
+            const method = this.getAttribute("data-method");
+            detailViews.forEach(v => v.classList.add("d-none"));
+            const targetView = document.getElementById("view-" + method);
+            if (targetView) targetView.classList.remove("d-none");
+        });
+    });
+
+    // Pay button handler
+    btnPay.addEventListener("click", function () {
+        const selectedMethodRadio = document.querySelector("input[name='SelectedPaymentMethod']:checked");
+        const isCod = selectedMethodRadio && selectedMethodRadio.value === "CashOnDelivery";
+
+        if (isCod) {
+            // COD proceeds directly without online gateway animation
+            checkoutForm.submit();
+            return;
+        }
+
+        // Show Processing Modal
+        stateProcessing.classList.remove("d-none");
+        stateFailure.classList.add("d-none");
+        stateSuccess.classList.add("d-none");
+        progressBar.style.width = "20%";
+        statusText.textContent = "Connecting to simulated bank gateway & verifying credentials...";
+        paymentModal.show();
+
+        // Simulate progress
+        setTimeout(() => {
+            progressBar.style.width = "65%";
+            statusText.textContent = "Authenticating secure token with merchant network...";
+        }, 800);
+
+        setTimeout(() => {
+            progressBar.style.width = "95%";
+            if (failureToggle.checked) {
+                // Show Failure UI
+                stateProcessing.classList.add("d-none");
+                stateFailure.classList.remove("d-none");
+            } else {
+                // Show Success & Submit
+                progressBar.style.width = "100%";
+                stateProcessing.classList.add("d-none");
+                stateSuccess.classList.remove("d-none");
+                setTimeout(() => {
+                    checkoutForm.submit();
+                }, 800);
+            }
+        }, 1600);
+    });
+
+    // Retry button resets modal and turns off failure toggle
+    btnRetry.addEventListener("click", function () {
+        failureToggle.checked = false;
+        paymentModal.hide();
+    });
+});
+</script>
+
+<style>
+.payment-method-card {
+    transition: all 0.2s ease;
+}
+.payment-method-card:hover {
+    border-color: #2E7D32 !important;
+    transform: translateY(-2px);
+}
+.payment-method-card.active-card {
+    border-color: #2E7D32 !important;
+    background-color: #F4F9F5 !important;
+}
+</style>

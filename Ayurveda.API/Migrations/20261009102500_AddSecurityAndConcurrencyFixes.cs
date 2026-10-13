@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -107,12 +107,37 @@ namespace Ayurveda.API.Migrations
                 column: "ContactNumber",
                 unique: true);
 
+            // Backfill StartUtc from AppointmentDate + TimeSlot
+            migrationBuilder.Sql(@"
+                UPDATE Appointments
+                SET StartUtc = CASE 
+                    WHEN TimeSlot LIKE '%Morning%' THEN DATEADD(minute, 210, CAST(CAST(AppointmentDate AS DATE) AS DATETIME2))
+                    WHEN TimeSlot LIKE '%Afternoon%' THEN DATEADD(minute, 510, CAST(CAST(AppointmentDate AS DATE) AS DATETIME2))
+                    WHEN TimeSlot LIKE '%Evening%' THEN DATEADD(minute, 690, CAST(CAST(AppointmentDate AS DATE) AS DATETIME2))
+                    ELSE DATEADD(minute, 210, CAST(CAST(AppointmentDate AS DATE) AS DATETIME2))
+                END
+                WHERE StartUtc = '0001-01-01' OR StartUtc IS NULL;
+
+                -- Resolve any remaining collisions for active appointments with the same DoctorId and StartUtc
+                ;WITH Collisions AS (
+                    SELECT Id, DoctorId, StartUtc, Status,
+                           ROW_NUMBER() OVER (PARTITION BY DoctorId, StartUtc ORDER BY Id) AS rn
+                    FROM Appointments
+                    WHERE [Status] <> 'Cancelled' AND [Status] <> 'Declined'
+                )
+                UPDATE a
+                SET a.StartUtc = DATEADD(minute, (c.rn - 1) * 30, a.StartUtc)
+                FROM Appointments a
+                JOIN Collisions c ON a.Id = c.Id
+                WHERE c.rn > 1;
+            ");
+
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_DoctorId_StartUtc",
                 table: "Appointments",
                 columns: new[] { "DoctorId", "StartUtc" },
                 unique: true,
-                filter: "[Status] NOT IN ('Cancelled', 'Declined')");
+                filter: "[Status] <> 'Cancelled' AND [Status] <> 'Declined'");
         }
 
         /// <inheritdoc />

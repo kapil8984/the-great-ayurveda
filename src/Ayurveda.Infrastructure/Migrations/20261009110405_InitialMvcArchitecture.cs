@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -108,8 +108,13 @@ namespace Ayurveda.Infrastructure.Migrations
                     Subtitle = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LinkUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Placement = table.Column<string>(type: "nvarchar(50)", nullable: false, defaultValue: "home_hero"),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DisplayOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -143,10 +148,14 @@ namespace Ayurveda.Infrastructure.Migrations
                     DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     MinOrderAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     MaxDiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ExpiryDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ApplicableCategory = table.Column<string>(type: "nvarchar(100)", nullable: true),
                     UsageLimit = table.Column<int>(type: "int", nullable: false),
                     UsageCount = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -462,6 +471,7 @@ namespace Ayurveda.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UserId1 = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
@@ -902,7 +912,7 @@ namespace Ayurveda.Infrastructure.Migrations
                 table: "Appointments",
                 columns: new[] { "DoctorId", "StartUtc" },
                 unique: true,
-                filter: "[Status] NOT IN ('Cancelled', 'Declined')");
+                filter: "[Status] <> 'Cancelled' AND [Status] <> 'Declined'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_UserId",

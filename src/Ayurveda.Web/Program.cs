@@ -16,8 +16,9 @@ builder.Services.AddDbContext<AyurvedaDbContext>((_, options) =>
 {
     if (!options.IsConfigured)
     {
-        options.UseSqlServer(connectionString);
+        options.UseSqlServer(connectionString, b => b.MigrationsAssembly("Ayurveda.Infrastructure"));
     }
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
 // ASP.NET Core Identity
@@ -72,7 +73,7 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Seed initial data & roles
+// Seed initial data & roles (Web is the sole runner of migrations & seed)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -85,14 +86,87 @@ using (var scope = app.Services.CreateScope())
 
         if (db.Database.IsRelational())
         {
-            await db.Database.MigrateAsync();
+            var canConnect = false;
+            try
+            {
+                canConnect = await db.Database.CanConnectAsync();
+            }
+            catch
+            {
+                canConnect = false;
+            }
+
+            if (canConnect)
+            {
+                try
+                {
+                    using var conn = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+                    await conn.OpenAsync();
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = @"
+                        SELECT 
+                            (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME <> '__EFMigrationsHistory') AS UserTables,
+                            (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '__EFMigrationsHistory') AS HistoryTable;
+                    ";
+                    int userTables = 0;
+                    int historyTable = 0;
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            userTables = reader.GetInt32(0);
+                            historyTable = reader.GetInt32(1);
+                        }
+                    }
+
+                    bool historyMissingOrEmpty = false;
+                    if (historyTable == 0)
+                    {
+                        historyMissingOrEmpty = true;
+                    }
+                    else
+                    {
+                        using var countCmd = conn.CreateCommand();
+                        countCmd.CommandText = "SELECT COUNT(*) FROM [__EFMigrationsHistory]";
+                        var countObj = await countCmd.ExecuteScalarAsync();
+                        var count = countObj != null ? Convert.ToInt32(countObj) : 0;
+                        if (count == 0)
+                        {
+                            historyMissingOrEmpty = true;
+                        }
+                    }
+
+                    if (userTables > 0 && historyMissingOrEmpty)
+                    {
+                        logger.LogCritical("FATAL: Database schema mismatch detected. Database contains {TableCount} tables, but __EFMigrationsHistory is missing or empty. Automatic drop and recreate is disabled to prevent accidental data loss. To recreate and reseed the database, run './reset-db.ps1'. Startup aborted.", userTables);
+                        throw new InvalidOperationException($"Existing database tables detected ({userTables} tables) without __EFMigrationsHistory. Automatic drop is disabled; run reset-db.ps1 to cleanly reset the database.");
+                    }
+                }
+                catch (Exception ex) when (ex is not InvalidOperationException)
+                {
+                    logger.LogWarning(ex, "Pre-migration database verification check encountered an issue: {Message}", ex.Message);
+                }
+            }
+
+            try
+            {
+                logger.LogInformation("Applying EF Core migrations from Ayurveda.Infrastructure...");
+                await db.Database.MigrateAsync();
+                logger.LogInformation("EF Core migrations applied successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "FATAL: Database migration failed. Schema mismatch or migration conflict detected: {Message}. Automatic drop is disabled to protect data integrity. Run './reset-db.ps1' if a fresh database is required. Aborting application startup.", ex.Message);
+                throw;
+            }
         }
 
         await DbInitializer.InitializeAsync(db, userManager, roleManager, logger);
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Failed to initialize and seed database on startup.");
+        logger.LogCritical(ex, "FATAL: Database initialization or migration failed. Aborting application startup: {Message}", ex.Message);
+        throw;
     }
 }
 
@@ -104,6 +178,24 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Serve shared uploads directory
+var sharedUploadsDir = FileStorageService.ResolveSharedUploadsPath(builder.Configuration);
+Directory.CreateDirectory(sharedUploadsDir);
+var webExistingUploads = Path.Combine(builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot"), "uploads");
+if (Directory.Exists(webExistingUploads) && webExistingUploads != sharedUploadsDir)
+{
+    foreach (var file in Directory.GetFiles(webExistingUploads))
+    {
+        var dest = Path.Combine(sharedUploadsDir, Path.GetFileName(file));
+        if (!File.Exists(dest)) File.Copy(file, dest);
+    }
+}
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(sharedUploadsDir),
+    RequestPath = "/uploads"
+});
 
 // Security Headers
 app.Use(async (context, next) =>

@@ -14,6 +14,12 @@ public class AdminDashboardViewModel
     public int LowStockProductsCount { get; set; }
     public int PendingDoctorApprovals { get; set; }
     
+    // Order Pipeline Funnel counts
+    public int OrdersPlacedCount { get; set; }
+    public int OrdersShippedCount { get; set; }
+    public int OrdersDeliveredCount { get; set; }
+    public int OrdersCancelledCount { get; set; }
+    
     // Lists & summaries
     public List<AdminOrderSummaryDto> RecentOrders { get; set; } = new();
     public List<AdminPendingDoctorDto> PendingDoctors { get; set; } = new();
@@ -139,6 +145,7 @@ public class AdminProductListViewModel
     public List<Category> Categories { get; set; } = new();
     public int? SelectedCategoryId { get; set; }
     public bool? LowStockOnly { get; set; }
+    public bool? OutOfStockOnly { get; set; }
     public string? SearchQuery { get; set; }
     public int CurrentPage { get; set; } = 1;
     public int TotalPages { get; set; } = 1;
@@ -163,6 +170,7 @@ public class AdminProductEditViewModel
     public bool IsActive { get; set; } = true;
     public bool IsBestseller { get; set; }
     public bool IsFeatured { get; set; }
+    public List<string> GalleryImageUrls { get; set; } = new();
 }
 
 public class AdminFinanceOverviewViewModel
@@ -212,4 +220,34 @@ public class AdminSystemHealthViewModel
     public string EnvironmentName { get; set; } = string.Empty;
     public string MemoryUsageMb { get; set; } = string.Empty;
     public DateTime ServerTimeUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class AdminUserEditViewModel
+{
+    public int Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? ContactNumber { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string Role { get; set; } = "Customer";
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
+}
+
+public class AdminDoctorEditViewModel
+{
+    public int Id { get; set; }
+    public string DoctorName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string ContactNumber { get; set; } = string.Empty;
+    public int SpecializationId { get; set; }
+    public string Qualification { get; set; } = "BAMS";
+    public int Experience { get; set; }
+    public decimal ConsultationFee { get; set; } = 499m;
+    public string? ClinicAddress { get; set; }
+    public string? Bio { get; set; }
+    public string? ProfileImage { get; set; }
+    public bool IsOnline { get; set; } = true;
+    public int Status { get; set; } = 1;
 }

@@ -10,23 +10,42 @@
         <i class="bi bi-arrow-left me-1"></i> Back to Doctor Directory
     </a>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div>
-            <h2 class="fw-bold mb-1">Dr. @doc.DoctorName</h2>
-            <p class="text-muted small mb-0">@(detail?.Specialization?.Name ?? "Classical Ayurveda") • Registered @doc.CreatedAt.ToString("dd MMM yyyy")</p>
+        <div class="d-flex align-items-center gap-3">
+            <img src="@(string.IsNullOrEmpty(doc.ProfileImage) ? "/images/doctor-avatar.svg" : doc.ProfileImage)" alt="Dr. @doc.DoctorName" width="60" height="60" class="rounded-circle border bg-light shadow-sm" style="object-fit: cover;" onerror="this.onerror=null;this.src='/images/doctor-avatar.svg';" />
+            <div>
+                <h2 class="fw-bold mb-1">Dr. @doc.DoctorName</h2>
+                <p class="text-muted small mb-0">@(detail?.Specialization?.Name ?? "Classical Ayurveda") • Registered @doc.CreatedAt.ToString("dd MMM yyyy")</p>
+            </div>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a asp-action="Edit" asp-route-id="@doc.Id" id="btnEditDoctor" class="btn btn-outline-success btn-sm rounded-pill px-3">
+                <i class="bi bi-pencil me-1"></i> Edit Doctor
+            </a>
+
             @if (detail?.Status == 1)
             {
-                <span class="badge bg-success fs-6 px-3 py-2 rounded-pill"><i class="bi bi-check-circle me-1"></i>Active Practice</span>
-            }
-            else if (detail?.Status == 2)
-            {
-                <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill"><i class="bi bi-pause-circle me-1"></i>Suspended</span>
+                <form asp-action="Suspend" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="doctorId" value="@doc.Id" />
+                    <button type="submit" id="btnBlockDoctor" class="btn btn-outline-warning btn-sm rounded-pill px-3">
+                        <i class="bi bi-pause-circle me-1"></i> Block Doctor
+                    </button>
+                </form>
             }
             else
             {
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill">Pending Audit</span>
+                <form asp-action="Reactivate" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="doctorId" value="@doc.Id" />
+                    <button type="submit" id="btnUnblockDoctor" class="btn btn-success btn-sm rounded-pill px-3">
+                        <i class="bi bi-play-circle me-1"></i> Unblock Doctor
+                    </button>
+                </form>
             }
+
+            <button type="button" id="btnOpenDeleteDoctorModal" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#deleteDoctorModal">
+                <i class="bi bi-trash me-1"></i> Delete
+            </button>
         </div>
     </div>
 </div>
@@ -39,7 +58,7 @@
             
             <div class="mb-3">
                 <span class="text-muted small">State / Council Reg. Number</span>
-                <div class="fw-bold font-monospace text-dark">@(detail?.RegistrationNumber ?? "AYUSH-REG-VERIFIED")</div>
+                <div class="fw-bold font-monospace text-dark">@(detail?.RegistrationNumber ?? "Pending Verification")</div>
             </div>
 
             <div class="mb-3">
@@ -132,16 +151,16 @@
             }
         </div>
 
-        <!-- Verified Reviews -->
+        <!-- Patient Feedback -->
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-chat-heart text-success me-2"></i>Verified Patient Feedback</h5>
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-chat-heart text-success me-2"></i>Patient Feedback</h5>
                 <span class="badge bg-light text-dark border">@Model.Reviews.Count Reviews</span>
             </div>
 
             @if (!Model.Reviews.Any())
             {
-                <p class="text-muted small mb-0 py-3 text-center">No verified reviews recorded for this doctor.</p>
+                <p class="text-muted small mb-0 py-3 text-center">No reviews recorded for this doctor.</p>
             }
             else
             {
@@ -150,7 +169,7 @@
                     {
                         <div class="list-group-item px-0 py-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold small text-dark">@(r.User != null ? r.User.FullName : "Verified Patient")</span>
+                                <span class="fw-bold small text-dark">@(r.User != null ? r.User.FullName : "Patient")</span>
                                 <div class="text-warning small">
                                     @for (int i = 0; i < r.Rating; i++) { <span>★</span> }
                                 </div>
@@ -161,6 +180,33 @@
                     }
                 </div>
             }
+        </div>
+    </div>
+</div>
+
+<!-- Delete Doctor Modal -->
+<div class="modal fade" id="deleteDoctorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Doctor Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p>Are you sure you want to delete <strong>Dr. @doc.DoctorName</strong>?</p>
+                <div class="alert alert-light border small text-muted">
+                    <i class="bi bi-info-circle me-1 text-primary"></i> If this doctor has patient appointments or consultation records, the account will be safely <strong>soft-deleted</strong> to retain clinical records while immediately hiding them from public consultation listings.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="Delete" asp-route-id="@doc.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" id="btnConfirmDeleteDoctor" class="btn btn-danger rounded-pill px-4">
+                        Delete Doctor
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

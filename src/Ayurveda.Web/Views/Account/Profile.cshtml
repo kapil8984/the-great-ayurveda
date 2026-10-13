@@ -1,83 +1,506 @@
 @model Ayurveda.Application.ViewModels.UserProfileViewModel
 @{
-    ViewData["Title"] = "My Profile";
+    ViewData["Title"] = "My Account & Profile";
 }
 
-<div class="container py-4">
-    <h1 class="h3 fw-bold mb-4" style="font-family: Georgia, serif;">Account Settings & Addresses</h1>
+<div class="container py-4 my-2">
+    <!-- Success / Error Alert Toasts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4 d-flex align-items-center" role="alert" id="profileSuccessAlert">
+            <i class="bi bi-check-circle-fill fs-5 me-2 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4 d-flex align-items-center" role="alert" id="profileErrorAlert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="card p-4 shadow-sm border-0 rounded-4 text-center">
-                <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
-                    <i class="bi bi-person"></i>
+        <!-- Sidebar: Account Profile Summary -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="card p-4 shadow-sm border-0 rounded-4 text-center bg-white mb-4">
+                <div class="position-relative d-inline-block mx-auto mb-3">
+                    <img id="avatarPreviewSidebar" 
+                         src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/doctor-avatar.svg" : Model.ProfileImageUrl)" 
+                         alt="@Model.FullName" 
+                         class="rounded-circle shadow-sm object-fit-cover border border-3 border-success border-opacity-25" 
+                         style="width: 100px; height: 100px;" 
+                         onerror="this.src='/images/doctor-avatar.svg'" />
                 </div>
-                <h5 class="fw-bold text-dark mb-1">@Model.FullName</h5>
-                <p class="small text-muted mb-3">@Model.Email</p>
+                <h5 class="fw-bold text-dark mb-1 font-serif">@Model.FullName</h5>
+                <p class="small text-muted mb-3 text-truncate">@Model.Email</p>
 
                 <div class="list-group list-group-flush text-start small border-top pt-2">
-                    <div class="list-group-item d-flex justify-content-between px-0">
+                    <div class="list-group-item d-flex justify-content-between px-0 bg-transparent">
                         <span class="text-muted">Contact:</span>
-                        <span class="fw-medium">@(Model.ContactNumber ?? "Not set")</span>
+                        <span class="fw-medium text-dark">@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "Not set" : Model.ContactNumber)</span>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between px-0">
-                        <span class="text-muted">Total Orders:</span>
-                        <span class="fw-bold text-success">@Model.TotalOrders</span>
+                    <div class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                        <span class="text-muted">Orders:</span>
+                        <a asp-controller="Orders" asp-action="Index" class="fw-bold text-success text-decoration-none">@Model.TotalOrders View</a>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between px-0">
+                    <div class="list-group-item d-flex justify-content-between px-0 bg-transparent">
                         <span class="text-muted">Consultations:</span>
-                        <span class="fw-bold text-success">@Model.TotalAppointments</span>
+                        <a asp-controller="Doctors" asp-action="MyAppointments" class="fw-bold text-success text-decoration-none">@Model.TotalAppointments View</a>
                     </div>
                 </div>
 
-                <div class="mt-4">
-                    <a asp-controller="Orders" asp-action="Index" class="btn btn-outline-success w-100 btn-sm rounded-pill mb-2">View Orders</a>
-                    <a asp-controller="Doctors" asp-action="MyAppointments" class="btn btn-outline-secondary w-100 btn-sm rounded-pill mb-2">View Consultations</a>
-                    <button type="button" class="btn btn-outline-danger w-100 btn-sm rounded-pill" data-tga-logout data-action-url="/Account/Logout">
-                        <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                <!-- Profile Navigation Tabs -->
+                <div class="nav flex-column nav-pills mt-4 text-start gap-1" id="accountTabs" role="tablist">
+                    <button class="nav-link active rounded-pill px-3 py-2 text-start" id="tab-profile-btn" data-bs-toggle="pill" data-bs-target="#tab-profile" type="button" role="tab">
+                        <i class="bi bi-person-gear me-2"></i> Personal Details
                     </button>
+                    <button class="nav-link rounded-pill px-3 py-2 text-start" id="tab-addresses-btn" data-bs-toggle="pill" data-bs-target="#tab-addresses" type="button" role="tab">
+                        <i class="bi bi-geo-alt me-2"></i> Address Book (@Model.Addresses.Count)
+                    </button>
+                    <button class="nav-link rounded-pill px-3 py-2 text-start" id="tab-security-btn" data-bs-toggle="pill" data-bs-target="#tab-security" type="button" role="tab">
+                        <i class="bi bi-shield-lock me-2"></i> Password & Security
+                    </button>
+                    <button class="nav-link rounded-pill px-3 py-2 text-start text-danger" id="tab-danger-btn" data-bs-toggle="pill" data-bs-target="#tab-danger" type="button" role="tab">
+                        <i class="bi bi-trash3 me-2"></i> Delete Account
+                    </button>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <form asp-action="Logout" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger w-100 btn-sm rounded-pill">
+                            <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-8">
-            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0">Saved Delivery Addresses</h5>
+        <!-- Main Content Panes -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="tab-content" id="accountTabsContent">
+                
+                <!-- TAB 1: PERSONAL DETAILS (VIEW & EDIT) -->
+                <div class="tab-pane fade show active" id="tab-profile" role="tabpanel">
+                    <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4 bg-white mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h4 class="fw-bold text-dark font-serif mb-1">Personal Details</h4>
+                                <p class="text-muted small mb-0">Update your name, contact phone, date of birth, gender, and avatar photo.</p>
+                            </div>
+                        </div>
+
+                        <form asp-action="EditProfile" method="post" enctype="multipart/form-data" id="editProfileForm">
+                            @Html.AntiForgeryToken()
+
+                            <!-- Photo Upload with Live Preview -->
+                            <div class="mb-4 d-flex align-items-center gap-4">
+                                <div class="position-relative">
+                                    <img id="photoUploadPreview" 
+                                         src="@(string.IsNullOrEmpty(Model.ProfileImageUrl) ? "/images/doctor-avatar.svg" : Model.ProfileImageUrl)" 
+                                         alt="Profile Preview" 
+                                         class="rounded-circle shadow-sm object-fit-cover border border-2 border-warning" 
+                                         style="width: 80px; height: 80px;" 
+                                         onerror="this.src='/images/doctor-avatar.svg'" />
+                                </div>
+                                <div>
+                                    <label class="form-label small fw-semibold text-dark mb-1">Profile Photo</label>
+                                    <input type="file" name="ProfileImage" id="profilePhotoInput" class="form-control form-control-sm rounded-3" accept="image/*" />
+                                    <span class="text-xs text-muted">Supports JPG, PNG, WEBP (Max 5MB). Live preview updates immediately.</span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Full Name *</label>
+                                    <input type="text" name="FullName" id="inputFullName" value="@Model.FullName" class="form-control rounded-3" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Email Address</label>
+                                    <input type="email" value="@Model.Email" class="form-control rounded-3 bg-light text-muted" readonly />
+                                    <span class="text-xs text-muted">Login email cannot be modified directly.</span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Phone / Mobile</label>
+                                    <input type="tel" name="ContactNumber" id="inputContactNumber" value="@Model.ContactNumber" class="form-control rounded-3" placeholder="+91 98765 43210" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Date of Birth</label>
+                                    <input type="date" name="DateOfBirth" id="inputDateOfBirth" value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd"))" class="form-control rounded-3" max="@DateTime.UtcNow.ToString("yyyy-MM-dd")" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Gender</label>
+                                    <select name="Gender" id="inputGender" class="form-select rounded-3">
+                                        <option value="">Select Gender</option>
+                                        <option value="Male" selected="@(Model.Gender == "Male")">Male</option>
+                                        <option value="Female" selected="@(Model.Gender == "Female")">Female</option>
+                                        <option value="Other" selected="@(Model.Gender == "Other")">Other</option>
+                                        <option value="Prefer not to say" selected="@(Model.Gender == "Prefer not to say")">Prefer not to say</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-tga-gold px-4 py-2 rounded-pill fw-bold text-dark shadow-sm" id="btnSaveProfile">
+                                    <i class="bi bi-check2-circle me-1"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
-                @if (Model.Addresses != null && Model.Addresses.Any())
-                {
-                    <div class="row g-3">
-                        @foreach (var addr in Model.Addresses)
+                <!-- TAB 2: ADDRESS BOOK (ADD, EDIT, DELETE, SET DEFAULT) -->
+                <div class="tab-pane fade" id="tab-addresses" role="tabpanel">
+                    <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4 bg-white mb-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                            <div>
+                                <h4 class="fw-bold text-dark font-serif mb-1">Address Book</h4>
+                                <p class="text-muted small mb-0">Manage your shipping and delivery addresses for seamless Ayurvedic wellness deliveries.</p>
+                            </div>
+                            <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-xs fw-semibold" data-bs-toggle="modal" data-bs-target="#addAddressModal" id="btnOpenAddAddress">
+                                <i class="bi bi-plus-circle me-1"></i> Add New Address
+                            </button>
+                        </div>
+
+                        @if (Model.Addresses != null && Model.Addresses.Any())
                         {
-                            <div class="col-md-6">
-                                <div class="p-3 border rounded-3 bg-light position-relative">
-                                    <div class="fw-bold">@addr.RecipientName @(addr.IsDefault ? "(Default)" : "")</div>
-                                    <div class="small text-muted mb-1">@addr.Phone</div>
-                                    <div class="small text-dark mb-2">
-                                        @addr.AddressLine1, @addr.City, @addr.State - @addr.PostalCode
+                            <div class="row g-3" id="addressCardGrid">
+                                @foreach (var addr in Model.Addresses)
+                                {
+                                    <div class="col-md-6" id="addressCard-@addr.Id">
+                                        <div class="p-4 border rounded-4 bg-white position-relative h-100 d-flex flex-column shadow-xs @(addr.IsDefault ? "border-success border-2" : "")">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div class="fw-bold text-dark fs-6 address-recipient-name">@addr.RecipientName</div>
+                                                <div class="d-flex gap-1">
+                                                    @if (addr.IsDefault)
+                                                    {
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                                                            <i class="bi bi-check2 me-1"></i>Default
+                                                        </span>
+                                                    }
+                                                    <span class="badge bg-light text-secondary border rounded-pill">
+                                                        @addr.AddressType
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div class="small text-muted mb-1"><i class="bi bi-telephone me-1"></i> @addr.Phone</div>
+                                            <div class="small text-dark mb-3 flex-grow-1">
+                                                @addr.AddressLine1
+                                                @if (!string.IsNullOrWhiteSpace(addr.AddressLine2))
+                                                {
+                                                    <span>, @addr.AddressLine2</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(addr.Landmark))
+                                                {
+                                                    <div class="text-xs text-muted">Landmark: @addr.Landmark</div>
+                                                }
+                                                <div>@addr.City, @addr.State - <strong>@addr.PostalCode</strong></div>
+                                            </div>
+
+                                            <div class="pt-3 border-top d-flex justify-content-between align-items-center mt-auto">
+                                                @if (!addr.IsDefault)
+                                                {
+                                                    <form asp-action="SetDefaultAddress" asp-route-id="@addr.Id" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-link p-0 text-success text-decoration-none small fw-semibold">
+                                                            Set as Default
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-xs text-success fw-medium"><i class="bi bi-star-fill me-1"></i>Primary Address</span>
+                                                }
+
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editAddressModal-@addr.Id">
+                                                        <i class="bi bi-pencil me-1"></i> Edit
+                                                    </button>
+                                                    <form asp-action="DeleteAddress" asp-route-id="@addr.Id" method="post" class="d-inline" onsubmit="return confirm('Remove delivery address for @addr.RecipientName?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 btn-delete-address">
+                                                            <i class="bi bi-trash3"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="pt-2 border-top text-end">
-                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3"
-                                                data-confirm-action
-                                                data-confirm-title="Delete Delivery Address"
-                                                data-confirm-body="Are you sure you want to remove this delivery address? This action cannot be undone."
-                                                data-confirm-btn-text="Delete Address"
-                                                data-action-url="/account/delete-address/@addr.Id">
-                                            <i class="bi bi-trash3 me-1"></i> Delete
-                                        </button>
+
+                                    <!-- Edit Address Modal -->
+                                    <div class="modal fade" id="editAddressModal-@addr.Id" tabindex="-1">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content rounded-4 border-0 shadow">
+                                                <form asp-action="EditAddress" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="Id" value="@addr.Id" />
+                                                    <div class="modal-header border-0 pb-0">
+                                                        <h5 class="modal-title fw-bold">Edit Address</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body py-3">
+                                                        <div class="row g-2 mb-3">
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-semibold">Recipient Name *</label>
+                                                                <input type="text" name="RecipientName" value="@addr.RecipientName" class="form-control rounded-3" required />
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-semibold">Contact Phone *</label>
+                                                                <input type="tel" name="Phone" value="@addr.Phone" class="form-control rounded-3" required />
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Address Line 1 (Flat, House, Street) *</label>
+                                                            <input type="text" name="AddressLine1" value="@addr.AddressLine1" class="form-control rounded-3" required />
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Address Line 2 (Area, Colony)</label>
+                                                            <input type="text" name="AddressLine2" value="@addr.AddressLine2" class="form-control rounded-3" />
+                                                        </div>
+                                                        <div class="row g-2 mb-3">
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-semibold">Landmark</label>
+                                                                <input type="text" name="Landmark" value="@addr.Landmark" class="form-control rounded-3" />
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <label class="form-label small fw-semibold">Address Type</label>
+                                                                <select name="AddressType" class="form-select rounded-3">
+                                                                    <option value="Home" selected="@(addr.AddressType == Ayurveda.Domain.Enums.AddressType.Home)">Home</option>
+                                                                    <option value="Work" selected="@(addr.AddressType == Ayurveda.Domain.Enums.AddressType.Work)">Office / Work</option>
+                                                                    <option value="Other" selected="@(addr.AddressType == Ayurveda.Domain.Enums.AddressType.Other)">Other</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row g-2 mb-3">
+                                                            <div class="col-4">
+                                                                <label class="form-label small fw-semibold">City *</label>
+                                                                <input type="text" name="City" value="@addr.City" class="form-control rounded-3" required />
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <label class="form-label small fw-semibold">State *</label>
+                                                                <input type="text" name="State" value="@addr.State" class="form-control rounded-3" required />
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <label class="form-label small fw-semibold">PIN Code *</label>
+                                                                <input type="text" name="PostalCode" value="@addr.PostalCode" class="form-control rounded-3" required />
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-check form-switch">
+                                                            <input name="IsDefault" value="true" type="checkbox" class="form-check-input" id="isDef-@addr.Id" @(addr.IsDefault ? "checked" : "") />
+                                                            <label class="form-check-label small fw-semibold" for="isDef-@addr.Id">Set as default shipping address</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-0 pt-0">
+                                                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-primary rounded-pill px-4">Update Address</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-geo-alt display-4 d-block mb-2 text-secondary"></i>
+                                <p class="mb-3">No delivery addresses saved yet.</p>
+                                <button type="button" class="btn btn-success btn-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                                    <i class="bi bi-plus-circle me-1"></i> Add Your First Address
+                                </button>
                             </div>
                         }
                     </div>
-                }
-                else
-                {
-                    <p class="text-muted small mb-0">No saved addresses yet. Addresses are saved automatically when you complete checkout.</p>
-                }
+                </div>
+
+                <!-- TAB 3: PASSWORD & SECURITY -->
+                <div class="tab-pane fade" id="tab-security" role="tabpanel">
+                    <div class="card p-4 p-md-5 shadow-sm border-0 rounded-4 bg-white mb-4">
+                        <div class="mb-4">
+                            <h4 class="fw-bold text-dark font-serif mb-1">Change Account Password</h4>
+                            <p class="text-muted small mb-0">Maintain security by using a strong password with at least 8 characters.</p>
+                        </div>
+
+                        <form asp-action="ChangePassword" method="post" id="changePasswordForm">
+                            @Html.AntiForgeryToken()
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Current Password *</label>
+                                <input type="password" name="CurrentPassword" id="inputCurrentPassword" class="form-control rounded-3" required />
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">New Password *</label>
+                                    <input type="password" name="NewPassword" id="inputNewPassword" class="form-control rounded-3" minlength="8" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Confirm New Password *</label>
+                                    <input type="password" name="ConfirmNewPassword" id="inputConfirmPassword" class="form-control rounded-3" minlength="8" required />
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow-sm" id="btnUpdatePassword">
+                                    <i class="bi bi-lock me-1"></i> Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 4: DANGER ZONE - SOFT DELETE ACCOUNT -->
+                <div class="tab-pane fade" id="tab-danger" role="tabpanel">
+                    <div class="card p-4 p-md-5 shadow-sm border border-danger border-opacity-25 rounded-4 bg-white mb-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="p-3 bg-danger-subtle text-danger rounded-circle">
+                                <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                            </span>
+                            <div>
+                                <h4 class="fw-bold text-danger font-serif mb-1">Delete My Account</h4>
+                                <p class="text-muted small mb-0">Deactivate your account profile and erase personal credentials.</p>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning rounded-4 small mb-4">
+                            <strong>Note on Ayurvedic Records:</strong> Deleting your account will soft-delete your login credentials and immediately sign you out. Your past order invoices and clinical consultation history will be retained in encrypted archive storage in compliance with medical records regulations.
+                        </div>
+
+                        <div>
+                            <button type="button" class="btn btn-outline-danger px-4 py-2 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#deleteAccountModal" id="btnOpenDeleteAccountModal">
+                                <i class="bi bi-trash3 me-1"></i> Delete My Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal: Add New Address -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="AddAddress" method="post" id="addAddressForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-geo-alt text-success me-2"></i>Add Delivery Address</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Recipient Name *</label>
+                            <input type="text" name="RecipientName" id="addAddressRecipientName" class="form-control rounded-3" placeholder="e.g. Aarav Patel" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Contact Phone *</label>
+                            <input type="tel" name="Phone" id="addAddressPhone" class="form-control rounded-3" placeholder="+91 98765 43210" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Address Line 1 (Flat, House, Building, Street) *</label>
+                        <input type="text" name="AddressLine1" id="addAddressLine1" class="form-control rounded-3" placeholder="e.g. 104, Shanti Niketan Apt" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Address Line 2 (Area, Sector, Colony)</label>
+                        <input type="text" name="AddressLine2" id="addAddressLine2" class="form-control rounded-3" placeholder="e.g. MG Road, Indiranagar" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Landmark</label>
+                            <input type="text" name="Landmark" id="addAddressLandmark" class="form-control rounded-3" placeholder="e.g. Near Ayurvedic Pharmacy" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Address Type</label>
+                            <select name="AddressType" id="addAddressType" class="form-select rounded-3">
+                                <option value="Home">Home</option>
+                                <option value="Work">Office / Work</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold">City *</label>
+                            <input type="text" name="City" id="addAddressCity" class="form-control rounded-3" placeholder="Bengaluru" required />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold">State *</label>
+                            <input type="text" name="State" id="addAddressState" class="form-control rounded-3" placeholder="Karnataka" required />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold">PIN Code *</label>
+                            <input type="text" name="PostalCode" id="addAddressPostalCode" class="form-control rounded-3" placeholder="560038" required />
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input name="IsDefault" value="true" type="checkbox" class="form-check-input" id="addAddressIsDefault" />
+                        <label class="form-check-label small fw-semibold" for="addAddressIsDefault">Set as default delivery address</label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4" id="btnSubmitAddAddress">Save Address</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete Account Confirmation -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="DeleteAccount" method="post" id="deleteAccountForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Account Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-dark mb-2">Are you sure you want to delete your account? You will be signed out immediately and will not be able to log in with these credentials again.</p>
+                    <div class="form-check my-3">
+                        <input class="form-check-input" type="checkbox" id="confirmDeleteCheck" required />
+                        <label class="form-check-label small text-muted" for="confirmDeleteCheck">
+                            I understand that this action will deactivate my profile and sign me out.
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4" id="btnConfirmDeleteAccount">Delete Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Photo upload live preview
+        document.getElementById('profilePhotoInput')?.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    const preview = document.getElementById('photoUploadPreview');
+                    const sidebarPreview = document.getElementById('avatarPreviewSidebar');
+                    if (preview) preview.src = evt.target.result;
+                    if (sidebarPreview) sidebarPreview.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+}

@@ -14,6 +14,7 @@ public class Doctor
     public int AccessFailedCount { get; set; }
     public DateTime? LockoutEndUtc { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
 
     public virtual DoctorDetail? DoctorDetail { get; set; }
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();

@@ -187,7 +187,7 @@ public class AyurvedaDbContext : DbContext
         {
             entity.HasIndex(e => new { e.DoctorId, e.StartUtc })
                   .IsUnique()
-                  .HasFilter("[Status] NOT IN ('Cancelled', 'Declined')");
+                  .HasFilter("[Status] <> 'Cancelled' AND [Status] <> 'Declined'");
 
             entity.HasOne(a => a.Doctor)
                   .WithMany(d => d.Appointments)

@@ -7,7 +7,7 @@ using Ayurveda.Infrastructure.Data;
 
 namespace Ayurveda.Admin.Controllers;
 
-[Authorize(Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager,Admin")]
+[Authorize(Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager")]
 public class DashboardController : Controller
 {
     private readonly AyurvedaDbContext _context;
@@ -138,6 +138,12 @@ public class DashboardController : Controller
             .Take(6)
             .ToListAsync();
 
+        // Order Pipeline Funnel counts
+        var placedCount = await _context.Orders.CountAsync(o => o.Status == "Placed" || o.Status == "Confirmed" || o.Status == "Packed");
+        var shippedCount = await _context.Orders.CountAsync(o => o.Status == "Shipped" || o.Status == "OutForDelivery");
+        var deliveredCount = await _context.Orders.CountAsync(o => o.Status == "Delivered");
+        var cancelledCount = await _context.Orders.CountAsync(o => o.Status == "Cancelled");
+
         var model = new AdminDashboardViewModel
         {
             TotalRevenue = totalRev,
@@ -147,6 +153,10 @@ public class DashboardController : Controller
             PendingDoctorApprovals = pendingDoctorsCount,
             ConsultationsTodayCount = consultationsToday,
             LowStockProductsCount = lowStockCount,
+            OrdersPlacedCount = placedCount,
+            OrdersShippedCount = shippedCount,
+            OrdersDeliveredCount = deliveredCount,
+            OrdersCancelledCount = cancelledCount,
             RecentOrders = recentOrders,
             PendingDoctors = pendingDocs,
             LowStockAlerts = lowStockProducts,

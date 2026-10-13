@@ -1,6 +1,16 @@
 @model Ayurveda.Application.ViewModels.AdminDashboardViewModel
 @{
     ViewData["Title"] = "Executive Admin Dashboard";
+    var totalConsults = Model.VideoConsultationsCount + Model.AudioConsultationsCount + Model.ChatConsultationsCount;
+    var safeConsults = Math.Max(1, totalConsults);
+    var videoPct = Math.Round((double)Model.VideoConsultationsCount / safeConsults * 100);
+    var audioPct = Math.Round((double)Model.AudioConsultationsCount / safeConsults * 100);
+    var chatPct = Math.Round((double)Model.ChatConsultationsCount / safeConsults * 100);
+
+    var totalPipeline = Math.Max(1, Model.OrdersPlacedCount + Model.OrdersShippedCount + Model.OrdersDeliveredCount + Model.OrdersCancelledCount);
+    var placedPct = Math.Round((double)Model.OrdersPlacedCount / totalPipeline * 100);
+    var shippedPct = Math.Round((double)Model.OrdersShippedCount / totalPipeline * 100);
+    var deliveredPct = Math.Round((double)Model.OrdersDeliveredCount / totalPipeline * 100);
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -18,14 +28,14 @@
     </div>
 </div>
 
-<!-- 8 Strategic KPI Cards -->
+<!-- 8 Strategic KPI Cards with Animated Count-Ups -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Gross Revenue</span>
-                    <h3 class="fw-bold text-success mb-0 mt-1">₹@Model.TotalRevenue.ToString("N0")</h3>
+                    <h3 class="fw-bold text-success mb-0 mt-1 admin-kpi-number" data-target="@Model.TotalRevenue" data-prefix="₹" data-decimals="0">₹@Model.TotalRevenue.ToString("N0")</h3>
                     <small class="text-muted">Total marketplace volume</small>
                 </div>
                 <div class="rounded-circle bg-success-subtle text-success p-3 fs-4">
@@ -36,11 +46,11 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Orders Placed</span>
-                    <h3 class="fw-bold text-dark mb-0 mt-1">@Model.TotalOrders</h3>
+                    <h3 class="fw-bold text-dark mb-0 mt-1 admin-kpi-number" data-target="@Model.TotalOrders">@Model.TotalOrders</h3>
                     <small class="text-muted">Avg: ₹@Model.AverageOrderValue.ToString("N0") AOV</small>
                 </div>
                 <div class="rounded-circle bg-primary-subtle text-primary p-3 fs-4">
@@ -51,11 +61,11 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Active Patients</span>
-                    <h3 class="fw-bold text-dark mb-0 mt-1">@Model.TotalCustomers</h3>
+                    <h3 class="fw-bold text-dark mb-0 mt-1 admin-kpi-number" data-target="@Model.TotalCustomers">@Model.TotalCustomers</h3>
                     <small class="text-muted">Registered accounts</small>
                 </div>
                 <div class="rounded-circle bg-info-subtle text-info p-3 fs-4">
@@ -66,11 +76,11 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Active Vaidyas</span>
-                    <h3 class="fw-bold text-dark mb-0 mt-1">@Model.ActiveDoctorsCount</h3>
+                    <h3 class="fw-bold text-dark mb-0 mt-1 admin-kpi-number" data-target="@Model.ActiveDoctorsCount">@Model.ActiveDoctorsCount</h3>
                     <small class="text-muted">Verified &amp; practicing</small>
                 </div>
                 <div class="rounded-circle bg-success-subtle text-success p-3 fs-4">
@@ -81,11 +91,11 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Consultations Today</span>
-                    <h3 class="fw-bold text-primary mb-0 mt-1">@Model.ConsultationsTodayCount</h3>
+                    <h3 class="fw-bold text-primary mb-0 mt-1 admin-kpi-number" data-target="@Model.ConsultationsTodayCount">@Model.ConsultationsTodayCount</h3>
                     <small class="text-muted">Scheduled for today</small>
                 </div>
                 <div class="rounded-circle bg-primary-subtle text-primary p-3 fs-4">
@@ -96,11 +106,11 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Low-Stock SKUs</span>
-                    <h3 class="fw-bold text-danger mb-0 mt-1">@Model.LowStockProductsCount</h3>
+                    <h3 class="fw-bold text-danger mb-0 mt-1 admin-kpi-number" data-target="@Model.LowStockProductsCount">@Model.LowStockProductsCount</h3>
                     <small class="text-muted">&lt; 10 units in warehouse</small>
                 </div>
                 <div class="rounded-circle bg-danger-subtle text-danger p-3 fs-4">
@@ -111,11 +121,11 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Doctor Approvals</span>
-                    <h3 class="fw-bold text-warning mb-0 mt-1">@Model.PendingDoctorApprovals</h3>
+                    <h3 class="fw-bold text-warning mb-0 mt-1 admin-kpi-number" data-target="@Model.PendingDoctorApprovals">@Model.PendingDoctorApprovals</h3>
                     <small class="text-muted">Credentials awaiting audit</small>
                 </div>
                 <div class="rounded-circle bg-warning-subtle text-warning p-3 fs-4">
@@ -126,11 +136,11 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100">
+        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold">Average Order Value</span>
-                    <h3 class="fw-bold text-success mb-0 mt-1">₹@Model.AverageOrderValue.ToString("N0")</h3>
+                    <h3 class="fw-bold text-success mb-0 mt-1 admin-kpi-number" data-target="@Model.AverageOrderValue" data-prefix="₹" data-decimals="0">₹@Model.AverageOrderValue.ToString("N0")</h3>
                     <small class="text-muted">Basket size telemetry</small>
                 </div>
                 <div class="rounded-circle bg-success-subtle text-success p-3 fs-4">
@@ -141,39 +151,30 @@
     </div>
 </div>
 
-<!-- Middle Row: Sales Trend & Telemedicine Mode Distribution -->
+<!-- Middle Row: 7-Day Sales Trend (Chart.js Line) & Telemedicine Real Counts -->
 <div class="row g-4 mb-4">
-    <!-- 7-Day Sales Trend Bar Chart -->
+    <!-- Chart.js 7-Day Sales Trend Line Chart -->
     <div class="col-lg-8">
         <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart-line text-success me-2"></i>7-Day Marketplace Sales Trend</h5>
-                <span class="badge bg-light text-dark border">Recent Daily Gross</span>
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-graph-up text-success me-2"></i>7-Day Marketplace Sales Trend</h5>
+                    <small class="text-muted">Real-time daily transaction volume via Chart.js</small>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                    <i class="bi bi-circle-fill text-success me-1" style="font-size: 0.5rem;"></i> Live Telemetry
+                </span>
             </div>
 
-            <div class="d-flex align-items-end justify-content-between gap-2 pt-4 pb-2" style="height: 180px;">
-                @{
-                    var maxSales = Model.SalesTrendAmounts.Any() ? Math.Max(1m, Model.SalesTrendAmounts.Max()) : 1m;
-                }
-                @for (int i = 0; i < Model.SalesTrendDates.Count; i++)
-                {
-                    var date = Model.SalesTrendDates[i];
-                    var amt = Model.SalesTrendAmounts[i];
-                    var heightPct = Math.Max(12, (int)Math.Round((amt / maxSales) * 100));
-
-                    <div class="d-flex flex-column align-items-center flex-grow-1" style="height: 100%;">
-                        <div class="small fw-bold text-muted mb-auto" style="font-size: 0.7rem;">₹@amt.ToString("N0")</div>
-                        <div class="w-100 rounded-3 bg-success opacity-75 hover-opacity-100 transition" 
-                             style="height: @(heightPct)%; max-width: 44px; min-height: 12px;" 
-                             title="@date: ₹@amt.ToString("N0")"></div>
-                        <div class="small text-muted mt-2 fw-semibold" style="font-size: 0.75rem;">@date</div>
-                    </div>
-                }
+            <div style="position: relative; height: 260px; width: 100%;">
+                <canvas id="adminSalesTrendChart" 
+                        data-dates='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesTrendDates))' 
+                        data-amounts='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesTrendAmounts))'></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Telemedicine Volume Distribution -->
+    <!-- Telemedicine Volume Distribution from REAL database counts -->
     <div class="col-lg-4">
         <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -185,39 +186,129 @@
                 <div>
                     <div class="d-flex justify-content-between small fw-bold mb-1">
                         <span><i class="bi bi-camera-video text-primary me-1"></i> HD Video Consultations</span>
-                        <span>@Model.VideoConsultationsCount</span>
+                        <span class="text-primary">@videoPct% (@Model.VideoConsultationsCount)</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: @(Model.VideoConsultationsCount > 0 ? 65 : 20)%"></div>
+                    <div class="progress" style="height: 10px; border-radius: 6px; background-color: var(--admin-border-subtle);">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: @(videoPct)%; transition: width 0.8s ease;" aria-valuenow="@videoPct" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
 
                 <div>
                     <div class="d-flex justify-content-between small fw-bold mb-1">
                         <span><i class="bi bi-telephone text-success me-1"></i> Audio Tele-Calls</span>
-                        <span>@Model.AudioConsultationsCount</span>
+                        <span class="text-success">@audioPct% (@Model.AudioConsultationsCount)</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: @(Model.AudioConsultationsCount > 0 ? 25 : 15)%"></div>
+                    <div class="progress" style="height: 10px; border-radius: 6px; background-color: var(--admin-border-subtle);">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @(audioPct)%; transition: width 0.8s ease;" aria-valuenow="@audioPct" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
 
                 <div>
                     <div class="d-flex justify-content-between small fw-bold mb-1">
                         <span><i class="bi bi-chat-dots text-warning me-1"></i> Clinical Chat Consultations</span>
-                        <span>@Model.ChatConsultationsCount</span>
+                        <span class="text-warning">@chatPct% (@Model.ChatConsultationsCount)</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-warning" role="progressbar" style="width: @(Model.ChatConsultationsCount > 0 ? 10 : 10)%"></div>
+                    <div class="progress" style="height: 10px; border-radius: 6px; background-color: var(--admin-border-subtle);">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: @(chatPct)%; transition: width 0.8s ease;" aria-valuenow="@chatPct" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>
 
-            <hr class="my-3" />
+            <hr class="my-3 opacity-25" />
 
             <div class="d-flex justify-content-between small text-muted">
-                <span>Total Booked: <strong>@(Model.VideoConsultationsCount + Model.AudioConsultationsCount + Model.ChatConsultationsCount)</strong></span>
-                <span class="text-success"><i class="bi bi-shield-lock me-1"></i> Encrypted Rooms</span>
+                <span>Total Booked: <strong class="text-dark">@totalConsults</strong></span>
+                <span class="text-success"><i class="bi bi-shield-lock me-1"></i> Real DB Counts</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Charts & Order Pipeline Funnel Row -->
+<div class="row g-4 mb-4">
+    <!-- Chart.js Category Distribution Doughnut -->
+    <div class="col-lg-4">
+        <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-pie-chart text-success me-2"></i>Category Share</h5>
+                <a asp-controller="Categories" asp-action="Index" class="small text-success text-decoration-none">Manage</a>
+            </div>
+            <div style="position: relative; height: 230px; width: 100%;">
+                <canvas id="adminCategoryShareChart" 
+                        data-labels='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryDistribution.Select(c => c.CategoryName)))' 
+                        data-counts='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryDistribution.Select(c => c.ProductCount)))'></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js Top Products Bar Chart -->
+    <div class="col-lg-4">
+        <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart text-primary me-2"></i>Top Formulations</h5>
+                <a asp-controller="Products" asp-action="Index" class="small text-success text-decoration-none">Catalog</a>
+            </div>
+            <div style="position: relative; height: 230px; width: 100%;">
+                <canvas id="adminTopProductsChart" 
+                        data-titles='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopSellingProducts.Select(p => p.Title)))' 
+                        data-prices='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopSellingProducts.Select(p => p.Price)))'></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Pipeline Funnel -->
+    <div class="col-lg-4">
+        <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-funnel text-warning me-2"></i>Order Pipeline Funnel</h5>
+                <a asp-controller="Orders" asp-action="Index" class="small text-success text-decoration-none">Orders Queue</a>
+            </div>
+
+            <div class="d-flex flex-column gap-3 py-1">
+                <div class="p-2 rounded-3" style="background: rgba(59, 130, 246, 0.08);">
+                    <div class="d-flex justify-content-between small fw-bold text-primary mb-1">
+                        <span><i class="bi bi-box me-1"></i> Placed &amp; Processing</span>
+                        <span>@Model.OrdersPlacedCount (@placedPct%)</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-primary" style="width: @(placedPct)%"></div>
+                    </div>
+                </div>
+
+                <div class="p-2 rounded-3" style="background: rgba(227, 167, 47, 0.08);">
+                    <div class="d-flex justify-content-between small fw-bold text-warning mb-1">
+                        <span><i class="bi bi-truck me-1"></i> Dispatched / In Transit</span>
+                        <span>@Model.OrdersShippedCount (@shippedPct%)</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-warning" style="width: @(shippedPct)%"></div>
+                    </div>
+                </div>
+
+                <div class="p-2 rounded-3" style="background: rgba(31, 94, 59, 0.08);">
+                    <div class="d-flex justify-content-between small fw-bold text-success mb-1">
+                        <span><i class="bi bi-check2-circle me-1"></i> Fulfilled &amp; Delivered</span>
+                        <span>@Model.OrdersDeliveredCount (@deliveredPct%)</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: @(deliveredPct)%"></div>
+                    </div>
+                </div>
+
+                @if (Model.OrdersCancelledCount > 0)
+                {
+                    <div class="p-2 rounded-3" style="background: rgba(239, 68, 68, 0.08);">
+                        <div class="d-flex justify-content-between small fw-bold text-danger mb-1">
+                            <span><i class="bi bi-x-circle me-1"></i> Cancelled</span>
+                            <span>@Model.OrdersCancelledCount</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <hr class="my-2 opacity-25" />
+            <div class="small text-muted text-center">
+                Total pipeline volume: <strong class="text-dark">@Model.TotalOrders</strong> orders
             </div>
         </div>
     </div>
@@ -238,7 +329,7 @@
                 <div class="list-group list-group-flush">
                     @foreach (var doc in Model.PendingDoctors)
                     {
-                        <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                        <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center border-bottom">
                             <div>
                                 <h6 class="fw-bold mb-1">Dr. @doc.DoctorName</h6>
                                 <div class="small text-muted">@doc.Qualification • @doc.ExperienceYears Yrs Exp • @doc.Specialization</div>
@@ -313,7 +404,7 @@
     </div>
 </div>
 
-<!-- Bottom Row: Low Stock Alerts & Recent Audit Activity -->
+<!-- Bottom Row: Low Stock Alerts & Live-Looking Activity Feed -->
 <div class="row g-4">
     <!-- Low Stock Inventory Alerts -->
     <div class="col-lg-6">
@@ -368,25 +459,32 @@
         </div>
     </div>
 
-    <!-- Recent System Audit Activity -->
+    <!-- Live Activity Feed (Audit Trail) -->
     <div class="col-lg-6">
         <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-check text-success me-2"></i>Recent Security Audit Trail</h5>
-                <a asp-controller="Audit" asp-action="Index" class="small text-success fw-semibold text-decoration-none">Complete Audit Log</a>
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-activity text-success me-2"></i>Live Activity Feed</h5>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small" style="font-size: 0.65rem;">
+                        <span class="spinner-grow spinner-grow-sm me-1 text-success" style="width: 0.5rem; height: 0.5rem;"></span> Real-time
+                    </span>
+                </div>
+                <a asp-controller="Audit" asp-action="Index" class="small text-success fw-semibold text-decoration-none">Audit Trail</a>
             </div>
 
             @if (Model.RecentAuditLogs != null && Model.RecentAuditLogs.Any())
             {
-                <div class="list-group list-group-flush">
+                <div class="activity-feed-timeline">
                     @foreach (var log in Model.RecentAuditLogs)
                     {
-                        <div class="list-group-item px-0 py-2">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="badge bg-secondary-subtle text-secondary small">@log.Action</span>
-                                <span class="text-muted" style="font-size: 0.725rem;">@log.Timestamp.ToString("dd MMM, hh:mm tt")</span>
+                        var dotColor = log.Action.Contains("Approve") ? "success" : log.Action.Contains("Delete") ? "danger" : "primary";
+                        <div class="activity-feed-item">
+                            <span class="activity-feed-dot bg-@dotColor"></span>
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <span class="badge bg-@dotColor-subtle text-@dotColor small">@log.Action</span>
+                                <span class="activity-feed-time">@log.Timestamp.ToString("dd MMM, hh:mm tt")</span>
                             </div>
-                            <div class="small fw-semibold text-dark">@log.EntityName: @log.Details</div>
+                            <div class="small fw-semibold text-dark mt-1">@log.EntityName: @log.Details</div>
                             <div class="text-muted" style="font-size: 0.725rem;">Actor: @log.UserEmail (IP: @log.IpAddress)</div>
                         </div>
                     }

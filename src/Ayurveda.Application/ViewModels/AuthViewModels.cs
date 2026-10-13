@@ -77,18 +77,38 @@ public class AdminLoginViewModel
 {
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public string? TotpCode { get; set; }
     public bool RememberMe { get; set; }
     public string? ReturnUrl { get; set; }
+    public string? TotpCode { get; set; }
 }
 
 public class UserProfileViewModel
 {
+    public int Id { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? ContactNumber { get; set; }
+    public DateTime? DateOfBirth { get; set; }
     public string? Gender { get; set; }
+    public string? ProfileImageUrl { get; set; }
+    public DateTime CreatedAt { get; set; }
     public int TotalOrders { get; set; }
     public int TotalAppointments { get; set; }
     public List<AddressViewModel> Addresses { get; set; } = new();
+}
+
+public class EditProfileInputModel
+{
+    public string FullName { get; set; } = string.Empty;
+    public string? ContactNumber { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? Gender { get; set; }
+    public IFormFile? ProfileImage { get; set; }
+}
+
+public class ChangePasswordInputModel
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmNewPassword { get; set; } = string.Empty;
 }

@@ -3,6 +3,10 @@ document.addEventListener("DOMContentLoaded", function () {
     initAdminSearchBox();
     initConfirmModal();
     initIdleTimeoutModal();
+    initThemeToggle();
+    initSidebarToggle();
+    initKpiCounterAnimation();
+    initDashboardCharts();
 });
 
 function initAdminSearchBox() {
@@ -414,5 +418,264 @@ function initIdleTimeoutModal() {
     });
 
     resetIdleTimer();
+}
+
+// --------------------------------------------------------------------------
+// 4. DARK/LIGHT THEME SWITCHER
+// --------------------------------------------------------------------------
+function initThemeToggle() {
+    const savedTheme = localStorage.getItem("tga-admin-theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+
+    const toggleBtns = document.querySelectorAll(".theme-toggle-btn, #adminThemeToggle");
+    toggleBtns.forEach(btn => {
+        updateToggleBtnIcon(btn, savedTheme);
+        btn.addEventListener("click", () => {
+            const current = document.documentElement.getAttribute("data-theme") || "light";
+            const next = current === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("tga-admin-theme", next);
+            toggleBtns.forEach(b => updateToggleBtnIcon(b, next));
+
+            // Re-render charts with updated theme palette if Chart is present
+            if (window.tgaCharts) {
+                window.tgaCharts.forEach(c => {
+                    if (c && typeof c.update === "function") c.update();
+                });
+            }
+        });
+    });
+}
+
+function updateToggleBtnIcon(btn, theme) {
+    if (!btn) return;
+    const icon = btn.querySelector("i");
+    if (icon) {
+        if (theme === "dark") {
+            icon.className = "bi bi-sun-fill text-warning";
+        } else {
+            icon.className = "bi bi-moon-stars-fill text-muted";
+        }
+    }
+}
+
+// --------------------------------------------------------------------------
+// 5. COLLAPSIBLE SIDEBAR WITH ICONS
+// --------------------------------------------------------------------------
+function initSidebarToggle() {
+    const sidebar = document.querySelector("aside.admin-sidebar");
+    const toggleBtns = document.querySelectorAll("#adminSidebarToggle, .btn-toggle-sidebar");
+    if (!sidebar) return;
+
+    const isCollapsed = localStorage.getItem("tga-sidebar-collapsed") === "true";
+    if (isCollapsed) {
+        sidebar.classList.add("collapsed");
+    }
+
+    toggleBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            sidebar.classList.toggle("collapsed");
+            const collapsed = sidebar.classList.contains("collapsed");
+            localStorage.setItem("tga-sidebar-collapsed", collapsed);
+        });
+    });
+}
+
+// --------------------------------------------------------------------------
+// 6. ANIMATED KPI COUNT-UP CARDS
+// --------------------------------------------------------------------------
+function initKpiCounterAnimation() {
+    const kpiEls = document.querySelectorAll(".admin-kpi-number");
+    if (!kpiEls.length) return;
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    kpiEls.forEach(el => {
+        const target = parseFloat(el.getAttribute("data-target")) || 0;
+        const prefix = el.getAttribute("data-prefix") || "";
+        const suffix = el.getAttribute("data-suffix") || "";
+        const decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
+
+        if (prefersReducedMotion) {
+            el.textContent = prefix + (decimals > 0 ? target.toFixed(decimals) : target.toLocaleString("en-IN")) + suffix;
+            return;
+        }
+
+        const duration = 1200;
+        const start = performance.now();
+
+        function step(now) {
+            const progress = Math.min((now - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            const current = target * ease;
+            el.textContent = prefix + (decimals > 0 ? current.toFixed(decimals) : Math.round(current).toLocaleString("en-IN")) + suffix;
+
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            } else {
+                el.textContent = prefix + (decimals > 0 ? target.toFixed(decimals) : target.toLocaleString("en-IN")) + suffix;
+            }
+        }
+        requestAnimationFrame(step);
+    });
+}
+
+// --------------------------------------------------------------------------
+// 7. CHART.JS EXECUTIVE DASHBOARD CHARTS (LOCAL BUNDLE ONLY)
+// --------------------------------------------------------------------------
+function initDashboardCharts() {
+    window.tgaCharts = [];
+
+    // Dismiss skeleton loaders if present
+    const skeletonLoaders = document.querySelectorAll(".admin-skeleton-loading");
+    if (skeletonLoaders.length) {
+        setTimeout(() => {
+            skeletonLoaders.forEach(s => s.classList.remove("active"));
+        }, 300);
+    }
+
+    if (typeof Chart === "undefined") {
+        console.warn("Chart.js not loaded. Skipping dashboard charts.");
+        return;
+    }
+
+    // Chart.js global defaults
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    Chart.defaults.color = "#6B7280";
+
+    // 1. Sales Trend Line Chart
+    const salesCanvas = document.getElementById("adminSalesTrendChart");
+    if (salesCanvas) {
+        const dates = JSON.parse(salesCanvas.getAttribute("data-dates") || "[]");
+        const amounts = JSON.parse(salesCanvas.getAttribute("data-amounts") || "[]");
+
+        const lineChart = new Chart(salesCanvas, {
+            type: "line",
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: "Daily Revenue (₹)",
+                    data: amounts,
+                    borderColor: "#1F5E3B",
+                    backgroundColor: "rgba(31, 94, 59, 0.12)",
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: "#E3A72F",
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                return "₹ " + Number(ctx.parsed.y).toLocaleString("en-IN");
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: "rgba(0, 0, 0, 0.05)" },
+                        ticks: {
+                            callback: function (val) {
+                                return "₹" + Number(val).toLocaleString("en-IN");
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+        window.tgaCharts.push(lineChart);
+    }
+
+    // 2. Category Share Doughnut Chart
+    const catCanvas = document.getElementById("adminCategoryShareChart");
+    if (catCanvas) {
+        const labels = JSON.parse(catCanvas.getAttribute("data-labels") || "[]");
+        const counts = JSON.parse(catCanvas.getAttribute("data-counts") || "[]");
+
+        const doughnutChart = new Chart(catCanvas, {
+            type: "doughnut",
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: [
+                        "#1F5E3B", "#2C7E50", "#E3A72F", "#F5C55A", "#A4553A", "#C46D50", "#3B82F6", "#8B5CF6"
+                    ],
+                    borderWidth: 2,
+                    borderColor: "#FFFFFF"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: { boxWidth: 12, padding: 10, font: { size: 11 } }
+                    }
+                },
+                cutout: "68%"
+            }
+        });
+        window.tgaCharts.push(doughnutChart);
+    }
+
+    // 3. Top Products Bar Chart
+    const prodCanvas = document.getElementById("adminTopProductsChart");
+    if (prodCanvas) {
+        const titles = JSON.parse(prodCanvas.getAttribute("data-titles") || "[]");
+        const prices = JSON.parse(prodCanvas.getAttribute("data-prices") || "[]");
+
+        const barChart = new Chart(prodCanvas, {
+            type: "bar",
+            data: {
+                labels: titles,
+                datasets: [{
+                    label: "Unit Price (₹)",
+                    data: prices,
+                    backgroundColor: "rgba(44, 126, 80, 0.8)",
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: "y",
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: "rgba(0, 0, 0, 0.05)" },
+                        ticks: {
+                            callback: function (val) { return "₹" + val; }
+                        }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            callback: function (val, idx) {
+                                const full = titles[idx] || "";
+                                return full.length > 20 ? full.slice(0, 18) + "…" : full;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        window.tgaCharts.push(barChart);
+    }
 }
 

@@ -50,7 +50,7 @@ public class DoctorsController : Controller
         var query = _context.Doctors
             .Include(d => d.DoctorDetail)
                 .ThenInclude(dd => dd!.Specialization)
-            .Where(d => d.DoctorDetail != null && d.DoctorDetail.Status == 1);
+            .Where(d => !d.IsDeleted && d.DoctorDetail != null && d.DoctorDetail.Status == 1);
 
         // Filter: Specialization
         if (!string.IsNullOrWhiteSpace(specialization))
@@ -173,6 +173,11 @@ public class DoctorsController : Controller
             SortBy = sortBy
         };
 
+        ViewBag.DoctorBanners = await _context.Banners
+            .Where(b => b.IsActive && b.Placement == "doctors")
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
         return View(model);
     }
 
@@ -280,19 +285,27 @@ public class DoctorsController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            // Fallback to active demo patient if browsing anonymously
-            user = await _context.Users.FirstOrDefaultAsync(u => u.Email != "admin@thegreatayurveda.com");
+            // Fallback to active demo customer if booking as guest
+            user = await _userManager.FindByEmailAsync("customer@ayurveda.com") 
+                ?? await _context.Users.FirstOrDefaultAsync(u => u.Email != "admin@ayurveda.com" && u.Email != "admin@thegreatayurveda.com");
+
             if (user == null)
             {
                 user = new ApplicationUser
                 {
                     UserName = "patient@thegreatayurveda.com",
                     Email = "patient@thegreatayurveda.com",
-                    FullName = model.PatientName,
-                    ContactNumber = model.PatientContact,
+                    FullName = string.IsNullOrWhiteSpace(model.PatientName) ? "Aarav Patel" : model.PatientName,
+                    ContactNumber = string.IsNullOrWhiteSpace(model.PatientContact) ? "+91 98765 12345" : model.PatientContact,
+                    EmailConfirmed = true,
+                    IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
-                await _userManager.CreateAsync(user, "PatientSecure@2026");
+                var createRes = await _userManager.CreateAsync(user, "PatientSecure@2026");
+                if (createRes.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(user, UserRole.Customer.ToString());
+                }
             }
         }
 
@@ -401,7 +414,7 @@ public class DoctorsController : Controller
 
         ViewBag.IsDoctor = isDoctor;
         ViewBag.IsPatient = isPatient;
-        ViewBag.IsWindowOpen = isWindowOpen || appt.Status == "Confirmed";
+        ViewBag.IsWindowOpen = true; // Always unlocked for simulated demo consultation
         ViewBag.RoomUrl = appt.MeetingRoomId ?? $"https://meet.jit.si/TheGreatAyurveda_Appt_{appt.Id}";
 
         return View(appt);

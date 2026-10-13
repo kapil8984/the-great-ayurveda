@@ -17,8 +17,9 @@ builder.Services.AddDbContext<AyurvedaDbContext>((_, options) =>
 {
     if (!options.IsConfigured)
     {
-        options.UseSqlServer(connectionString);
+        options.UseSqlServer(connectionString, b => b.MigrationsAssembly("Ayurveda.Infrastructure"));
     }
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
 // ASP.NET Core Identity
@@ -52,7 +53,6 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
-// Role & Policy-Based Authorization for Administrative Segregation
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireSuperAdmin", policy =>
@@ -85,58 +85,50 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Bootstrap admin staff accounts if needed
+// Connect to database initialized by Ayurveda.Web (Admin does NOT run migrations or seed)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
-    try
+    var db = services.GetRequiredService<AyurvedaDbContext>();
+    
+    if (db.Database.IsRelational())
     {
-        var db = services.GetRequiredService<AyurvedaDbContext>();
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole<int>>>();
-
-        if (db.Database.IsRelational())
+        logger.LogInformation("Verifying database connection for Ayurveda.Admin (migrations and seeding are handled by Ayurveda.Web)...");
+        const int maxRetries = 15;
+        var connected = false;
+        for (int retry = 1; retry <= maxRetries; retry++)
         {
-            await db.Database.MigrateAsync();
-        }
-
-        await DbInitializer.InitializeAsync(db, userManager, roleManager, logger);
-
-        // Ensure 4 administrative role accounts exist in dev/test
-        var adminAccounts = new (string Email, string Name, UserRole Role)[]
-        {
-            ("admin@thegreatayurveda.com", "System SuperAdmin", UserRole.SuperAdmin),
-            ("catalog@thegreatayurveda.com", "Catalog Manager", UserRole.CatalogManager),
-            ("support@thegreatayurveda.com", "Support Agent", UserRole.SupportAgent),
-            ("finance@thegreatayurveda.com", "Finance Manager", UserRole.FinanceManager)
-        };
-
-        foreach (var acc in adminAccounts)
-        {
-            var existingUser = await userManager.FindByEmailAsync(acc.Email);
-            if (existingUser == null)
+            try
             {
-                var newUser = new ApplicationUser
+                if (await db.Database.CanConnectAsync())
                 {
-                    UserName = acc.Email,
-                    Email = acc.Email,
-                    FullName = acc.Name,
-                    EmailConfirmed = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                var createResult = await userManager.CreateAsync(newUser, "AdminSecure@2026");
-                if (createResult.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(newUser, acc.Role.ToString());
-                    logger.LogInformation("Administrative account created: {Email} ({Role})", acc.Email, acc.Role);
+                    using var conn = db.Database.GetDbConnection();
+                    await conn.OpenAsync();
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'AspNetUsers'";
+                    var tableCount = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    if (tableCount > 0)
+                    {
+                        logger.LogInformation("Database connection verified successfully. Ayurveda.Admin ready.");
+                        connected = true;
+                        break;
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                logger.LogDebug("Waiting for database initialization... (Attempt {Retry}/{Max}): {Message}", retry, maxRetries, ex.Message);
+            }
+
+            logger.LogInformation("Database not ready yet, waiting for Ayurveda.Web to initialize... (Attempt {Retry}/{Max})", retry, maxRetries);
+            await Task.Delay(2000);
         }
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Failed to initialize Admin database.");
+
+        if (!connected)
+        {
+            logger.LogWarning("Warning: Database was not initialized within timeout. Ensure Ayurveda.Web is run first to perform database migration and seeding.");
+        }
     }
 }
 
@@ -148,6 +140,29 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Serve shared assets from Ayurveda.Web wwwroot (images) and shared uploads
+var sharedUploadsDir = FileStorageService.ResolveSharedUploadsPath(builder.Configuration);
+Directory.CreateDirectory(sharedUploadsDir);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(sharedUploadsDir),
+    RequestPath = "/uploads"
+});
+
+var webWwwRoot = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "Ayurveda.Web", "wwwroot"));
+if (Directory.Exists(webWwwRoot))
+{
+    var imagesPath = Path.Combine(webWwwRoot, "images");
+    if (Directory.Exists(imagesPath))
+    {
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(imagesPath),
+            RequestPath = "/images"
+        });
+    }
+}
 
 // Security Headers & Host Isolation
 app.Use(async (context, next) =>

@@ -1,0 +1,19 @@
+{
+  "name": "the-great-ayurveda",
+  "version": "1.0.0",
+  "description": "[![.NET 10.0](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/) [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Onion-success)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/src) [![Security](https://img.shields.io/badge/Security-OWASP%20Top%2010%20Hardened-blue)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/SECURITY_FIXES.md) [![Tests](https://img.shields.io/badge/Tests-106%20Passed%20(100%25)-brightgreen)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/tests/Ayurveda.API.Tests) [![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA%20Compliant-success)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/docs/quality/axe-accessibility-report.md)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.64.0"
+  }
+}
