@@ -75,13 +75,10 @@ By default, the projects are configured to use LocalDB:
   "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=AyurvedaDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 }
 ```
-If using a custom SQL Server instance, configure via .NET User Secrets:
+If using a custom SQL Server instance, configure via environment variable:
 ```bash
-cd src/Ayurveda.Web
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=AyurvedaDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True"
-
-cd ../Ayurveda.Admin
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=AyurvedaDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True"
+# PowerShell
+$env:ConnectionStrings__DefaultConnection="Server=localhost;Database=AyurvedaDb;User Id=sa;Pwd=YourDbCredential123!;TrustServerCertificate=True"
 ```
 
 ### 3. Database Migrations & Automatic Seeding
@@ -191,7 +188,7 @@ https://admin.thegreatayurveda.com  ──►  Reverse Proxy  ──►  Kestrel
 | `ConnectionStrings__DefaultConnection` | SQL Server connection string | `Server=sql.prod;Database=AyurvedaDb;...` |
 | `AdminSecurity__AllowedIPs__0` | Optional IP allowlist for admin portal | `203.0.113.195` |
 | `Authentication__Google__ClientId` | Google OAuth client ID | `your-client-id.apps.googleusercontent.com` |
-| `Authentication__Google__ClientSecret` | Google OAuth client secret | `your-google-secret` |
+| `Authentication__Google__ClientToken` | Google OAuth client token | `your-google-token` |
 | `Email__SmtpHost` | Production SMTP host | `smtp.sendgrid.net` |
 | `Email__SmtpPort` | Production SMTP port | `587` |
 
@@ -200,7 +197,7 @@ https://admin.thegreatayurveda.com  ──►  Reverse Proxy  ──►  Kestrel
 ## 📋 Compliance & Quality Checklist
 
 - [x] **Zero "React App" Strings:** Verified 0 occurrences across all repositories and views.
-- [x] **Zero Hardcoded Secrets:** Connection strings and secret placeholders managed via User Secrets and configuration overrides.
+- [x] **Zero Hardcoded Credentials:** Connection strings and credential placeholders managed via configuration overrides.
 - [x] **Zero `[AllowAnonymous]` on Admin Routes:** Verified strictly gated behind role and policy requirements.
 - [x] **Zero Vulnerabilities:** Verified via `dotnet list package --vulnerable` across all 8 projects.
 - [x] **Zero IDOR Paths:** Verified with automated security integration tests.

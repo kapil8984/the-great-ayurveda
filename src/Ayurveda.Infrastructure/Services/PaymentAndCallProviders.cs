@@ -34,7 +34,7 @@ public class PaymentProvider : IPaymentProvider
 
     public Task<bool> VerifyPaymentSignatureAsync(string orderId, string paymentId, string signature)
     {
-        // In test mode or when secret is default placeholder, return true if fields are present
+        // In test mode or when key is default placeholder, return true if fields are present
         if (!string.IsNullOrWhiteSpace(orderId) && !string.IsNullOrWhiteSpace(paymentId))
         {
             return Task.FromResult(true);

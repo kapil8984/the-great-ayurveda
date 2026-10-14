@@ -108,7 +108,7 @@ function logStep(name, status, details = '') {
         await docPage.goto(`${BASE_URL}/Account/Login?role=Doctor`, { waitUntil: 'domcontentloaded' });
 
         await docPage.fill('#loginForm input[name="Email"]', 'dr.aarav.sharma@thegreatayurveda.com');
-        await docPage.fill('#loginForm input[name="Password"]', 'DoctorPass@2026');
+        await docPage.fill('#loginForm input[name="Password"]', 'DevDemoPass_2026!#');
         await docPage.click('#loginForm button[type="submit"]');
         await docPage.waitForURL(url => !url.href.toLowerCase().includes('/account/login'), { timeout: 15000 });
 
@@ -148,7 +148,7 @@ function logStep(name, status, details = '') {
 
         // Log in as SuperAdmin
         await adminPage.fill('input[name="Email"]', 'admin@thegreatayurveda.com');
-        await adminPage.fill('input[name="Password"]', 'AdminSecure@2026');
+        await adminPage.fill('input[name="Password"]', 'DevAuth_Vaidya_2026!#');
         await adminPage.click('button[type="submit"]');
         await adminPage.waitForURL(url => url.href.toLowerCase().includes('/admin-portal/dashboard') || url.href.toLowerCase().endsWith('/admin-portal') || url.href.toLowerCase().endsWith('/admin-portal/'), { timeout: 15000 });
 

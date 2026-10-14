@@ -21,7 +21,7 @@
     </div>
 
     <div class="row g-4 mb-5">
-        <!-- Col 1: Bio, Credentials & Verified Reviews -->
+        <!-- Col 1: Bio, Credentials & Sample Reviews -->
         <div class="col-lg-8">
             <div class="card p-4 shadow-sm border-0 rounded-4 mb-4 bg-white">
                 <div class="d-flex flex-wrap align-items-center gap-4 mb-4">
@@ -43,9 +43,13 @@
                                 </span>
                             }
                         </div>
-                        <div class="badge bg-success-subtle text-success fs-6 mb-2">@Model.SpecializationName</div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-success-subtle text-success fs-6">@Model.SpecializationName</span>
+                            <span class="badge bg-light text-secondary border fw-normal">Sample doctor profile (fictional)</span>
+                        </div>
                         <div class="small text-muted d-flex flex-wrap gap-3">
-                            <span><i class="bi bi-patch-check-fill text-success me-1"></i> Reg: <strong>@(Model.RegistrationNumber ?? "Pending Verification")</strong></span>
+                            <span><i class="bi bi-info-circle text-muted me-1"></i> Sample doctor profile (fictional)</span>
+                            <span><i class="bi bi-patch-check text-muted me-1"></i> Reg: <strong>@(Model.RegistrationNumber ?? "Sample Demo Reg")</strong></span>
                             <span><i class="bi bi-bank text-secondary me-1"></i> @(Model.RegistrationCouncil ?? "Central Council of Indian Medicine (CCIM)")</span>
                         </div>
                     </div>
@@ -127,7 +131,7 @@
             <!-- Patient Reviews -->
             <div class="card p-4 shadow-sm border-0 rounded-4 mb-4 bg-white">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold text-dark mb-0 font-serif"><i class="bi bi-chat-heart text-success me-2"></i> Verified Patient Reviews</h5>
+                    <h5 class="fw-bold text-dark mb-0 font-serif"><i class="bi bi-chat-heart text-success me-2"></i> Patient Reviews (Sample Reviews)</h5>
                     <span class="badge bg-light text-dark border">@Model.ReviewCount Reviews</span>
                 </div>
 

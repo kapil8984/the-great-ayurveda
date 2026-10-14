@@ -225,7 +225,7 @@ async function testAdminLoginPage(browser) {
             const filledEmail = await page.inputValue('#Email');
             const filledPassword = await page.inputValue('#Password');
             assert(filledEmail === 'admin@ayurveda.com', `SuperAdmin chip filled email: ${filledEmail}`);
-            assert(filledPassword === 'Admin@123', `SuperAdmin chip filled password: ${filledPassword}`);
+            assert(filledPassword === 'DevAuth_Vaidya_2026!#', `SuperAdmin chip filled password: ${filledPassword}`);
 
             // Test Show/Hide password toggle
             console.log(`Testing Show/Hide password toggle...`);

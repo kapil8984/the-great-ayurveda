@@ -125,7 +125,7 @@ async function run() {
         // Login as Admin
         await adminPage.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'networkidle', timeout: 30000 });
         await adminPage.fill('input[name="Email"]', 'admin@thegreatayurveda.com');
-        await adminPage.fill('input[name="Password"]', 'AdminSecure@2026');
+        await adminPage.fill('input[name="Password"]', 'DevAuth_Vaidya_2026!#');
         await adminPage.click('button[type="submit"]');
         await adminPage.waitForTimeout(2000);
 

@@ -41,7 +41,7 @@ async function runGroup5Verification() {
         assert(emailInput !== null && passInput !== null, 'Admin login form fields present (#adminEmailInput, #adminPwdInput)');
 
         await emailInput.fill('admin@ayurveda.com');
-        await passInput.fill('Admin@123');
+        await passInput.fill('DevAuth_Vaidya_2026!#');
         await Promise.all([
             page.waitForURL(url => !url.href.includes('/Auth/Login'), { timeout: 20000 }),
             page.click('button[type="submit"]')

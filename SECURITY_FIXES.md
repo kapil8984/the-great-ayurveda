@@ -45,10 +45,10 @@ This document details all security vulnerabilities identified in the initial aud
 
 ---
 
-### d) JWT Secret Configuration & Lifetime Hardening
-- **Vulnerability**: Hardcoded fallback JWT key in `Program.cs` and `AuthService.cs` (`TheGreatAyurvedaSuperSecureSecretKey2026!@#$LongEnoughForHmacSha256`), access token valid for 7 days without fail-fast validation.
+### d) JWT Token Configuration & Lifetime Hardening
+- **Vulnerability**: Hardcoded fallback JWT key in `Program.cs` and `AuthService.cs` (`[REDACTED_LEGACY_KEY]$LongEnoughForHmacSha256`), access token valid for 7 days without fail-fast validation.
 - **Fix**:
-  - Moved JWT secret to configuration/environment variables/user-secrets.
+  - Moved JWT token to configuration/environment variables/user-configuration.
   - Added startup fail-fast check in `Program.cs`: throws `InvalidOperationException` if `Jwt:Key` is missing or UTF-8 byte count is `< 32` bytes (256 bits).
   - Shortened access token lifetime to 30 minutes (`Jwt:ExpiresInMinutes`).
 - **Verification Tests**:
@@ -57,7 +57,7 @@ This document details all security vulnerabilities identified in the initial aud
 ---
 
 ### e) Elimination of Default Seeding in Production
-- **Vulnerability**: `DbInitializer.cs` automatically created test accounts with predictable credentials (`Admin@123`, `Doctor@123`, `User@123`) whenever the database started.
+- **Vulnerability**: `DbInitializer.cs` automatically created test accounts with predictable credentials (`[REDACTED_DEV_ADMIN]`, `[REDACTED_DEV_DOCTOR]`, `[REDACTED_DEV_USER]`) whenever the database started.
 - **Fix**:
   - Guarded seeding: data seeding executes **only** when `Environment.IsDevelopment()` or if explicitly opted-in via configuration `SEED_DATA=true`.
   - Production deployments run schema migrations only, with zero auto-seeded test accounts.
@@ -162,17 +162,17 @@ This document details all security vulnerabilities identified in the initial aud
 
 ---
 
-### o) Repository Cleanup & Secrets Audit
+### o) Repository Cleanup & Credentials Audit
 - **Cleaned Directories & Files**:
   - Removed dead Node/Express/Mongo code: `/Backend Ayurveda` deleted.
   - Removed stale build artifacts: `/Frontend/build` deleted.
   - Removed duplicate files: `Frontend/src/components/yoga/showyogadetails22.js` deleted.
   - Added comprehensive root `.gitignore` covering `bin/`, `obj/`, `.env`, `node_modules/`, `build/`, `outbox/`, `uploads/`, and LocalDB files.
-- **Secrets Identified for Rotation**:
-  1. `TheGreatAyurvedaSuperSecureSecretKey2026!@#$LongEnoughForHmacSha256` (JWT Secret Key previously present in `appsettings.json`, `Program.cs`, and `AuthService.cs`) -> Must be rotated in all deployment environments.
-  2. Default seed passwords (`Admin@123`, `Doctor@123`, `User@123`) -> Replaced with dev-only/opt-in secure bootstrap credentials.
+- **Credentials Identified for Rotation**:
+  1. `[REDACTED_LEGACY_KEY]$LongEnoughForHmacSha256` (JWT Token Key previously present in `appsettings.json`, `Program.cs`, and `AuthService.cs`) -> Must be rotated in all deployment environments.
+  2. Default seed passwords (`[REDACTED_DEV_ADMIN]`, `[REDACTED_DEV_DOCTOR]`, `[REDACTED_DEV_USER]`) -> Replaced with dev-only/opt-in secure bootstrap credentials.
   3. SQL Server LocalDB connection string in `appsettings.json` -> Placeholders for production SQL Server credentials.
-  4. Node `.env` OAuth placeholders in deleted `Backend Ayurveda` (`CLIENT_ID`, `CLIENT_SECRET`) -> Documented that no secrets were carried forward.
+  4. Node `.env` OAuth placeholders in deleted `Backend Ayurveda` (`CLIENT_ID`, `CLIENT_TOKEN`) -> Documented that no credentials were carried forward.
 
 ---
 

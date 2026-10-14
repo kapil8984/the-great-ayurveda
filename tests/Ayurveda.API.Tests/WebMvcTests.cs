@@ -126,7 +126,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
             AllowAutoRedirect = false
         });
 
-        var response = await client.GetAsync("/admin-portal/Dashboard");
+        var response = await client.GetAsync("/admin-portal/dashboard");
 
         // Protected route must redirect to Admin Login (/admin-portal/auth/login)
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -228,7 +228,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
 
         // Section 8: Consult a doctor directory
         Assert.Contains("id=\"doctors\"", html);
-        Assert.Contains("Consult Qualified Ayurvedic Vaidyas", html);
+        Assert.Contains("Ayurvedic Physician Consultations", html);
 
         // Section 9: 3-step timeline
         Assert.Contains("How The Great Ayurveda Works", html);
@@ -375,7 +375,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Catalog_StoreListing_RendersSeededProductsAndFacetedFilters()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Shop");
+        var response = await client.GetAsync("/shop");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -393,7 +393,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Catalog_ProductDetails_RendersVariantsAndAyushDisclaimer()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Shop/Details/1");
+        var response = await client.GetAsync("/shop/details/1");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -411,7 +411,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Catalog_PincodeCheck_ValidPincode_ReturnsServiceableEta()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Shop/CheckPincode?pincode=110001");
+        var response = await client.GetAsync("/shop/checkpincode?pincode=110001");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadAsStringAsync();
@@ -424,7 +424,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Catalog_PincodeCheck_InvalidPincode_ReturnsError()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Shop/CheckPincode?pincode=123");
+        var response = await client.GetAsync("/shop/checkpincode?pincode=123");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadAsStringAsync();
@@ -443,11 +443,11 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
             ["productId"] = "1",
             ["quantity"] = "2"
         };
-        var postResponse = await client.PostAsync("/Cart/AddToCart", new FormUrlEncodedContent(form));
+        var postResponse = await client.PostAsync("/cart/addtocart", new FormUrlEncodedContent(form));
         Assert.True(postResponse.IsSuccessStatusCode || postResponse.StatusCode == HttpStatusCode.Redirect);
 
         // Fetch Cart page
-        var cartResponse = await client.GetAsync("/Cart");
+        var cartResponse = await client.GetAsync("/cart");
         Assert.Equal(HttpStatusCode.OK, cartResponse.StatusCode);
         var html = await cartResponse.Content.ReadAsStringAsync();
 
@@ -464,9 +464,9 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         
         // Ensure cart has item first
         var form = new Dictionary<string, string> { ["productId"] = "1", ["quantity"] = "1" };
-        await client.PostAsync("/Cart/AddToCart", new FormUrlEncodedContent(form));
+        await client.PostAsync("/cart/addtocart", new FormUrlEncodedContent(form));
 
-        var response = await client.GetAsync("/Checkout");
+        var response = await client.GetAsync("/checkout");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
 
@@ -482,7 +482,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task ECommerce_Wishlist_Index_RendersSuccessfully()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Wishlist");
+        var response = await client.GetAsync("/wishlist");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -494,7 +494,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task ECommerce_ProductCompare_RendersMatrix()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Shop/Compare?ids=1,2");
+        var response = await client.GetAsync("/shop/compare?ids=1,2");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -599,7 +599,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Doctors_Index_RendersSeededDoctors_AndEmergencyNotice()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Doctors");
+        var response = await client.GetAsync("/doctors");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -622,7 +622,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Doctors_Profile_RendersDoctorDetails_AndRegistrationNumber()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Doctors/Profile/1");
+        var response = await client.GetAsync("/doctors/profile/1");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -631,14 +631,14 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         Assert.Contains("Years", html);
         Assert.Contains("HD Video Call", html);
         Assert.Contains("Book Scheduled Slot", html);
-        Assert.Contains("Verified Patient Reviews", html);
+        Assert.Contains("Patient Reviews", html);
     }
 
     [Fact]
     public async Task Doctors_Book_RendersConsultationModes_AndISTTimezoneNotice()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Doctors/Book/1");
+        var response = await client.GetAsync("/doctors/book/1");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -655,7 +655,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Doctors_Prescription_RendersOfficialRx_AndAddToCartButton()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Doctors/Prescription/1");
+        var response = await client.GetAsync("/doctors/prescription/1");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -674,7 +674,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
             AllowAutoRedirect = false
         });
 
-        var response = await client.GetAsync("/DoctorPortal/Dashboard");
+        var response = await client.GetAsync("/doctorportal/dashboard");
 
         // Protected doctor portal must redirect to Login
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -698,7 +698,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
             ["ReviewText"] = "Great consultation, highly recommended!"
         });
 
-        var response = await client.PostAsync("/Doctors/SubmitReview", form);
+        var response = await client.PostAsync("/doctors/submitreview", form);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -728,8 +728,8 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Dashboard_RendersExecutiveKpis_WhenAuthenticated()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/admin-portal/Dashboard");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var response = await client.GetAsync("/admin-portal/dashboard");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -745,16 +745,16 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_DoctorManagement_AllowsDirectoryAudit_AndPendingQueue()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
 
-        var response = await client.GetAsync("/admin-portal/Doctors");
+        var response = await client.GetAsync("/admin-portal/doctors");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Contains("Doctor Practice Management", html);
         Assert.Contains("Registration No.", html);
 
-        var pendingResponse = await client.GetAsync("/admin-portal/Doctors/Pending");
+        var pendingResponse = await client.GetAsync("/admin-portal/doctors/pending");
         Assert.Equal(HttpStatusCode.OK, pendingResponse.StatusCode);
     }
 
@@ -762,8 +762,8 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Admin_AuthorizationMatrix_CatalogManager_CannotAccessFinancePages()
     {
         // Explicit acceptance test: CatalogManager role CANNOT open finance pages
-        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/admin-portal/Finance");
+        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var response = await client.GetAsync("/admin-portal/finance");
 
         // Should return 403 Forbidden or redirect to AccessDenied
         Assert.True(response.StatusCode == HttpStatusCode.Forbidden || 
@@ -773,8 +773,8 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Finance_AllowsFinanceManagerAccess_AndGstReportExport()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/admin-portal/Finance");
+        var client = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var response = await client.GetAsync("/admin-portal/finance");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -784,7 +784,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         Assert.Contains("Doctor Payouts &amp; Settlements", html);
 
         // Test GST CSV Export
-        var csvResponse = await client.GetAsync("/admin-portal/Finance/ExportGstCsv");
+        var csvResponse = await client.GetAsync("/admin-portal/finance/exportgstcsv");
         Assert.Equal(HttpStatusCode.OK, csvResponse.StatusCode);
         Assert.Equal("text/csv", csvResponse.Content.Headers.ContentType?.MediaType);
         var csv = await csvResponse.Content.ReadAsStringAsync();
@@ -796,8 +796,8 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_UserManagement_RendersUserList_AndGdprDataExport()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/admin-portal/Users");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var response = await client.GetAsync("/admin-portal/users");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -806,7 +806,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         Assert.Contains("Total Users:", html);
 
         // GDPR Data Export for customer account #1
-        var exportResponse = await client.GetAsync("/admin-portal/Users/ExportData/1");
+        var exportResponse = await client.GetAsync("/admin-portal/users/exportdata/1");
         Assert.Equal(HttpStatusCode.OK, exportResponse.StatusCode);
         Assert.Equal("application/json", exportResponse.Content.Headers.ContentType?.MediaType);
         var json = await exportResponse.Content.ReadAsStringAsync();
@@ -816,8 +816,8 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Products_AllowsCsvExport_AndInventoryTracking()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/admin-portal/Products");
+        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var response = await client.GetAsync("/admin-portal/products");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -826,7 +826,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         Assert.Contains("Shastriya Categories", html);
 
         // Bulk CSV Export
-        var csvResponse = await client.GetAsync("/admin-portal/Products/ExportCsv");
+        var csvResponse = await client.GetAsync("/admin-portal/products/exportcsv");
         Assert.Equal(HttpStatusCode.OK, csvResponse.StatusCode);
         Assert.Equal("text/csv", csvResponse.Content.Headers.ContentType?.MediaType);
         var csv = await csvResponse.Content.ReadAsStringAsync();
@@ -837,8 +837,8 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Audit_Trail_RendersSecurityLogs_ForSuperAdmin()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/admin-portal/Audit");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var response = await client.GetAsync("/admin-portal/audit");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -878,12 +878,12 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         });
 
         // POST logout with form token
-        var response = await client.PostAsync("/Account/Logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        var response = await client.PostAsync("/account/logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.Contains("/Account/Login", response.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
 
         // GET logout is strictly prohibited and redirects safely without performing destructive action
-        var getResponse = await client.GetAsync("/Account/Logout");
+        var getResponse = await client.GetAsync("/account/logout");
         Assert.Equal(HttpStatusCode.Redirect, getResponse.StatusCode);
         Assert.Contains("/Account/Login", getResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
     }
@@ -897,7 +897,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         });
 
         // Doctor portal login page renders without errors
-        var loginResponse = await client.GetAsync("/Account/Login?role=Doctor");
+        var loginResponse = await client.GetAsync("/account/login?role=Doctor");
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
         var html = await loginResponse.Content.ReadAsStringAsync();
 
@@ -908,8 +908,8 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task AdminPortal_RendersAccessibleConfirmModal_AndIdleTimeoutModal_WhenAuthenticated()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var response = await client.GetAsync("/admin-portal/Dashboard");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var response = await client.GetAsync("/admin-portal/dashboard");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
@@ -933,7 +933,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_LogoutPost_RequiresPost_AndRedirectsToAdminLoginWithToast()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
 
         var response = await client.PostAsync("/admin-portal/auth/logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -954,12 +954,12 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         });
 
         // Delete address without authentication redirects to login
-        var deleteResponse = await client.PostAsync("/Account/DeleteAddress/999", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        var deleteResponse = await client.PostAsync("/account/deleteaddress/999", new FormUrlEncodedContent(new Dictionary<string, string>()));
         Assert.Equal(HttpStatusCode.Redirect, deleteResponse.StatusCode);
         Assert.Contains("/Account/Login", deleteResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
 
         // Order cancel without authentication redirects to login
-        var cancelResponse = await client.PostAsync("/Orders/Cancel/999", new FormUrlEncodedContent(new Dictionary<string, string>()));
+        var cancelResponse = await client.PostAsync("/orders/cancel/999", new FormUrlEncodedContent(new Dictionary<string, string>()));
         Assert.Equal(HttpStatusCode.Redirect, cancelResponse.StatusCode);
         Assert.Contains("/Account/Login", cancelResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
     }

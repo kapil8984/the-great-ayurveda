@@ -49,14 +49,14 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
         var client = _webFactory.CreateClient();
 
         // 1. Customer Login
-        var customerLogin = await client.GetAsync("/Account/Login");
+        var customerLogin = await client.GetAsync("/account/login");
         Assert.Equal(HttpStatusCode.OK, customerLogin.StatusCode);
         var custHtml = await customerLogin.Content.ReadAsStringAsync();
         Assert.Contains("Patient Portal", custHtml);
         Assert.Contains("Holistic Healing Awaits", custHtml);
 
         // 2. Doctor Login
-        var doctorLogin = await client.GetAsync("/Account/Login?role=Doctor");
+        var doctorLogin = await client.GetAsync("/account/login?role=Doctor");
         Assert.Equal(HttpStatusCode.OK, doctorLogin.StatusCode);
         var docHtml = await doctorLogin.Content.ReadAsStringAsync();
         Assert.Contains("Doctor Portal", docHtml);
@@ -81,7 +81,7 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
     public async Task E2E_Search_Suggest_ReturnsGroupedJsonAndLatencyHeader()
     {
         var client = _webFactory.CreateClient();
-        var response = await client.GetAsync("/Search/Suggest?q=ashwa");
+        var response = await client.GetAsync("/search/suggest?q=ashwa");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
@@ -107,7 +107,7 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
             Assert.NotNull(product);
 
             // Add item to cart
-            var addResponse = await client.PostAsync("/Cart/AddToCart", new FormUrlEncodedContent(new Dictionary<string, string>
+            var addResponse = await client.PostAsync("/cart/addtocart", new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 { "productId", product.Id.ToString() },
                 { "quantity", "1" }
@@ -116,7 +116,7 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
         }
 
         // Checkout renders delivery addresses and summary
-        var checkoutResponse = await client.GetAsync("/Checkout");
+        var checkoutResponse = await client.GetAsync("/checkout");
         Assert.Equal(HttpStatusCode.OK, checkoutResponse.StatusCode);
         var checkoutHtml = await checkoutResponse.Content.ReadAsStringAsync();
         Assert.Contains("Checkout", checkoutHtml);
@@ -158,7 +158,7 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
             testDoctorId = pendingDoc.Id;
         }
 
-        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
+        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
 
         // Admin approves the doctor
         var approveResponse = await adminClient.PostAsync($"/admin-portal/Doctors/Approve?doctorId={testDoctorId}", new FormUrlEncodedContent(new Dictionary<string, string>()));
@@ -209,11 +209,11 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
         };
 
         // First booking attempt succeeds
-        var firstBook = await client.PostAsync("/Doctors/BookPost", new FormUrlEncodedContent(bookFormData));
+        var firstBook = await client.PostAsync("/doctors/bookpost", new FormUrlEncodedContent(bookFormData));
         Assert.True(firstBook.StatusCode == HttpStatusCode.Redirect || firstBook.StatusCode == HttpStatusCode.OK);
 
         // Second booking attempt for exact same doctor and slot is detected as double booking
-        var secondBook = await client.PostAsync("/Doctors/BookPost", new FormUrlEncodedContent(bookFormData));
+        var secondBook = await client.PostAsync("/doctors/bookpost", new FormUrlEncodedContent(bookFormData));
         Assert.Equal(HttpStatusCode.Redirect, secondBook.StatusCode);
         // Redirects back to booking page with error notice
         Assert.Contains($"/Doctors/Book/{doctorId}", secondBook.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
@@ -237,12 +237,12 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
         Assert.Contains("confirmModalCancelBtn", homeHtml);
 
         // 2. Doctor Portal Navigation Layout
-        var docLoginResponse = await webClient.GetAsync("/Account/Login?role=Doctor");
+        var docLoginResponse = await webClient.GetAsync("/account/login?role=Doctor");
         Assert.Equal(HttpStatusCode.OK, docLoginResponse.StatusCode);
 
         // 3. Admin Portal Layout
-        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var adminDash = await adminClient.GetAsync("/admin-portal/Dashboard");
+        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var adminDash = await adminClient.GetAsync("/admin-portal/dashboard");
         var adminHtml = await adminDash.Content.ReadAsStringAsync();
 
         Assert.Contains("id=\"confirmActionModal\"", adminHtml);
@@ -259,24 +259,24 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
     public async Task E2E_AdminAuthorizationMatrix_EnforcesRoleBoundaries()
     {
         // 1. CatalogManager: Allowed to view products, forbidden from finance
-        var catalogClient = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "AdminSecure@2026");
-        var productsResponse = await catalogClient.GetAsync("/admin-portal/Products");
+        var catalogClient = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var productsResponse = await catalogClient.GetAsync("/admin-portal/products");
         Assert.Equal(HttpStatusCode.OK, productsResponse.StatusCode);
 
-        var financeResponse = await catalogClient.GetAsync("/admin-portal/Finance");
+        var financeResponse = await catalogClient.GetAsync("/admin-portal/finance");
         Assert.True(financeResponse.StatusCode == HttpStatusCode.Forbidden || 
                     (financeResponse.StatusCode == HttpStatusCode.Redirect && financeResponse.Headers.Location?.ToString().Contains("accessdenied", StringComparison.OrdinalIgnoreCase) == true));
 
         // 2. FinanceManager: Allowed to view finance
-        var financeClient = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "AdminSecure@2026");
-        var financeOk = await financeClient.GetAsync("/admin-portal/Finance");
+        var financeClient = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var financeOk = await financeClient.GetAsync("/admin-portal/finance");
         Assert.Equal(HttpStatusCode.OK, financeOk.StatusCode);
 
         // 3. SuperAdmin: Allowed everywhere
-        var superAdminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "AdminSecure@2026");
-        var adminProducts = await superAdminClient.GetAsync("/admin-portal/Products");
-        var adminFinance = await superAdminClient.GetAsync("/admin-portal/Finance");
-        var adminAudit = await superAdminClient.GetAsync("/admin-portal/Audit");
+        var superAdminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var adminProducts = await superAdminClient.GetAsync("/admin-portal/products");
+        var adminFinance = await superAdminClient.GetAsync("/admin-portal/finance");
+        var adminAudit = await superAdminClient.GetAsync("/admin-portal/audit");
 
         Assert.Equal(HttpStatusCode.OK, adminProducts.StatusCode);
         Assert.Equal(HttpStatusCode.OK, adminFinance.StatusCode);

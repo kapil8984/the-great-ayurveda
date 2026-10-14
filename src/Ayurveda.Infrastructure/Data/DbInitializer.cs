@@ -70,7 +70,7 @@ public static class DbInitializer
                 {
                     adminPassword = configuration?["Admin:InitialPassword"]
                         ?? configuration?["DevDemo:AdminPassword"]
-                        ?? "AdminSecure@2026";
+                        ?? "DevAuth_Vaidya_2026!#";
                 }
 
                 var primaryAdminEmail = configuration?["Admin:InitialEmail"] ?? "admin@thegreatayurveda.com";
@@ -106,7 +106,7 @@ public static class DbInitializer
             // Seed subordinate staff roles only in Development
             if (isDev)
             {
-                var devStaffPassword = configuration?["DevDemo:AdminPassword"] ?? "AdminSecure@2026";
+                var devStaffPassword = configuration?["DevDemo:AdminPassword"] ?? "DevAuth_Vaidya_2026!#";
                 var devStaff = new (string Email, string Name, string[] Roles)[]
                 {
                     ("catalog@thegreatayurveda.com", "Catalog Manager", new[] { "CatalogManager" }),
@@ -454,7 +454,7 @@ public static class DbInitializer
             await SeedFestivalOffersAsync(context, logger);
 
             // 8. Seed 24 Fictional Ayurvedic Doctors (Phase 7)
-            await SeedDoctorsAsync(context, userManager, logger, isDev, configuration?["DevDemo:DoctorPassword"]);
+            await SeedDoctorsAsync(context, userManager, logger, isDev, configuration?["DevDemo:DoctorCredential"]);
 
             // Ensure doctor avatars are unique and assigned
             var allDoctors = await context.Doctors.Include(d => d.DoctorDetail).ToListAsync();
@@ -486,7 +486,7 @@ public static class DbInitializer
         UserManager<ApplicationUser> userManager,
         ILogger logger,
         bool isDev = true,
-        string? devDoctorPassword = null)
+        string? devDoctorCredential = null)
     {
         var categories = await context.Categories.ToListAsync();
         var defaultCat = categories.FirstOrDefault() ?? throw new InvalidOperationException("Categories not seeded");
@@ -595,7 +595,9 @@ public static class DbInitializer
         var eveningSlotsJson = "[\"05:30 PM\", \"06:00 PM\", \"06:30 PM\", \"07:00 PM\", \"07:30 PM\"]";
 
         int doctorCounter = 1;
-        var docPwd = devDoctorPassword ?? "DevDoctor@2026";
+        var docPwd = isDev 
+            ? (devDoctorCredential ?? "DevDemoPass_2026!#") 
+            : Guid.NewGuid().ToString("N") + "!Aa9#" + Guid.NewGuid().ToString("N");
         foreach (var def in doctorDefs)
         {
             var doctorContact = $"+91 98765 {43210 + doctorCounter:D5}";
@@ -614,6 +616,8 @@ public static class DbInitializer
                     Gender = def.Gender,
                     EmailConfirmed = true,
                     IsActive = true,
+                    LockoutEnabled = !isDev,
+                    LockoutEnd = !isDev ? DateTimeOffset.MaxValue : null,
                     CreatedAt = DateTime.UtcNow
                 };
                 var userRes = await userManager.CreateAsync(user, docPwd);
@@ -1580,7 +1584,7 @@ public static class DbInitializer
                 Brand = "VaidyaRoots",
                 CategoryName = "Women's Wellness",
                 SubcategoryName = "Cycle Support",
-                Description = "Revered formulation described in Charaka Samhita. Combines 26 herbs to manage excess secretions, backache, and cycle regularity.",
+                Description = "Revered formulation described in Charaka Samhita. Combines 26 herbs to manage excess fluid balance, backache, and cycle regularity.",
                 Price = 230m, Mrp = 280m, Stock = 40, Rating = 4.7,
                 ImageUrl = "/images/products/triphala.svg", Sku = "VR-WOM-002",
                 Tags = "pushyanug churna, leucorrhea, cycle balance, backache",
@@ -2218,113 +2222,15 @@ END
                         logger.LogInformation("Seeded standard demo customer {Email}", customerEmail);
                     }
                 }
-
-                // 4. Seed demo doctor user in Development only
-                var doctorDemoEmail = "dr.sharma@ayurveda.com";
-                var doctorDemoUser = await userManager.FindByEmailAsync(doctorDemoEmail);
-                if (doctorDemoUser == null)
-                {
-                    doctorDemoUser = new ApplicationUser
-                    {
-                        UserName = doctorDemoEmail,
-                        Email = doctorDemoEmail,
-                        FullName = "Dr. Rajeshwar Sharma",
-                        ContactNumber = "+91 98765 00001",
-                        EmailConfirmed = true,
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    var docRes = await userManager.CreateAsync(doctorDemoUser, "DevDoctor@2026");
-                    if (docRes.Succeeded)
-                    {
-                        await userManager.AddToRoleAsync(doctorDemoUser, UserRole.Doctor.ToString());
-                        logger.LogInformation("Seeded demo doctor {Email}", doctorDemoEmail);
-                    }
-                }
-
-                // Ensure Doctor entity exists in Doctors table and has DoctorDetail
-                var docRecord = await context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.Email == doctorDemoEmail);
-            if (docRecord == null)
-            {
-                var firstCat = await context.Categories.FirstOrDefaultAsync();
-                docRecord = new Doctor
-                {
-                    DoctorName = "Dr. Rajeshwar Sharma",
-                    Email = doctorDemoEmail,
-                    ContactNumber = "+91 98765 00001",
-                    ProfileImage = "/images/doctors/doctor-1.svg",
-                    Role = "Doctor",
-                    ApplicationUserId = doctorDemoUser.Id,
-                    CreatedAt = DateTime.UtcNow
-                };
-                context.Doctors.Add(docRecord);
-                await context.SaveChangesAsync();
-
-                var docDetail = new DoctorDetail
-                {
-                    DoctorId = docRecord.Id,
-                    SpecializationId = firstCat?.Id ?? 1,
-                    Qualification = "BAMS, MD (Ayurveda)",
-                    Experience = 15,
-                    ConsultationFee = 499.00m,
-                    ClinicAddress = "Ayurveda Wellness Chamber, Civil Lines, Jaipur",
-                    Bio = "Specialist in classical pulse diagnosis, gut metabolism (Agni), and chronic Panchakarma rehabilitation.",
-                    QualificationImage = "/images/doctors/doctor-1.svg",
-                    Status = 1, // Approved
-                    IsOnline = true,
-                    Rating = 4.9,
-                    ReviewCount = 42,
-                    CreatedAt = DateTime.UtcNow
-                };
-                context.DoctorDetails.Add(docDetail);
-                await context.SaveChangesAsync();
             }
-            else
-            {
-                docRecord.ApplicationUserId = doctorDemoUser.Id;
-                if (string.IsNullOrWhiteSpace(docRecord.ProfileImage) || !ImageFileExists(docRecord.ProfileImage))
-                {
-                    docRecord.ProfileImage = "/images/doctors/doctor-1.svg";
-                }
-                if (docRecord.DoctorDetail == null)
-                {
-                    var firstCat = await context.Categories.FirstOrDefaultAsync();
-                    docRecord.DoctorDetail = new DoctorDetail
-                    {
-                        DoctorId = docRecord.Id,
-                        SpecializationId = firstCat?.Id ?? 1,
-                        Qualification = "BAMS, MD (Ayurveda)",
-                        Experience = 15,
-                        ConsultationFee = 499.00m,
-                        ClinicAddress = "Ayurveda Wellness Chamber, Civil Lines, Jaipur",
-                        Bio = "Specialist in classical pulse diagnosis and gut metabolism.",
-                        QualificationImage = docRecord.ProfileImage,
-                        Status = 1,
-                        IsOnline = true,
-                        Rating = 4.9,
-                        ReviewCount = 42,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                }
-                else
-                {
-                    docRecord.DoctorDetail.Status = 1; // Approved
-                    if (string.IsNullOrWhiteSpace(docRecord.DoctorDetail.QualificationImage) || !ImageFileExists(docRecord.DoctorDetail.QualificationImage))
-                    {
-                        docRecord.DoctorDetail.QualificationImage = "/images/doctors/doctor-1.svg";
-                    }
-                }
-                await context.SaveChangesAsync();
-            }
-        }
 
-            // 5. Image Repair Step
+            // 4. Image Repair Step
             await RepairBrokenImagesAsync(context, logger);
 
-            // 6. Seed 8+ Banners
+            // 5. Seed 8+ Banners
             await SeedOrUpdateBannersAsync(context, logger);
 
-            // 7. Seed Festival Offers
+            // 6. Seed Festival Offers
             await SeedFestivalOffersAsync(context, logger);
         }
         catch (Exception ex)

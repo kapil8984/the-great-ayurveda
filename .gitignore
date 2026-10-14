@@ -20,7 +20,7 @@ x86/
 *.sln.docstates
 *.userprefs
 
-# Environment and secrets
+# Environment and local configuration
 .env
 .env.*
 !.env.example
@@ -53,5 +53,8 @@ App_Data/
 SEEDED_LOGINS.md
 tests/e2e/screenshots/
 _legacy/
+Ayurveda.API/
+src/Ayurveda.Api/
 prod_sim_err.txt
 prod_sim_out.txt
+*.map

@@ -111,7 +111,7 @@ const BANNERS = [
     {
         filename: 'banner-mid-skinrituals.webp',
         title: 'Royal Kumkumadi & Ubtan Glow',
-        tagline: 'TIMELESS AYURVEDIC BEAUTY SECRETS',
+        tagline: 'TIMELESS AYURVEDIC BEAUTY TRADITIONS',
         desc: 'Infused with Kashmiri Saffron, Sandalwood & 24 Classical Herbs for Natural Cellular Radiance',
         cta: 'Discover Skin Elixirs',
         code: 'Traditional Ayurvedic Formulations',

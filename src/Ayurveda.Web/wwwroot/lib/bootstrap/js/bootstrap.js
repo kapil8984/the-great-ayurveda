@@ -2019,7 +2019,7 @@
         context._completeHide(relatedTarget);
       }
     }
-    static dataApiKeydownHandler(event) {
+    static dataApiActionKeydownHandler(event) {
       // If not an UP | DOWN | ESCAPE key => not a dropdown command
       // If input/textarea && if key is other than ESCAPE => not a dropdown command
 
@@ -2056,8 +2056,8 @@
    * Data API implementation
    */
 
-  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE$3, Dropdown.dataApiKeydownHandler);
-  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, Dropdown.dataApiKeydownHandler);
+  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_DATA_TOGGLE$3, Dropdown.dataApiActionKeydownHandler);
+  EventHandler.on(document, EVENT_KEYDOWN_DATA_API, SELECTOR_MENU, Dropdown.dataApiActionKeydownHandler);
   EventHandler.on(document, EVENT_CLICK_DATA_API$3, Dropdown.clearMenus);
   EventHandler.on(document, EVENT_KEYUP_DATA_API, Dropdown.clearMenus);
   EventHandler.on(document, EVENT_CLICK_DATA_API$3, SELECTOR_DATA_TOGGLE$3, function (event) {

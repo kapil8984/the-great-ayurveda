@@ -128,6 +128,12 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+builder.Services.Configure<RouteOptions>(options =>
+{
+    options.LowercaseUrls = true;
+    options.LowercaseQueryStrings = false;
+});
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -240,6 +246,29 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 app.UseHttpsRedirection();
+
+// 301 Permanent Redirect for uppercase route paths to enforce strict lowercase canonical URLs
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if ((HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)) &&
+        !string.IsNullOrEmpty(path) &&
+        !path.StartsWith("/lib", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/images", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/css", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/js", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/favicon", StringComparison.OrdinalIgnoreCase) &&
+        path.Any(char.IsUpper))
+    {
+        var lowercaseUrl = path.ToLowerInvariant() + context.Request.QueryString;
+        context.Response.StatusCode = StatusCodes.Status301MovedPermanently;
+        context.Response.Headers.Location = lowercaseUrl;
+        return;
+    }
+    await next();
+});
+
 app.UseStaticFiles();
 
 // Ensure wwwroot/uploads directory exists for shared upload assets
@@ -290,7 +319,7 @@ app.MapAreaControllerRoute(
 app.MapGet("/robots.txt", (IConfiguration config, HttpContext httpContext) =>
 {
     var baseUrl = (config["Site:BaseUrl"] ?? config["SiteSettings:BaseUrl"] ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}").TrimEnd('/');
-    var content = $"User-agent: *\nDisallow: /admin-portal/\nDisallow: /admin-portal\nDisallow: /account/\nDisallow: /checkout/\nDisallow: /cart/\nDisallow: /doctor-portal/\n\nSitemap: {baseUrl}/sitemap.xml\n";
+    var content = $"User-agent: *\nDisallow: /admin-portal/\nDisallow: /admin-portal\nDisallow: /Admin-Portal/\nDisallow: /Admin-Portal\nDisallow: /account/\nDisallow: /account\nDisallow: /Account/\nDisallow: /Account\nDisallow: /checkout/\nDisallow: /checkout\nDisallow: /Checkout/\nDisallow: /Checkout\nDisallow: /cart/\nDisallow: /cart\nDisallow: /Cart/\nDisallow: /Cart\nDisallow: /doctorportal/\nDisallow: /doctorportal\nDisallow: /DoctorPortal/\nDisallow: /DoctorPortal\nDisallow: /doctor-portal/\nDisallow: /doctor-portal\nDisallow: /Doctor-Portal/\nDisallow: /Doctor-Portal\n\nSitemap: {baseUrl}/sitemap.xml\n";
     return Results.Text(content, "text/plain");
 });
 
@@ -301,7 +330,7 @@ app.MapGet("/sitemap.xml", async (AyurvedaDbContext db, IConfiguration config, H
     sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
     sb.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 
-    var staticPages = new[] { "", "/Shop", "/Doctors", "/Diseases", "/Home/About", "/Home/Contact", "/Home/Faq", "/Home/Privacy" };
+    var staticPages = new[] { "", "/shop", "/doctors", "/diseases", "/home/about", "/home/contact", "/home/faq", "/home/privacy" };
     foreach (var page in staticPages)
     {
         sb.AppendLine($"  <url><loc>{baseUrl}{page}</loc><changefreq>weekly</changefreq><priority>{(page == "" ? "1.0" : "0.8")}</priority></url>");
@@ -310,13 +339,13 @@ app.MapGet("/sitemap.xml", async (AyurvedaDbContext db, IConfiguration config, H
     var products = await db.Products.Where(p => p.IsActive).Select(p => p.Id).ToListAsync();
     foreach (var pId in products)
     {
-        sb.AppendLine($"  <url><loc>{baseUrl}/Shop/Details/{pId}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>");
+        sb.AppendLine($"  <url><loc>{baseUrl}/shop/details/{pId}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>");
     }
 
     var doctors = await db.Doctors.Where(d => !d.IsDeleted && d.DoctorDetail != null && d.DoctorDetail.Status == 1).Select(d => d.Id).ToListAsync();
     foreach (var dId in doctors)
     {
-        sb.AppendLine($"  <url><loc>{baseUrl}/Doctors/Profile/{dId}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>");
+        sb.AppendLine($"  <url><loc>{baseUrl}/doctors/profile/{dId}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>");
     }
 
     sb.AppendLine("</urlset>");

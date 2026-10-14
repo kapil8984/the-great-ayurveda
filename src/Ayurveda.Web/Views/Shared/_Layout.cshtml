@@ -12,7 +12,7 @@
             ?? "Experience authentic Ayurvedic healthcare, pure classical formulations, and Ayurvedic Vaidya consultations tailored to your Dosha (Vata, Pitta, Kapha).";
         var baseUrl = (Configuration["Site:BaseUrl"] ?? Configuration["SiteSettings:BaseUrl"] ?? $"{Context.Request.Scheme}://{Context.Request.Host}").TrimEnd('/');
         var canonicalUrl = ViewData["CanonicalUrl"] as string 
-            ?? $"{baseUrl}{Context.Request.Path}";
+            ?? $"{baseUrl}{Context.Request.Path}".ToLowerInvariant();
     }
     <meta name="description" content="@metaDescription" />
     <link rel="canonical" href="@canonicalUrl" />

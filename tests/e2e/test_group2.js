@@ -47,7 +47,7 @@ async function run() {
         console.log('\n--- 1. Testing Seeded Doctor Login ---');
         await webPage.goto(`${WEB_URL}/Account/Login?role=Doctor`, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await webPage.fill('#loginForm input[name="Email"]', 'dr.aarav.sharma@thegreatayurveda.com');
-        await webPage.fill('#loginForm input[name="Password"]', 'DoctorPass@2026');
+        await webPage.fill('#loginForm input[name="Password"]', 'DevDemoPass_2026!#');
         
         await Promise.all([
             webPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(e => console.log('Doc login nav note:', e.message)),
@@ -56,7 +56,7 @@ async function run() {
         await webPage.waitForTimeout(1500);
 
         console.log('URL after doctor login:', webPage.url());
-        assert(webPage.url().includes('/DoctorPortal/Dashboard') || webPage.url().includes('/doctorportal/dashboard'), 'Seeded doctor logs in with DoctorPass@2026 and reaches Clinical Dashboard');
+        assert(webPage.url().includes('/DoctorPortal/Dashboard') || webPage.url().includes('/doctorportal/dashboard'), 'Seeded doctor logs in with DevDemoPass_2026!# and reaches Clinical Dashboard');
         
         const docDashboardHtml = await webPage.content();
         assert(docDashboardHtml.includes('Clinical Overview') || docDashboardHtml.includes('Dr.') || docDashboardHtml.includes('Appointment'), 'Doctor dashboard renders clinical desk details');
@@ -128,8 +128,8 @@ async function run() {
         await webPage.fill('#wizardStep1 input[name="FullName"]', testDoctorName);
         await webPage.fill('#wizardStep1 input[name="Email"]', testDoctorEmail);
         await webPage.fill('#wizardStep1 input[name="ContactNumber"]', testDoctorPhone);
-        await webPage.fill('#wizardStep1 input[name="Password"]', 'DoctorPass@2026');
-        await webPage.fill('#wizardStep1 input[name="ConfirmPassword"]', 'DoctorPass@2026');
+        await webPage.fill('#wizardStep1 input[name="Password"]', 'DevDemoPass_2026!#');
+        await webPage.fill('#wizardStep1 input[name="ConfirmPassword"]', 'DevDemoPass_2026!#');
         await webPage.click('#wizardStep1 button:has-text("Next: Professional Details")');
         await webPage.waitForTimeout(500);
 
@@ -174,7 +174,7 @@ async function run() {
         console.log('\n--- 5. Testing Admin Doctor Approval Workflow ---');
         await adminPage.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await adminPage.fill('#adminEmailInput', 'admin@ayurveda.com');
-        await adminPage.fill('#adminPwdInput', 'Admin@123');
+        await adminPage.fill('#adminPwdInput', 'DevAuth_Vaidya_2026!#');
         await Promise.all([
             adminPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(e => {}),
             adminPage.click('button[type="submit"]')
@@ -213,7 +213,7 @@ async function run() {
             console.log('Session expired, logging in as approved doctor...');
             await webPage.goto(`${WEB_URL}/Account/Login?role=Doctor`, { waitUntil: 'domcontentloaded', timeout: 15000 });
             await webPage.fill('#loginForm input[name="Email"]', testDoctorEmail);
-            await webPage.fill('#loginForm input[name="Password"]', 'DoctorPass@2026');
+            await webPage.fill('#loginForm input[name="Password"]', 'DevDemoPass_2026!#');
             await Promise.all([
                 webPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(e => {}),
                 webPage.click('#loginForm button[type="submit"]')
@@ -239,8 +239,8 @@ async function run() {
         await webPage.fill('#wizardStep1 input[name="FullName"]', 'Dr. Reject Candidate');
         await webPage.fill('#wizardStep1 input[name="Email"]', rejectEmail);
         await webPage.fill('#wizardStep1 input[name="ContactNumber"]', rejectPhone);
-        await webPage.fill('#wizardStep1 input[name="Password"]', 'DoctorPass@2026');
-        await webPage.fill('#wizardStep1 input[name="ConfirmPassword"]', 'DoctorPass@2026');
+        await webPage.fill('#wizardStep1 input[name="Password"]', 'DevDemoPass_2026!#');
+        await webPage.fill('#wizardStep1 input[name="ConfirmPassword"]', 'DevDemoPass_2026!#');
         await webPage.click('#wizardStep1 button:has-text("Next: Professional Details")');
         await webPage.waitForTimeout(500);
 
@@ -322,7 +322,7 @@ async function run() {
         await webContext.clearCookies();
         await webPage.goto(`${WEB_URL}/Account/Login?role=Doctor`, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await webPage.fill('#loginForm input[name="Email"]', testDoctorEmail);
-        await webPage.fill('#loginForm input[name="Password"]', 'DoctorPass@2026');
+        await webPage.fill('#loginForm input[name="Password"]', 'DevDemoPass_2026!#');
         await Promise.all([
             webPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(e => {}),
             webPage.click('#loginForm button[type="submit"]')

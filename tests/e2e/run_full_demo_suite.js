@@ -338,7 +338,7 @@ async function run() {
         console.log('\n--- STEP 6: Admin Portal Deep Verification ---');
         await page.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'networkidle' });
         await page.fill('#adminEmailInput', 'admin@ayurveda.com');
-        await page.fill('#adminPwdInput', 'Admin@123');
+        await page.fill('#adminPwdInput', 'DevAuth_Vaidya_2026!#');
         await page.click('#adminLoginForm button[type="submit"]');
         await page.waitForTimeout(2000);
 

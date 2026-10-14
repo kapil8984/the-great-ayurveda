@@ -205,7 +205,7 @@ async function runGroup3Verification() {
         const adminPage = await context.newPage();
         await adminPage.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await adminPage.fill('#adminEmailInput', 'admin@ayurveda.com');
-        await adminPage.fill('#adminPwdInput', 'Admin@123');
+        await adminPage.fill('#adminPwdInput', 'DevAuth_Vaidya_2026!#');
         await Promise.all([
             adminPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }),
             adminPage.click('button[type="submit"]')
