@@ -130,9 +130,10 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Contact(string? name, string? email, string? subject, string? message)
     {
-        TempData["SuccessMessage"] = "Thank you! Your inquiry has been received by our Ayurvedic Care Team. (Note: Email dispatch is disabled in this demo).";
+        ViewBag.SubmissionNotice = "Notice: This website is a demonstration platform. Your message has NOT been delivered, processed, or stored, and this mailbox is unmonitored.";
         return View();
     }
 
@@ -143,6 +144,13 @@ public class HomeController : Controller
 
     public IActionResult Privacy()
     {
+        return View();
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error()
+    {
+        ViewBag.RequestId = HttpContext.TraceIdentifier;
         return View();
     }
 

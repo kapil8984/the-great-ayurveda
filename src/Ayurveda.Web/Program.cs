@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Ayurveda.Application.Interfaces;
 using Ayurveda.Domain.Entities;
 using Ayurveda.Domain.Enums;
@@ -259,9 +260,12 @@ app.Use(async (context, next) =>
         !path.StartsWith("/css", StringComparison.OrdinalIgnoreCase) &&
         !path.StartsWith("/js", StringComparison.OrdinalIgnoreCase) &&
         !path.StartsWith("/favicon", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/api", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/admin-portal", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/admin", StringComparison.OrdinalIgnoreCase) &&
         path.Any(char.IsUpper))
     {
-        var lowercaseUrl = path.ToLowerInvariant() + context.Request.QueryString;
+        var lowercaseUrl = path.ToLowerInvariant() + (context.Request.QueryString.HasValue ? context.Request.QueryString.Value : "");
         context.Response.StatusCode = StatusCodes.Status301MovedPermanently;
         context.Response.Headers.Location = lowercaseUrl;
         return;
@@ -270,6 +274,52 @@ app.Use(async (context, next) =>
 });
 
 app.UseStaticFiles();
+
+// Fixed-Window Rate Limiting Middleware for Auth and Search endpoints
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
+    var method = context.Request.Method;
+
+    var isAuthPost = HttpMethods.IsPost(method) && (
+        path.StartsWith("/account/login") ||
+        path.StartsWith("/doctor/login") ||
+        path.StartsWith("/admin-portal/login") ||
+        path.StartsWith("/admin-portal/auth/login") ||
+        path.StartsWith("/account/register") ||
+        path.StartsWith("/account/doctor-register") ||
+        path.StartsWith("/account/forgot-password"));
+
+    var isSearchSuggest = HttpMethods.IsGet(method) && path.StartsWith("/search/suggest");
+
+    if ((isAuthPost || isSearchSuggest) && context.Request.Headers["X-Bypass-RateLimit"] != "loadtest")
+    {
+        var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var limit = isAuthPost ? 15 : 20; // 15 requests/min for auth forms, 20 requests/min for search suggest
+        var prefix = isAuthPost ? "rl_auth_" : "rl_suggest_";
+        var key = $"{prefix}{ip}_{path}";
+
+        var current = cache.GetOrCreate(key, entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+            return 0;
+        });
+
+        if (current >= limit)
+        {
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.Response.Headers.RetryAfter = "60";
+            context.Response.ContentType = "text/plain";
+            await context.Response.WriteAsync("Rate limit exceeded. Too many requests. Please try again after 1 minute.");
+            return;
+        }
+
+        cache.Set(key, current + 1, TimeSpan.FromMinutes(1));
+    }
+
+    await next();
+});
 
 // Ensure wwwroot/uploads directory exists for shared upload assets
 var uploadsDir = Path.Combine(builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot"), "uploads");

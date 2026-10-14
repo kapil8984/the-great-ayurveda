@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Error - The Great Ayurveda";
+}
+
+<div class="container py-5 text-center my-auto">
+    <div class="card p-5 border-0 shadow-sm rounded-4 mx-auto" style="max-width: 600px;">
+        <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+            <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+        </div>
+        <h2 class="fw-bold mb-3">Something Went Wrong</h2>
+        <p class="text-muted mb-4">
+            An unexpected error occurred while processing your request. Please return to the storefront or contact our care team if the issue persists.
+        </p>
+        @if (ViewBag.RequestId != null)
+        {
+            <div class="small text-muted font-monospace mb-4">
+                Reference ID: @ViewBag.RequestId
+            </div>
+        }
+        <div>
+            <a href="/" class="btn btn-tga-primary px-4 rounded-pill">
+                <i class="bi bi-house me-1"></i> Return to Storefront
+            </a>
+        </div>
+    </div>
+</div>
