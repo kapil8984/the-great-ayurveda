@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+const { getDevAdminPassword } = require('./getTestPassword');
 
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
 const ADMIN_URL = `${BASE_URL}/admin-portal`;
@@ -148,7 +149,7 @@ function logStep(name, status, details = '') {
 
         // Log in as SuperAdmin
         await adminPage.fill('input[name="Email"]', 'admin@thegreatayurveda.com');
-        await adminPage.fill('input[name="Password"]', 'DevAuth_Vaidya_2026!#');
+        await adminPage.fill('input[name="Password"]', getDevAdminPassword());
         await adminPage.click('button[type="submit"]');
         await adminPage.waitForURL(url => url.href.toLowerCase().includes('/admin-portal/dashboard') || url.href.toLowerCase().endsWith('/admin-portal') || url.href.toLowerCase().endsWith('/admin-portal/'), { timeout: 15000 });
 

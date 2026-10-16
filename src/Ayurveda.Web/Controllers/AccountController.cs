@@ -52,6 +52,7 @@ public class AccountController : Controller
 
         var isDoctor = Request.Path.Value?.Contains("doctor") == true || string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase);
         ViewBag.GoogleSignInEnabled = !string.IsNullOrEmpty(_configuration["Authentication:Google:ClientId"]);
+        ViewBag.DemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
         
         return View(new LoginViewModel
         {
@@ -67,11 +68,76 @@ public class AccountController : Controller
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         ViewBag.GoogleSignInEnabled = !string.IsNullOrEmpty(_configuration["Authentication:Google:ClientId"]);
+        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
+        ViewBag.DemoOpenAccess = isDemoOpenAccess;
 
         if (!ModelState.IsValid)
             return View(model);
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+
+        if (isDemoOpenAccess)
+        {
+            // B3 Doctor login: any credentials signs in as shared approved fictional Demo Doctor
+            if (model.IsDoctorLogin || Request.Path.Value?.Contains("doctor") == true)
+            {
+                var doc = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.DoctorDetail != null && d.DoctorDetail.Status == 1);
+                if (doc != null)
+                {
+                    var docUser = await _userManager.FindByIdAsync(doc.ApplicationUserId.ToString()) ?? await _userManager.FindByEmailAsync(doc.Email);
+                    if (docUser != null)
+                    {
+                        await _signInManager.SignInAsync(docUser, isPersistent: false);
+                        return RedirectToAction("Dashboard", "DoctorPortal");
+                    }
+                }
+            }
+
+            // B1 Customer login: protect real accounts
+            if (await IsProtectedAccountAsync(model.Email))
+            {
+                ModelState.AddModelError(string.Empty, "Invalid email address or password. Please verify your credentials.");
+                return View(model);
+            }
+
+            // Create or reuse sandbox user
+            var sandboxUser = await _userManager.FindByEmailAsync(normalizedEmail);
+            if (sandboxUser == null)
+            {
+                sandboxUser = new ApplicationUser
+                {
+                    UserName = normalizedEmail,
+                    Email = normalizedEmail,
+                    FullName = "Demo Customer",
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    IsDemo = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var createRes = await _userManager.CreateAsync(sandboxUser, "DemoPass@" + Guid.NewGuid().ToString("N")[..8] + "!");
+                if (createRes.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(sandboxUser, UserRole.Customer.ToString());
+                }
+            }
+            else if (!sandboxUser.IsDemo)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid email address or password. Please verify your credentials.");
+                return View(model);
+            }
+
+            // B6 Lazy cleanup
+            await CleanupDemoUsersAsync();
+
+            await _signInManager.SignInAsync(sandboxUser, isPersistent: model.RememberMe);
+            await MergeGuestCartAsync(sandboxUser.Id);
+
+            if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+                return Redirect(model.ReturnUrl);
+
+            return RedirectToAction("Index", "Home");
+        }
+
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
 
         if (user == null || !user.IsActive || user.IsDeleted)
@@ -85,6 +151,8 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
+            await MergeGuestCartAsync(user.Id);
+
             if (await _userManager.IsInRoleAsync(user, "Doctor"))
             {
                 var doc = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || d.Email == user.Email);
@@ -123,7 +191,48 @@ public class AccountController : Controller
         {
             return RedirectToAction("Index", "Home");
         }
+        ViewBag.DemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
         return View(new RegisterViewModel());
+    }
+
+    [HttpPost]
+    [Route("account/continue-demo-guest")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ContinueDemoGuest(string? returnUrl = null)
+    {
+        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
+        if (!isDemoOpenAccess)
+        {
+            return RedirectToAction("Login");
+        }
+
+        var randomId = Guid.NewGuid().ToString("N")[..6];
+        var guestEmail = $"guest_{randomId}@demo.thegreatayurveda.com";
+        var user = new ApplicationUser
+        {
+            UserName = guestEmail,
+            Email = guestEmail,
+            FullName = "Demo Guest",
+            EmailConfirmed = true,
+            IsActive = true,
+            IsDemo = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var createRes = await _userManager.CreateAsync(user, "DemoGuest@" + Guid.NewGuid().ToString("N")[..8] + "!");
+        if (createRes.Succeeded)
+        {
+            await _userManager.AddToRoleAsync(user, UserRole.Customer.ToString());
+        }
+
+        await CleanupDemoUsersAsync();
+        await _signInManager.SignInAsync(user, isPersistent: false);
+        await MergeGuestCartAsync(user.Id);
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
+        return RedirectToAction("Index", "Home");
     }
 
     [HttpPost]
@@ -131,10 +240,55 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
+        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
+        ViewBag.DemoOpenAccess = isDemoOpenAccess;
+
         if (!ModelState.IsValid)
             return View(model);
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+
+        if (isDemoOpenAccess)
+        {
+            if (await IsProtectedAccountAsync(model.Email))
+            {
+                ModelState.AddModelError(string.Empty, "Invalid registration details. Please verify your information.");
+                return View(model);
+            }
+
+            var sandboxUser = await _userManager.FindByEmailAsync(normalizedEmail);
+            if (sandboxUser == null)
+            {
+                sandboxUser = new ApplicationUser
+                {
+                    UserName = normalizedEmail,
+                    Email = normalizedEmail,
+                    FullName = string.IsNullOrWhiteSpace(model.FullName) ? "Demo Customer" : model.FullName.Trim(),
+                    ContactNumber = string.IsNullOrWhiteSpace(model.ContactNumber) ? "+91 98765 11111" : model.ContactNumber.Trim(),
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    IsDemo = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var createRes = await _userManager.CreateAsync(sandboxUser, "DemoPass@" + Guid.NewGuid().ToString("N")[..8] + "!");
+                if (createRes.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(sandboxUser, UserRole.Customer.ToString());
+                }
+            }
+            else if (!sandboxUser.IsDemo)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid registration details. Please verify your information.");
+                return View(model);
+            }
+
+            await CleanupDemoUsersAsync();
+            await _signInManager.SignInAsync(sandboxUser, isPersistent: false);
+            await MergeGuestCartAsync(sandboxUser.Id);
+
+            return RedirectToAction("Index", "Home");
+        }
+
         var existing = await _userManager.FindByEmailAsync(normalizedEmail);
         if (existing != null)
         {
@@ -236,9 +390,10 @@ public class AccountController : Controller
             .OrderByDescending(o => o.CreatedAt)
             .FirstOrDefaultAsync();
 
-        var skipOtp = _configuration.GetValue<bool>("DemoMode:SkipOtp", false);
+        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
+        bool allowOtpSkip = isDemoOpenAccess && user.IsDemo && !string.IsNullOrWhiteSpace(model.Otp) && model.Otp.Trim().Length == 6;
 
-        if (!skipOtp)
+        if (!allowOtpSkip)
         {
             if (otpRecord == null || otpRecord.Attempts >= 5)
             {
@@ -503,21 +658,26 @@ public class AccountController : Controller
             .OrderByDescending(o => o.CreatedAt)
             .FirstOrDefaultAsync();
 
-        // Forgot password must NEVER accept an arbitrary code
-        if (otpRecord == null || otpRecord.Attempts >= 5)
-        {
-            ModelState.AddModelError(string.Empty, "Verification code has expired or exceeded maximum attempts. Please request a new code.");
-            return View(model);
-        }
+        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
+        bool allowOtpSkip = isDemoOpenAccess && user.IsDemo && !string.IsNullOrWhiteSpace(model.Otp) && model.Otp.Trim().Length == 6;
 
-        otpRecord.Attempts++;
-
-        var isCorrect = BCrypt.Net.BCrypt.Verify(model.Otp.Trim(), otpRecord.OtpHashed);
-        if (!isCorrect)
+        if (!allowOtpSkip)
         {
-            await _context.SaveChangesAsync();
-            ModelState.AddModelError("Otp", "Invalid verification code.");
-            return View(model);
+            if (otpRecord == null || otpRecord.Attempts >= 5)
+            {
+                ModelState.AddModelError(string.Empty, "Verification code has expired or exceeded maximum attempts. Please request a new code.");
+                return View(model);
+            }
+
+            otpRecord.Attempts++;
+
+            var isCorrect = BCrypt.Net.BCrypt.Verify(model.Otp.Trim(), otpRecord.OtpHashed);
+            if (!isCorrect)
+            {
+                await _context.SaveChangesAsync();
+                ModelState.AddModelError("Otp", "Invalid verification code.");
+                return View(model);
+            }
         }
 
         if (otpRecord != null)
@@ -859,9 +1019,22 @@ public class AccountController : Controller
 
     [HttpGet]
     [Route("account/logout")]
-    public IActionResult LogoutGet()
+    public async Task<IActionResult> LogoutGet()
     {
-        // Logout is strictly POST with anti-forgery token. Never allow GET logout links.
+        var isDoctor = User.IsInRole("Doctor");
+        await _signInManager.SignOutAsync();
+        HttpContext.Session.Clear();
+        Response.Cookies.Delete("tga_cart_id");
+
+        TempData["SuccessMessage"] = isDoctor 
+            ? "Doctor clinical session ended safely." 
+            : "You have been logged out successfully.";
+
+        if (isDoctor)
+        {
+            return RedirectToAction("Login", "Account", new { role = "Doctor" });
+        }
+
         return RedirectToAction("Login", "Account");
     }
 
@@ -931,5 +1104,161 @@ public class AccountController : Controller
         RandomNumberGenerator.Fill(otpBytes);
         var otpNumber = (BitConverter.ToUInt32(otpBytes, 0) % 900000) + 100000;
         return otpNumber.ToString();
+    }
+
+    private async Task<bool> IsProtectedAccountAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        var normalized = email.Trim().ToLowerInvariant();
+
+        if (normalized.Contains("admin") || normalized.Contains("staff"))
+        {
+            return true;
+        }
+
+        var user = await _userManager.FindByEmailAsync(normalized);
+        if (user != null)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Any(r => r == "Admin" || r == "SuperAdmin" || r == "CatalogManager" ||
+                               r == "FinanceManager" || r == "SupportAgent" || r == "Doctor"))
+            {
+                return true;
+            }
+        }
+
+        var isDoctor = await _context.Doctors.AnyAsync(d => d.Email.ToLower() == normalized);
+        if (isDoctor)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task CleanupDemoUsersAsync()
+    {
+        try
+        {
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            var oldDemoUsers = await _context.Users
+                .Where(u => u.IsDemo && u.CreatedAt < cutoff && 
+                            u.Email != "demo.doctor@thegreatayurveda.com" && 
+                            u.Email != "demo-admin@ayurveda.local")
+                .ToListAsync();
+
+            var totalDemoUsers = await _context.Users
+                .Where(u => u.IsDemo && 
+                            u.Email != "demo.doctor@thegreatayurveda.com" && 
+                            u.Email != "demo-admin@ayurveda.local")
+                .OrderBy(u => u.CreatedAt)
+                .ToListAsync();
+
+            var excessCount = Math.Max(0, totalDemoUsers.Count - 300);
+            var excessUsers = totalDemoUsers.Take(excessCount).ToList();
+
+            var toDelete = oldDemoUsers.Union(excessUsers).DistinctBy(u => u.Id).ToList();
+            if (toDelete.Any())
+            {
+                var userIds = toDelete.Select(u => u.Id).ToList();
+
+                var carts = await _context.Carts.Where(c => userIds.Contains(c.UserId)).ToListAsync();
+                var cartIds = carts.Select(c => c.Id).ToList();
+                var cartItems = await _context.CartItems.Where(ci => cartIds.Contains(ci.CartId)).ToListAsync();
+                _context.CartItems.RemoveRange(cartItems);
+                _context.Carts.RemoveRange(carts);
+
+                var orders = await _context.Orders.Where(o => userIds.Contains(o.UserId)).ToListAsync();
+                var orderIds = orders.Select(o => o.Id).ToList();
+                var orderItems = await _context.OrderItems.Where(oi => orderIds.Contains(oi.OrderId)).ToListAsync();
+                _context.OrderItems.RemoveRange(orderItems);
+                _context.Orders.RemoveRange(orders);
+
+                var appts = await _context.Appointments.Where(a => userIds.Contains(a.UserId)).ToListAsync();
+                _context.Appointments.RemoveRange(appts);
+
+                var wishlists = await _context.WishlistItems.Where(w => userIds.Contains(w.UserId)).ToListAsync();
+                _context.WishlistItems.RemoveRange(wishlists);
+
+                var pReviews = await _context.ProductReviews.Where(r => userIds.Contains(r.UserId)).ToListAsync();
+                _context.ProductReviews.RemoveRange(pReviews);
+
+                var dReviews = await _context.DoctorReviews.Where(r => userIds.Contains(r.UserId)).ToListAsync();
+                _context.DoctorReviews.RemoveRange(dReviews);
+
+                var yReviews = await _context.YogaReviews.Where(r => userIds.Contains(r.UserId)).ToListAsync();
+                _context.YogaReviews.RemoveRange(yReviews);
+
+                var notifs = await _context.Notifications.Where(n => userIds.Contains(n.UserId)).ToListAsync();
+                _context.Notifications.RemoveRange(notifs);
+
+                var addresses = await _context.Addresses.Where(a => userIds.Contains(a.UserId)).ToListAsync();
+                _context.Addresses.RemoveRange(addresses);
+
+                var otps = await _context.PasswordResetOtps.Where(o => toDelete.Select(u => u.Email).Contains(o.Email)).ToListAsync();
+                _context.PasswordResetOtps.RemoveRange(otps);
+
+                _context.Users.RemoveRange(toDelete);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch
+        {
+            // Non-fatal
+        }
+    }
+
+    private async Task MergeGuestCartAsync(int userId)
+    {
+        var guestCartJson = HttpContext.Session.GetString("GuestCart_Items");
+        if (string.IsNullOrEmpty(guestCartJson)) return;
+
+        try
+        {
+            var guestItems = System.Text.Json.JsonSerializer.Deserialize<List<CartController.GuestCartItemDto>>(guestCartJson);
+            if (guestItems != null && guestItems.Any())
+            {
+                var cart = await _context.Carts
+                    .Include(c => c.CartItems)
+                    .FirstOrDefaultAsync(c => c.UserId == userId);
+
+                if (cart == null)
+                {
+                    cart = new Cart { UserId = userId };
+                    _context.Carts.Add(cart);
+                    await _context.SaveChangesAsync();
+                }
+
+                foreach (var gi in guestItems)
+                {
+                    var product = await _context.Products.FindAsync(gi.ProductId);
+                    if (product == null || !product.IsActive) continue;
+
+                    var existing = cart.CartItems.FirstOrDefault(ci => ci.ProductId == gi.ProductId);
+                    if (existing != null)
+                    {
+                        existing.Quantity = Math.Min(product.Stock, existing.Quantity + gi.Quantity);
+                    }
+                    else
+                    {
+                        cart.CartItems.Add(new CartItem
+                        {
+                            CartId = cart.Id,
+                            ProductId = gi.ProductId,
+                            Quantity = Math.Min(product.Stock, Math.Max(1, gi.Quantity))
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch
+        {
+            // Non-fatal
+        }
+        finally
+        {
+            HttpContext.Session.Remove("GuestCart_Items");
+        }
     }
 }

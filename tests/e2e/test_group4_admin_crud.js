@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { getDevAdminPassword } = require('./getTestPassword');
 
 const WEB_URL = 'http://localhost:5000';
 const ADMIN_URL = 'http://localhost:7200';
@@ -50,7 +51,7 @@ async function run() {
         await adminPage.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         await adminPage.waitForTimeout(500);
         await adminPage.fill('input[name="Email"]', 'admin@thegreatayurveda.com');
-        await adminPage.fill('input[name="Password"]', 'DevAuth_Vaidya_2026!#');
+        await adminPage.fill('input[name="Password"]', getDevAdminPassword());
         await adminPage.click('button[type="submit"]');
         await adminPage.waitForTimeout(2000);
 

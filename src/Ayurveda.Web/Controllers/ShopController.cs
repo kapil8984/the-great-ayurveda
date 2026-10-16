@@ -3,15 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using Ayurveda.Application.ViewModels;
 using Ayurveda.Infrastructure.Data;
 
+using Microsoft.Extensions.Caching.Memory;
+
 namespace Ayurveda.Web.Controllers;
 
 public class ShopController : Controller
 {
     private readonly AyurvedaDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public ShopController(AyurvedaDbContext context)
+    public ShopController(AyurvedaDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<IActionResult> Index(
@@ -31,6 +35,7 @@ public class ShopController : Controller
     {
         const int pageSize = 12;
         var q = _context.Products
+            .AsNoTracking()
             .Include(p => p.Category)
             .Include(p => p.Subcategory)
             .Where(p => p.IsActive);
@@ -112,71 +117,147 @@ public class ShopController : Controller
             _ => q.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.Id)
         };
 
-        var totalCount = await q.CountAsync();
-        var products = await q
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ProductCardViewModel
-            {
-                Id = p.Id,
-                Title = p.Title,
-                Brand = p.Brand,
-                CategoryName = p.Category.Name,
-                Price = p.Price,
-                Mrp = p.Mrp,
-                DiscountPercent = p.DiscountPercent,
-                ImageUrl = p.ImageUrl,
-                AverageRating = p.AverageRating,
-                Stock = p.Stock,
-                Badge = p.AverageRating >= 4.9 ? "Bestseller" : (p.DiscountPercent >= 20 ? $"{p.DiscountPercent}% Off" : null),
-                Sku = p.Sku,
-                TraditionallyUsedFor = p.TraditionallyUsedFor
-            })
-            .ToListAsync();
+        bool isDefault = !categoryId.HasValue && !subcategoryId.HasValue && string.IsNullOrWhiteSpace(brand) &&
+                         !minPrice.HasValue && !maxPrice.HasValue && !minRating.HasValue && !minDiscount.HasValue &&
+                         !inStockOnly && string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(concern) &&
+                         (sort == "popular" || string.IsNullOrWhiteSpace(sort)) && page == 1;
 
-        // Load Categories with counts
-        var categories = await _context.Categories
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.Id)
-            .Select(c => new CategoryFilterItem
-            {
-                Id = c.Id,
-                Name = c.Name,
-                ProductCount = c.Products.Count(p => p.IsActive),
-                IsSelected = categoryId.HasValue && categoryId.Value == c.Id
-            })
-            .ToListAsync();
+        int totalCount;
+        List<ProductCardViewModel> products;
 
-        // Load Subcategories (scoped to selected category if any, else top ones)
-        var subQ = _context.Subcategories.Where(s => s.IsActive);
-        if (categoryId.HasValue)
+        if (isDefault)
         {
-            subQ = subQ.Where(s => s.CategoryId == categoryId.Value);
+            var cached = await _cache.GetOrCreateAsync("Shop_Default_Page1", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                var cnt = await q.CountAsync();
+                var items = await q
+                    .Skip(0)
+                    .Take(pageSize)
+                    .Select(p => new ProductCardViewModel
+                    {
+                        Id = p.Id,
+                        Title = p.Title,
+                        Brand = p.Brand,
+                        CategoryName = p.Category.Name,
+                        Price = p.Price,
+                        Mrp = p.Mrp,
+                        DiscountPercent = p.DiscountPercent,
+                        ImageUrl = p.ImageUrl,
+                        AverageRating = p.AverageRating,
+                        Stock = p.Stock,
+                        Badge = p.AverageRating >= 4.9 ? "Bestseller" : (p.DiscountPercent >= 20 ? $"{p.DiscountPercent}% Off" : null),
+                        Sku = p.Sku,
+                        TraditionallyUsedFor = p.TraditionallyUsedFor
+                    })
+                    .ToListAsync();
+                return (cnt, items);
+            });
+            totalCount = cached.cnt;
+            products = cached.items;
         }
-        var subcategories = await subQ
-            .OrderBy(s => s.Name)
+        else
+        {
+            totalCount = await q.CountAsync();
+            products = await q
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new ProductCardViewModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Brand = p.Brand,
+                    CategoryName = p.Category.Name,
+                    Price = p.Price,
+                    Mrp = p.Mrp,
+                    DiscountPercent = p.DiscountPercent,
+                    ImageUrl = p.ImageUrl,
+                    AverageRating = p.AverageRating,
+                    Stock = p.Stock,
+                    Badge = p.AverageRating >= 4.9 ? "Bestseller" : (p.DiscountPercent >= 20 ? $"{p.DiscountPercent}% Off" : null),
+                    Sku = p.Sku,
+                    TraditionallyUsedFor = p.TraditionallyUsedFor
+                })
+                .ToListAsync();
+        }
+
+        // Load Categories with counts (cached for 10 minutes)
+        var cachedCategories = await _cache.GetOrCreateAsync("Shop_Categories_Filters", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await _context.Categories
+                .AsNoTracking()
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Id)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Name,
+                    ProductCount = c.Products.Count(p => p.IsActive)
+                })
+                .ToListAsync();
+        }) ?? new();
+
+        var categories = cachedCategories.Select(c => new CategoryFilterItem
+        {
+            Id = c.Id,
+            Name = c.Name,
+            ProductCount = c.ProductCount,
+            IsSelected = categoryId.HasValue && categoryId.Value == c.Id
+        }).ToList();
+
+        // Load Subcategories (cached for 10 minutes)
+        var cachedSubcategories = await _cache.GetOrCreateAsync("Shop_Subcategories_Filters", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await _context.Subcategories
+                .AsNoTracking()
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.Name)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.CategoryId,
+                    s.Name,
+                    ProductCount = s.Products.Count(p => p.IsActive)
+                })
+                .ToListAsync();
+        }) ?? new();
+
+        var subcategories = cachedSubcategories
+            .Where(s => !categoryId.HasValue || s.CategoryId == categoryId.Value)
             .Select(s => new SubcategoryFilterItem
             {
                 Id = s.Id,
                 CategoryId = s.CategoryId,
                 Name = s.Name,
-                ProductCount = s.Products.Count(p => p.IsActive),
+                ProductCount = s.ProductCount,
                 IsSelected = subcategoryId.HasValue && subcategoryId.Value == s.Id
-            })
-            .ToListAsync();
+            }).ToList();
 
-        // Load Brands with counts
-        var brands = await _context.Products
-            .Where(p => p.IsActive)
-            .GroupBy(p => p.Brand)
-            .Select(g => new BrandFilterItem
-            {
-                Name = g.Key,
-                ProductCount = g.Count(),
-                IsSelected = !string.IsNullOrWhiteSpace(brand) && brand == g.Key
-            })
-            .OrderByDescending(b => b.ProductCount)
-            .ToListAsync();
+        // Load Brands with counts (cached for 10 minutes)
+        var cachedBrands = await _cache.GetOrCreateAsync("Shop_Brands_Filters", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await _context.Products
+                .AsNoTracking()
+                .Where(p => p.IsActive)
+                .GroupBy(p => p.Brand)
+                .Select(g => new
+                {
+                    Name = g.Key,
+                    ProductCount = g.Count()
+                })
+                .OrderByDescending(b => b.ProductCount)
+                .ToListAsync();
+        }) ?? new();
+
+        var brands = cachedBrands.Select(b => new BrandFilterItem
+        {
+            Name = b.Name,
+            ProductCount = b.ProductCount,
+            IsSelected = !string.IsNullOrWhiteSpace(brand) && brand == b.Name
+        }).ToList();
 
         // Build Active Filter Chips
         var activeChips = new List<ActiveFilterChip>();
@@ -307,10 +388,15 @@ public class ShopController : Controller
             ViewMode = viewMode
         };
 
-        ViewBag.ShopBanners = await _context.Banners
-            .Where(b => b.IsActive && b.Placement == "shop")
-            .OrderBy(b => b.DisplayOrder)
-            .ToListAsync();
+        ViewBag.ShopBanners = await _cache.GetOrCreateAsync("Shop_Banners", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await _context.Banners
+                .AsNoTracking()
+                .Where(b => b.IsActive && b.Placement == "shop")
+                .OrderBy(b => b.DisplayOrder)
+                .ToListAsync();
+        });
 
         return View(model);
     }
@@ -346,137 +432,183 @@ public class ShopController : Controller
         return queryParams.Any() ? $"/Shop?{string.Join("&", queryParams)}" : "/Shop";
     }
 
+    [HttpGet("Shop/Details/{id:int}")]
+    [HttpGet("Product/{id:int}")]
     public async Task<IActionResult> Details(int id)
     {
-        var product = await _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Subcategory)
-            .Include(p => p.Variants)
-            .Include(p => p.Images)
-            .Include(p => p.Questions)
-            .Include(p => p.Reviews)
-                .ThenInclude(r => r.User)
-            .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
+        var baseModel = await _cache.GetOrCreateAsync($"Product_Details_Base_{id}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            var product = await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Include(p => p.Subcategory)
+                .Include(p => p.Variants)
+                .Include(p => p.Images)
+                .Include(p => p.Questions)
+                .Include(p => p.Reviews)
+                    .ThenInclude(r => r.User)
+                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
 
-        if (product == null)
+            if (product == null) return null;
+
+            var relatedProducts = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.CategoryId == product.CategoryId && p.Id != product.Id && p.IsActive)
+                .Take(4)
+                .Select(p => new ProductCardViewModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Brand = p.Brand,
+                    CategoryName = p.Category.Name,
+                    Price = p.Price,
+                    Mrp = p.Mrp,
+                    DiscountPercent = p.DiscountPercent,
+                    ImageUrl = p.ImageUrl,
+                    AverageRating = p.AverageRating,
+                    Stock = p.Stock
+                })
+                .ToListAsync();
+
+            var companion = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Id != product.Id && p.IsActive && p.Stock > 0)
+                .OrderBy(p => p.Price)
+                .Select(p => new ProductCardViewModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Brand = p.Brand,
+                    CategoryName = p.Category.Name,
+                    Price = p.Price,
+                    Mrp = p.Mrp,
+                    DiscountPercent = p.DiscountPercent,
+                    ImageUrl = p.ImageUrl,
+                    AverageRating = p.AverageRating,
+                    Stock = p.Stock
+                })
+                .FirstOrDefaultAsync();
+
+            return new ProductDetailsViewModel
+            {
+                Id = product.Id,
+                Title = product.Title,
+                Description = product.Description,
+                Brand = product.Brand,
+                CategoryName = product.Category.Name,
+                CategoryId = product.CategoryId,
+                SubcategoryName = product.Subcategory?.Name,
+                SubcategoryId = product.SubcategoryId,
+                Price = product.Price,
+                Mrp = product.Mrp,
+                DiscountPercent = product.DiscountPercent,
+                Stock = product.Stock,
+                ImageUrl = product.ImageUrl,
+                AverageRating = product.AverageRating,
+                ReviewCount = product.Reviews.Count,
+                Sku = product.Sku,
+                Tags = product.Tags,
+                TraditionallyUsedFor = product.TraditionallyUsedFor,
+                Ingredients = product.Ingredients,
+                HowToUse = product.HowToUse,
+                Precautions = product.Precautions,
+                IsPrescriptionRequired = product.IsPrescriptionRequired,
+                AdditionalImages = product.Images.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList(),
+                Variants = product.Variants.Select(v => new ProductVariantViewModel
+                {
+                    Id = v.Id,
+                    Title = v.Title,
+                    SizeOrPack = v.SizeOrPack,
+                    Price = v.Price,
+                    Mrp = v.Mrp,
+                    StockQuantity = v.StockQuantity,
+                    IsActive = v.IsActive
+                }).ToList(),
+                Reviews = product.Reviews.OrderByDescending(r => r.CreatedAt).Select(r => new ProductReviewViewModel
+                {
+                    Id = r.Id,
+                    UserName = r.User != null ? r.User.FullName : "Ayurveda Practitioner",
+                    Rating = r.Rating,
+                    ReviewText = r.ReviewText,
+                    IsVerifiedPurchase = r.IsVerifiedPurchase,
+                    HelpfulVotes = r.HelpfulVotes,
+                    CreatedAt = r.CreatedAt
+                }).ToList(),
+                Questions = product.Questions.OrderByDescending(q => q.CreatedAt).Select(q => new ProductFaqViewModel
+                {
+                    Id = q.Id,
+                    QuestionText = q.QuestionText,
+                    AnswerText = q.AnswerText,
+                    AskedBy = q.AskedBy,
+                    AnsweredBy = q.AnsweredBy,
+                    CreatedAt = q.CreatedAt
+                }).ToList(),
+                RelatedProducts = relatedProducts,
+                FrequentlyBoughtTogether = companion
+            };
+        });
+
+        if (baseModel == null)
             return NotFound();
 
         // Track recently viewed in cookie
         TrackRecentlyViewedProduct(id);
 
-        // Related Products from same category
-        var relatedProducts = await _context.Products
-            .Where(p => p.CategoryId == product.CategoryId && p.Id != product.Id && p.IsActive)
-            .Take(4)
-            .Select(p => new ProductCardViewModel
-            {
-                Id = p.Id,
-                Title = p.Title,
-                Brand = p.Brand,
-                CategoryName = p.Category.Name,
-                Price = p.Price,
-                Mrp = p.Mrp,
-                DiscountPercent = p.DiscountPercent,
-                ImageUrl = p.ImageUrl,
-                AverageRating = p.AverageRating,
-                Stock = p.Stock
-            })
-            .ToListAsync();
-
-        // Frequently Bought Together (companion item)
-        var companion = await _context.Products
-            .Where(p => p.Id != product.Id && p.IsActive && p.Stock > 0)
-            .OrderBy(p => p.Price)
-            .Select(p => new ProductCardViewModel
-            {
-                Id = p.Id,
-                Title = p.Title,
-                Brand = p.Brand,
-                CategoryName = p.Category.Name,
-                Price = p.Price,
-                Mrp = p.Mrp,
-                DiscountPercent = p.DiscountPercent,
-                ImageUrl = p.ImageUrl,
-                AverageRating = p.AverageRating,
-                Stock = p.Stock
-            })
-            .FirstOrDefaultAsync();
-
         // Recently Viewed items
         var recentlyViewedIds = GetRecentlyViewedIds().Where(pid => pid != id).Take(4).ToList();
-        var recentlyViewedProducts = await _context.Products
-            .Where(p => recentlyViewedIds.Contains(p.Id) && p.IsActive)
-            .Select(p => new ProductCardViewModel
-            {
-                Id = p.Id,
-                Title = p.Title,
-                Brand = p.Brand,
-                CategoryName = p.Category.Name,
-                Price = p.Price,
-                Mrp = p.Mrp,
-                DiscountPercent = p.DiscountPercent,
-                ImageUrl = p.ImageUrl,
-                AverageRating = p.AverageRating,
-                Stock = p.Stock
-            })
-            .ToListAsync();
+        var recentlyViewedProducts = new List<ProductCardViewModel>();
+        if (recentlyViewedIds.Any())
+        {
+            recentlyViewedProducts = await _context.Products
+                .AsNoTracking()
+                .Where(p => recentlyViewedIds.Contains(p.Id) && p.IsActive)
+                .Select(p => new ProductCardViewModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Brand = p.Brand,
+                    CategoryName = p.Category.Name,
+                    Price = p.Price,
+                    Mrp = p.Mrp,
+                    DiscountPercent = p.DiscountPercent,
+                    ImageUrl = p.ImageUrl,
+                    AverageRating = p.AverageRating,
+                    Stock = p.Stock
+                })
+                .ToListAsync();
+        }
 
         var model = new ProductDetailsViewModel
         {
-            Id = product.Id,
-            Title = product.Title,
-            Description = product.Description,
-            Brand = product.Brand,
-            CategoryName = product.Category.Name,
-            CategoryId = product.CategoryId,
-            SubcategoryName = product.Subcategory?.Name,
-            SubcategoryId = product.SubcategoryId,
-            Price = product.Price,
-            Mrp = product.Mrp,
-            DiscountPercent = product.DiscountPercent,
-            Stock = product.Stock,
-            ImageUrl = product.ImageUrl,
-            AverageRating = product.AverageRating,
-            ReviewCount = product.Reviews.Count,
-            Sku = product.Sku,
-            Tags = product.Tags,
-            TraditionallyUsedFor = product.TraditionallyUsedFor,
-            Ingredients = product.Ingredients,
-            HowToUse = product.HowToUse,
-            Precautions = product.Precautions,
-            IsPrescriptionRequired = product.IsPrescriptionRequired,
-            AdditionalImages = product.Images.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList(),
-            Variants = product.Variants.Select(v => new ProductVariantViewModel
-            {
-                Id = v.Id,
-                Title = v.Title,
-                SizeOrPack = v.SizeOrPack,
-                Price = v.Price,
-                Mrp = v.Mrp,
-                StockQuantity = v.StockQuantity,
-                IsActive = v.IsActive
-            }).ToList(),
-            Reviews = product.Reviews.OrderByDescending(r => r.CreatedAt).Select(r => new ProductReviewViewModel
-            {
-                Id = r.Id,
-                UserName = r.User != null ? r.User.FullName : "Ayurveda Practitioner",
-                Rating = r.Rating,
-                ReviewText = r.ReviewText,
-                IsVerifiedPurchase = r.IsVerifiedPurchase,
-                HelpfulVotes = r.HelpfulVotes,
-                CreatedAt = r.CreatedAt
-            }).ToList(),
-            Questions = product.Questions.OrderByDescending(q => q.CreatedAt).Select(q => new ProductFaqViewModel
-            {
-                Id = q.Id,
-                QuestionText = q.QuestionText,
-                AnswerText = q.AnswerText,
-                AskedBy = q.AskedBy,
-                AnsweredBy = q.AnsweredBy,
-                CreatedAt = q.CreatedAt
-            }).ToList(),
-            RelatedProducts = relatedProducts,
-            FrequentlyBoughtTogether = companion,
+            Id = baseModel.Id,
+            Title = baseModel.Title,
+            Description = baseModel.Description,
+            Brand = baseModel.Brand,
+            CategoryName = baseModel.CategoryName,
+            CategoryId = baseModel.CategoryId,
+            SubcategoryName = baseModel.SubcategoryName,
+            SubcategoryId = baseModel.SubcategoryId,
+            Price = baseModel.Price,
+            Mrp = baseModel.Mrp,
+            DiscountPercent = baseModel.DiscountPercent,
+            Stock = baseModel.Stock,
+            ImageUrl = baseModel.ImageUrl,
+            AverageRating = baseModel.AverageRating,
+            ReviewCount = baseModel.ReviewCount,
+            Sku = baseModel.Sku,
+            Tags = baseModel.Tags,
+            TraditionallyUsedFor = baseModel.TraditionallyUsedFor,
+            Ingredients = baseModel.Ingredients,
+            HowToUse = baseModel.HowToUse,
+            Precautions = baseModel.Precautions,
+            IsPrescriptionRequired = baseModel.IsPrescriptionRequired,
+            AdditionalImages = baseModel.AdditionalImages,
+            Variants = baseModel.Variants,
+            Reviews = baseModel.Reviews,
+            Questions = baseModel.Questions,
+            RelatedProducts = baseModel.RelatedProducts,
+            FrequentlyBoughtTogether = baseModel.FrequentlyBoughtTogether,
             RecentlyViewed = recentlyViewedProducts
         };
 

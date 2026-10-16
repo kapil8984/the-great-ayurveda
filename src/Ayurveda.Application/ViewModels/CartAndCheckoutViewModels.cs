@@ -53,6 +53,7 @@ public class CheckoutViewModel
     public string? IdempotencyKey { get; set; }
     public string? RazorpayKeyId { get; set; }
     public string? RazorpayOrderId { get; set; }
+    public bool SimulateFailure { get; set; } = false;
 }
 
 public class AddressViewModel

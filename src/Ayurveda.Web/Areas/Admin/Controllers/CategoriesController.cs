@@ -14,12 +14,14 @@ public class CategoriesController : Controller
     private readonly AyurvedaDbContext _context;
     private readonly IFileStorageService _fileStorage;
     private readonly IAuditService _auditService;
+    private readonly ICacheBuster _cacheBuster;
 
-    public CategoriesController(AyurvedaDbContext context, IFileStorageService fileStorage, IAuditService auditService)
+    public CategoriesController(AyurvedaDbContext context, IFileStorageService fileStorage, IAuditService auditService, ICacheBuster cacheBuster)
     {
         _context = context;
         _fileStorage = fileStorage;
         _auditService = auditService;
+        _cacheBuster = cacheBuster;
     }
 
     public async Task<IActionResult> Index(string? search, bool? active, int page = 1)
@@ -102,6 +104,7 @@ public class CategoriesController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("CategoryCreated", "Category", model.Id.ToString(), $"Created category '{model.Name}'", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateCategory();
 
         TempData["SuccessMessage"] = $"Category '{model.Name}' created successfully.";
         return RedirectToAction(nameof(Index));
@@ -144,6 +147,7 @@ public class CategoriesController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("CategoryUpdated", "Category", category.Id.ToString(), $"Updated category '{category.Name}'", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateCategory();
 
         TempData["SuccessMessage"] = $"Category '{category.Name}' updated successfully.";
         return RedirectToAction(nameof(Index));
@@ -160,6 +164,7 @@ public class CategoriesController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("CategoryToggled", "Category", id.ToString(), $"Toggled category '{category.Name}' to active={category.IsActive}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateCategory();
             TempData["SuccessMessage"] = $"Category '{category.Name}' is now {(category.IsActive ? "Active" : "Disabled")}.";
         }
         return RedirectToAction(nameof(Index));
@@ -185,6 +190,7 @@ public class CategoriesController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("CategoryDeleted", "Category", id.ToString(), $"Deleted category '{category.Name}'", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateCategory();
 
         TempData["SuccessMessage"] = $"Category '{category.Name}' deleted.";
         return RedirectToAction(nameof(Index));

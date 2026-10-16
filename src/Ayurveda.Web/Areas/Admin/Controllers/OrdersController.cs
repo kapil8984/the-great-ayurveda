@@ -9,7 +9,7 @@ using Ayurveda.Infrastructure.Data;
 namespace Ayurveda.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize(AuthenticationSchemes = "AdminCookieScheme", Roles = "SuperAdmin,SupportAgent,FinanceManager,Admin")]
+[Authorize(AuthenticationSchemes = "AdminCookieScheme", Roles = "SuperAdmin,SupportAgent,FinanceManager,Admin,DemoViewer")]
 public class OrdersController : Controller
 {
     private readonly AyurvedaDbContext _context;
@@ -19,6 +19,24 @@ public class OrdersController : Controller
     {
         _context = context;
         _auditService = auditService;
+    }
+
+    private static string MaskEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return string.Empty;
+        var parts = email.Split('@');
+        if (parts.Length != 2) return "***@***.com";
+        var name = parts[0];
+        var masked = name.Length <= 2 ? "**" : $"{name[0]}***{name[^1]}";
+        return $"{masked}@{parts[1]}";
+    }
+
+    private static string MaskPhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return string.Empty;
+        var t = phone.Trim();
+        if (t.Length <= 4) return "****";
+        return $"{t[..Math.Min(4, t.Length - 4)]}******{t[^Math.Min(3, t.Length)..]}";
     }
 
     // -------------------------------------------------------------------------
@@ -49,6 +67,19 @@ public class OrdersController : Controller
             .Take(pageSize)
             .ToListAsync();
 
+        if (User.IsInRole("DemoViewer"))
+        {
+            foreach (var o in orders)
+            {
+                if (o.User != null)
+                {
+                    o.User.Email = MaskEmail(o.User.Email);
+                    o.User.ContactNumber = MaskPhone(o.User.ContactNumber);
+                }
+                o.ShippingAddress = "Demo Masked Customer, ****** Confidential Address";
+            }
+        }
+
         var model = new AdminOrderListViewModel
         {
             Orders = orders,
@@ -74,6 +105,16 @@ public class OrdersController : Controller
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (order == null) return NotFound();
+
+        if (User.IsInRole("DemoViewer"))
+        {
+            if (order.User != null)
+            {
+                order.User.Email = MaskEmail(order.User.Email);
+                order.User.ContactNumber = MaskPhone(order.User.ContactNumber);
+            }
+            order.ShippingAddress = "Demo Masked Customer, ****** Confidential Address";
+        }
 
         return View(order);
     }

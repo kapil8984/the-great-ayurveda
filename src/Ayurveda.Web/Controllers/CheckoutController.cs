@@ -25,30 +25,22 @@ public class CheckoutController : Controller
         _configuration = configuration;
     }
 
-    private async Task<ApplicationUser> GetCurrentUserAsync()
+    private async Task<ApplicationUser?> GetCurrentUserAsync()
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        if (User.Identity?.IsAuthenticated != true)
         {
-            var demoUser = await _context.Users.FirstOrDefaultAsync();
-            if (demoUser == null)
-            {
-                demoUser = new ApplicationUser
-                {
-                    UserName = "guest@ayurveda.local",
-                    Email = "guest@ayurveda.local",
-                    FullName = "Valued Customer",
-                    EmailConfirmed = true
-                };
-                await _userManager.CreateAsync(demoUser, "GuestPass@2026");
-            }
-            user = demoUser;
+            return null;
         }
-        return user;
+        return await _userManager.GetUserAsync(User);
     }
 
     public async Task<IActionResult> Index()
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Checkout") });
+        }
+
         if (User.IsInRole("Doctor"))
         {
             TempData["ErrorMessage"] = "Physician accounts cannot place retail customer orders. Please sign in with a patient account.";
@@ -56,6 +48,10 @@ public class CheckoutController : Controller
         }
 
         var user = await GetCurrentUserAsync();
+        if (user == null)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Checkout") });
+        }
 
         var cart = await _context.Carts
             .Include(c => c.CartItems)
@@ -136,7 +132,7 @@ public class CheckoutController : Controller
             Cart = cartVm,
             DeliveryType = "Standard",
             IdempotencyKey = Guid.NewGuid().ToString("N"),
-            RazorpayKeyId = _configuration["Payment:Razorpay:KeyId"] ?? "rzp_test_AyurvedaDemoKey123"
+            RazorpayKeyId = _configuration["Payment:Razorpay:KeyId"] ?? "demo_key"
         };
 
         return View(model);
@@ -146,7 +142,22 @@ public class CheckoutController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> PlaceOrder(CheckoutViewModel model)
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Checkout") });
+        }
+
         var user = await GetCurrentUserAsync();
+        if (user == null)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Checkout") });
+        }
+
+        if (model.SimulateFailure)
+        {
+            TempData["ErrorMessage"] = "Payment simulation failure: Transaction was declined by the bank. Please retry or choose another payment method.";
+            return RedirectToAction(nameof(Index));
+        }
 
         // Idempotency check: prevent duplicate submissions
         if (!string.IsNullOrWhiteSpace(model.IdempotencyKey))

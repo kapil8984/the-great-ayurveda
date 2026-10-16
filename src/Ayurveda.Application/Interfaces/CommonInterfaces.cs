@@ -11,6 +11,16 @@ public interface IFileStorageService
     void DeleteFile(string relativeFilePath);
 }
 
+public interface ICacheBuster
+{
+    void InvalidateProduct(int? productId = null);
+    void InvalidateCategory();
+    void InvalidateBanner();
+    void InvalidateDoctor();
+    void InvalidateCoupon();
+    void ClearAllStorefrontCaches();
+}
+
 public interface ISearchService
 {
     Task<SearchSuggestionResultDto> GetSuggestionsAsync(string query, string scope = "public");

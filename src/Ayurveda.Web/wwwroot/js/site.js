@@ -72,7 +72,7 @@ function initSearchBox() {
             }
         });
 
-        // Input event: 150ms debounce + AbortController cancellation
+        // Input event: 250ms debounce + AbortController cancellation
         input.addEventListener("input", function () {
             toggleClearBtn();
             clearTimeout(debounceTimer);
@@ -108,7 +108,7 @@ function initSearchBox() {
                         console.error("Search suggest error:", err);
                     }
                 });
-            }, 150);
+            }, 250);
         });
 
         // Form Submit: Save recent search

@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { getDevAdminPassword } = require('./getTestPassword');
 
 const SCREENSHOT_DIR = path.resolve(__dirname, 'screenshots');
 if (!fs.existsSync(SCREENSHOT_DIR)) {
@@ -225,7 +226,7 @@ async function testAdminLoginPage(browser) {
             const filledEmail = await page.inputValue('#Email');
             const filledPassword = await page.inputValue('#Password');
             assert(filledEmail === 'admin@ayurveda.com', `SuperAdmin chip filled email: ${filledEmail}`);
-            assert(filledPassword === 'DevAuth_Vaidya_2026!#', `SuperAdmin chip filled password: ${filledPassword}`);
+            assert(filledPassword === getDevAdminPassword(), `SuperAdmin chip filled password matches dev demo password`);
 
             // Test Show/Hide password toggle
             console.log(`Testing Show/Hide password toggle...`);

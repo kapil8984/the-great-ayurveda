@@ -45,7 +45,8 @@ cd d:\TheGreatAyurveda\The-Great-Ayurveda
 
 ### Step 2: Stop Any Running Processes (Free Locks and Ports)
 ```powershell
-Get-Process -Name Ayurveda.Web,dotnet -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name Ayurveda.Web -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-NetTCPConnection -LocalPort 5000,5001 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
 ```
 
 ### Step 3: Build the Solution

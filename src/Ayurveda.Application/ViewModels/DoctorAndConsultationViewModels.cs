@@ -54,6 +54,7 @@ public class BookAppointmentViewModel
     public int? PatientAge { get; set; }
     public string? PatientGender { get; set; }
     public string? HealthConcern { get; set; }
+    public bool SimulateFailure { get; set; } = false;
     public List<string> AvailableSlots { get; set; } = new();
 }
 

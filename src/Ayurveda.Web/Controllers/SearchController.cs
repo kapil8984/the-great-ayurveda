@@ -14,30 +14,23 @@ public class SearchController : Controller
     private readonly ISearchService _searchService;
     private readonly AyurvedaDbContext _context;
     private readonly IMemoryCache _cache;
+    private readonly IConfiguration _config;
 
     public SearchController(
         ISearchService searchService,
         AyurvedaDbContext context,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IConfiguration config)
     {
         _searchService = searchService;
         _context = context;
         _cache = cache;
+        _config = config;
     }
 
     [HttpGet("suggest")]
     public async Task<IActionResult> Suggest([FromQuery] string? q, [FromQuery] string scope = "public")
     {
-        // 1. Sliding-window rate limiting (60 requests per minute per IP address)
-        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var rateLimitKey = $"rl_suggest_{ip}";
-        if (_cache.TryGetValue(rateLimitKey, out int reqCount) && reqCount >= 60)
-        {
-            Response.Headers.Append("Retry-After", "10");
-            return StatusCode(429, new { error = "Search rate limit exceeded. Please slow down requests." });
-        }
-        _cache.Set(rateLimitKey, reqCount + 1, TimeSpan.FromMinutes(1));
-
         if (string.IsNullOrWhiteSpace(q))
         {
             return Json(new SearchSuggestionResultDto());

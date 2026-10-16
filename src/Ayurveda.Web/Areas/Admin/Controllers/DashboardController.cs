@@ -8,7 +8,7 @@ using Ayurveda.Infrastructure.Data;
 namespace Ayurveda.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize(AuthenticationSchemes = "AdminCookieScheme", Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager,Admin")]
+[Authorize(AuthenticationSchemes = "AdminCookieScheme", Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager,Admin,DemoViewer")]
 public class DashboardController : Controller
 {
     private readonly AyurvedaDbContext _context;

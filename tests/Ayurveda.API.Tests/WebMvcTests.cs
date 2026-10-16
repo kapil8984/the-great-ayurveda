@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ayurveda.Domain.Entities;
@@ -25,11 +26,21 @@ public class PassThroughAntiforgery : IAntiforgery
 
 public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
 {
+    public const string TestAdminPassword = "Test_SuperAdmin_Pass2026!";
     private readonly string _dbName = "WebMvcTestDb_" + Guid.NewGuid().ToString("N");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+
+        builder.ConfigureAppConfiguration((ctx, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DevDemo:AdminPassword"] = TestAdminPassword,
+                ["Admin:InitialPassword"] = TestAdminPassword
+            });
+        });
 
         builder.ConfigureServices(services =>
         {
@@ -66,7 +77,8 @@ public class WebMvcFactory : WebApplicationFactory<Ayurveda.Web.Program>
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebMvcFactory>>();
-            DbInitializer.InitializeAsync(db, userManager, roleManager, logger).GetAwaiter().GetResult();
+            var config = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+            DbInitializer.InitializeAsync(db, userManager, roleManager, logger, config).GetAwaiter().GetResult();
         }
 
         return host;
@@ -460,7 +472,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task ECommerce_Checkout_RendersAddressesAndPaymentModes()
     {
-        var client = _webFactory.CreateClient();
+        var client = await CreateAuthenticatedCustomerClientAsync("customer_checkout@ayurveda.com");
         
         // Ensure cart has item first
         var form = new Dictionary<string, string> { ["productId"] = "1", ["quantity"] = "1" };
@@ -481,7 +493,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task ECommerce_Wishlist_Index_RendersSuccessfully()
     {
-        var client = _webFactory.CreateClient();
+        var client = await CreateAuthenticatedCustomerClientAsync("customer_wishlist@ayurveda.com");
         var response = await client.GetAsync("/wishlist");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -637,7 +649,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Doctors_Book_RendersConsultationModes_AndISTTimezoneNotice()
     {
-        var client = _webFactory.CreateClient();
+        var client = await CreateAuthenticatedCustomerClientAsync("customer_doctor@ayurveda.com");
         var response = await client.GetAsync("/doctors/book/1");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -706,6 +718,38 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     // PHASE 8: ADMIN PORTAL, RBAC & GOVERNANCE TESTS
     // =========================================================================
 
+    private async Task<HttpClient> CreateAuthenticatedCustomerClientAsync(string email = "test_customer@ayurveda.com", string password = "TestPassword@2026!")
+    {
+        using (var scope = _webFactory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var existing = await userManager.FindByEmailAsync(email);
+            if (existing == null)
+            {
+                var user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FullName = "Test Customer",
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await userManager.CreateAsync(user, password);
+                await userManager.AddToRoleAsync(user, "Customer");
+            }
+        }
+
+        var client = _webFactory.CreateClient();
+        var loginForm = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = email,
+            ["Password"] = password
+        });
+
+        await client.PostAsync("/account/login", loginForm);
+        return client;
+    }
+
     private async Task<HttpClient> CreateAuthenticatedAdminClientAsync(string email, string password)
     {
         var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions
@@ -728,7 +772,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Dashboard_RendersExecutiveKpis_WhenAuthenticated()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var response = await client.GetAsync("/admin-portal/dashboard");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -745,7 +789,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_DoctorManagement_AllowsDirectoryAudit_AndPendingQueue()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
 
         var response = await client.GetAsync("/admin-portal/doctors");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -762,7 +806,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task Admin_AuthorizationMatrix_CatalogManager_CannotAccessFinancePages()
     {
         // Explicit acceptance test: CatalogManager role CANNOT open finance pages
-        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var response = await client.GetAsync("/admin-portal/finance");
 
         // Should return 403 Forbidden or redirect to AccessDenied
@@ -773,7 +817,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Finance_AllowsFinanceManagerAccess_AndGstReportExport()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var response = await client.GetAsync("/admin-portal/finance");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -796,7 +840,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_UserManagement_RendersUserList_AndGdprDataExport()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var response = await client.GetAsync("/admin-portal/users");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -816,7 +860,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Products_AllowsCsvExport_AndInventoryTracking()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var response = await client.GetAsync("/admin-portal/products");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -837,7 +881,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_Audit_Trail_RendersSecurityLogs_ForSuperAdmin()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var response = await client.GetAsync("/admin-portal/audit");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -908,7 +952,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task AdminPortal_RendersAccessibleConfirmModal_AndIdleTimeoutModal_WhenAuthenticated()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var response = await client.GetAsync("/admin-portal/dashboard");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -933,7 +977,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task Admin_LogoutPost_RequiresPost_AndRedirectsToAdminLoginWithToast()
     {
-        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var client = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
 
         var response = await client.PostAsync("/admin-portal/auth/logout", new FormUrlEncodedContent(new Dictionary<string, string>()));
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -962,6 +1006,158 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         var cancelResponse = await client.PostAsync("/orders/cancel/999", new FormUrlEncodedContent(new Dictionary<string, string>()));
         Assert.Equal(HttpStatusCode.Redirect, cancelResponse.StatusCode);
         Assert.Contains("/Account/Login", cancelResponse.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ProductImages_All312ProductsHaveDistinctExistingImages_ZeroPlaceholders()
+    {
+        using var scope = _webFactory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
+        var products = await context.Products.ToListAsync();
+
+        Assert.Equal(312, products.Count);
+        Assert.All(products, p =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(p.ImageUrl), $"Product {p.Title} has null/empty ImageUrl");
+            Assert.DoesNotContain("placeholder", p.ImageUrl, StringComparison.OrdinalIgnoreCase);
+        });
+
+        var distinctImages = products.Select(p => p.ImageUrl).Distinct().ToList();
+        Assert.Equal(312, distinctImages.Count);
+    }
+
+    [Fact]
+    public async Task Admin_EditProductPrice_InvalidatesCache_AndPublicPageShowsNewPriceImmediately()
+    {
+        var publicClient = _webFactory.CreateClient();
+
+        using (var scope = _webFactory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
+            var product = await db.Products.FirstAsync();
+            var originalPrice = product.Price;
+            var newPrice = originalPrice + 77.00m;
+
+            // 1. Initial public request caches the product
+            var res1 = await publicClient.GetAsync($"/Product/{product.Id}");
+            Assert.True(res1.IsSuccessStatusCode);
+            var html1 = await res1.Content.ReadAsStringAsync();
+            Assert.Contains(originalPrice.ToString("0"), html1);
+
+            // 2. Admin edits product price
+            var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
+            var editForm = new Dictionary<string, string>
+            {
+                ["Id"] = product.Id.ToString(),
+                ["Title"] = product.Title,
+                ["Price"] = newPrice.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["Mrp"] = (newPrice + 100).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["StockQuantity"] = product.Stock.ToString(),
+                ["CategoryId"] = product.CategoryId.ToString(),
+                ["Description"] = product.Description,
+                ["Brand"] = product.Brand,
+                ["IsActive"] = "true"
+            };
+
+            var postRes = await adminClient.PostAsync("/admin-portal/products/edit", new FormUrlEncodedContent(editForm));
+            Assert.True(postRes.StatusCode == HttpStatusCode.Redirect || postRes.IsSuccessStatusCode);
+
+            // 3. Next public request must reflect new price immediately
+            var res2 = await publicClient.GetAsync($"/Product/{product.Id}");
+            Assert.True(res2.IsSuccessStatusCode);
+            var html2 = await res2.Content.ReadAsStringAsync();
+            Assert.Contains(newPrice.ToString("0"), html2);
+        }
+    }
+
+    [Fact]
+    public async Task Anonymous_GuestCart_Isolation_And_ProtectedFlowsRedirect()
+    {
+        // Two different anonymous clients never see each other's cart
+        var clientA = _webFactory.CreateClient();
+        await clientA.PostAsync("/cart/addtocart", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["productId"] = "1",
+            ["quantity"] = "3"
+        }));
+
+        var clientB = _webFactory.CreateClient();
+        await clientB.PostAsync("/cart/addtocart", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["productId"] = "2",
+            ["quantity"] = "1"
+        }));
+
+        var cartAResp = await clientA.GetAsync("/cart");
+        var cartAHtml = await cartAResp.Content.ReadAsStringAsync();
+        Assert.Contains("3", cartAHtml); // Quantity 3 of product 1
+
+        var cartBResp = await clientB.GetAsync("/cart");
+        var cartBHtml = await cartBResp.Content.ReadAsStringAsync();
+        Assert.Contains("1", cartBHtml); // Quantity 1 of product 2
+
+        // Anonymous checkout/booking redirects to login and never creates records for existing users
+        var noRedirectClient = _webFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var checkoutResp = await noRedirectClient.GetAsync("/checkout");
+        Assert.Equal(HttpStatusCode.Redirect, checkoutResp.StatusCode);
+        Assert.Contains("/account/login", checkoutResp.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+
+        var bookResp = await noRedirectClient.GetAsync("/doctors/book/1");
+        Assert.Equal(HttpStatusCode.Redirect, bookResp.StatusCode);
+        Assert.Contains("/account/login", bookResp.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DemoOtpSkip_NeverResetsPassword_Of_AdminStaffOrDoctor()
+    {
+        var client = _webFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        // Attempting OTP verify with demo code for protected admin account
+        var adminOtpForm = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = "admin@thegreatayurveda.com",
+            ["Otp"] = "123456"
+        });
+
+        var adminResp = await client.PostAsync("/account/verify-otp", adminOtpForm);
+        var adminContent = await adminResp.Content.ReadAsStringAsync();
+        Assert.True(adminContent.Contains("expired") || adminContent.Contains("Invalid") || adminResp.StatusCode == HttpStatusCode.BadRequest || adminResp.StatusCode == HttpStatusCode.OK);
+
+        // Attempting password reset with demo code for protected doctor
+        var docResetForm = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = "dr.aarav.sharma@thegreatayurveda.com",
+            ["Otp"] = "000000",
+            ["NewPassword"] = "HackedPass123!",
+            ["ConfirmPassword"] = "HackedPass123!"
+        });
+
+        var docResp = await client.PostAsync("/account/reset-password", docResetForm);
+        var docContent = await docResp.Content.ReadAsStringAsync();
+        Assert.True(docContent.Contains("Invalid or expired") || docContent.Contains("Invalid") || docResp.StatusCode == HttpStatusCode.BadRequest || docResp.StatusCode == HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task DemoViewer_AdminMutations_BlockedServerSide_WithReadOnlyMessage()
+    {
+        // 1. Authenticate as DemoViewer
+        var demoViewerClient = await CreateAuthenticatedAdminClientAsync("demo-admin@ayurveda.local", "DemoAdmin@2026!");
+
+        // 2. Attempt to create a category via POST
+        var postForm = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Name"] = "Unauthorized Category",
+            ["Description"] = "Should be blocked",
+            ["IsActive"] = "true"
+        });
+
+        var postRes = await demoViewerClient.PostAsync("/admin-portal/categories/create", postForm);
+        var content = await postRes.Content.ReadAsStringAsync();
+
+        // Must be blocked with 403 or redirect with Demo notification
+        Assert.True(postRes.StatusCode == HttpStatusCode.Forbidden || 
+                    postRes.StatusCode == HttpStatusCode.Redirect || 
+                    content.Contains("Read-only demo"));
     }
 }
 

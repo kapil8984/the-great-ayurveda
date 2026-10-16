@@ -79,7 +79,7 @@ function initAdminSearchBox() {
                 .catch(err => {
                     if (err.name !== "AbortError") console.error("Admin search error:", err);
                 });
-            }, 150);
+            }, 250);
         });
 
         input.addEventListener("keydown", function (e) {

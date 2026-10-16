@@ -116,11 +116,9 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold text-dark m-0"><i class="bi bi-credit-card-2-front text-success me-2"></i> 3. Payment Method</h5>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-light text-secondary border border-secondary-subtle rounded-pill px-2 py-1 small">
-                                <i class="bi bi-shield-check me-1"></i> Razorpay Secure Gateway
-                            </span>
-                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small">
-                                <i class="bi bi-info-circle me-1"></i> Demo Simulator
+                            <span class="badge bg-light text-muted border rounded-pill px-2 py-1 small">Razorpay Secure Gateway</span>
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill px-3 py-1 small fw-bold">
+                                <i class="bi bi-shield-check me-1"></i> Demo payment - no money is charged
                             </span>
                         </div>
                     </div>
@@ -176,7 +174,7 @@
                             <h6 class="fw-bold small text-dark mb-2"><i class="bi bi-phone me-1 text-success"></i> Enter UPI Virtual Private Address (VPA):</h6>
                             <div class="input-group input-group-sm mb-2" style="max-width: 360px;">
                                 <input type="text" class="form-control" id="upiVpaInput" placeholder="username@okhdfcbank" value="ayurveda.customer@upi" />
-                                <span class="input-group-text bg-white text-success fw-bold"><i class="bi bi-check2"></i> Verified</span>
+                                <span class="input-group-text bg-white text-muted"><i class="bi bi-check2"></i> Demo VPA</span>
                             </div>
                             <div class="d-flex gap-2 align-items-center small text-muted">
                                 <span>Popular apps:</span>
@@ -228,7 +226,7 @@
                     <!-- Simulate Payment Failure Toggle -->
                     <div class="p-3 border rounded-3 bg-danger-subtle border-danger-subtle">
                         <div class="form-check form-switch m-0">
-                            <input class="form-check-input" type="checkbox" role="switch" id="simulateFailureToggle" />
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="SimulateFailure" id="simulateFailureToggle" />
                             <label class="form-check-label small fw-bold text-danger" for="simulateFailureToggle">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i> Simulate Payment Failure
                             </label>
@@ -253,7 +251,7 @@
                         {
                             <div class="d-flex align-items-center justify-content-between mb-2 small pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
-                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" width="38" height="38" class="rounded border p-1" style="object-fit: contain;" alt="@item.Title" onerror="this.onerror=null;this.src='/images/products/ashwagandha.svg';" />
+                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/dhanvantari-botanicals-classical-shatavari-chyawanprash-formulation-no-1.webp" : item.ImageUrl)" width="38" height="38" class="rounded border p-1" style="object-fit: contain;" alt="@item.Title" onerror="this.onerror=null;this.src='/images/products/dhanvantari-botanicals-classical-shatavari-chyawanprash-formulation-no-1.webp';" />
                                     <div>
                                         <div class="text-truncate fw-semibold" style="max-width: 140px;">@item.Title</div>
                                         <div class="text-muted" style="font-size: 0.72rem;">Qty: @item.Quantity</div>

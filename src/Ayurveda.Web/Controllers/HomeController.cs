@@ -147,6 +147,36 @@ public class HomeController : Controller
         return View();
     }
 
+    [HttpGet]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public IActionResult Terms()
+    {
+        return View();
+    }
+
+    [HttpGet]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public IActionResult Refunds()
+    {
+        return View();
+    }
+
+    [HttpGet]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public IActionResult Shipping()
+    {
+        return View();
+    }
+
+    [HttpGet("home/notfound")]
+    [HttpPost("home/notfound")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public IActionResult NotFoundPage()
+    {
+        Response.StatusCode = 404;
+        return View("NotFound");
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

@@ -1,211 +1,95 @@
-# 🌿 The Great Ayurveda — Classical Ayurvedic E-Commerce & Telemedicine Platform
+# 🌿 The Great Ayurveda
+
+A full-stack demonstration e-commerce and telemedicine platform for classical Ayurvedic formulations and consultation scheduling, built on **ASP.NET Core 10 (MVC)** and **Clean Architecture**.
 
 [![.NET 10.0](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Onion-success)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/src)
-[![Security](https://img.shields.io/badge/Security-OWASP%20Top%2010%20Hardened-blue)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/SECURITY_FIXES.md)
-[![Tests](https://img.shields.io/badge/Tests-106%20Passed%20(100%25)-brightgreen)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/tests/Ayurveda.API.Tests)
-[![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA%20Compliant-success)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/docs/quality/axe-accessibility-report.md)
-
-**The Great Ayurveda** is a digital health and Ayurvedic wellness demonstration platform crafted following classical Ayurvedic traditions. Built on **ASP.NET Core 10 (MVC)** and **Clean Architecture**, the platform provides:
-1. **Public E-Commerce & Wellness Storefront:** Classical formulation dispensary, Dosha-specific recommendations, fast multi-attribute search suggestions, pincode delivery estimators, and streamlined checkout.
-2. **Vaidya Clinical Desk (Doctor Portal):** Tele-consultation bookings (Video, Audio, Chat), encrypted virtual chambers, digital Shastriya prescription generation with one-click cart conversion.
-3. **Dedicated Administrative Console (`Ayurveda.Admin`):** Isolated host application for executive KPIs, doctor credential verification, catalog lifecycle, audit logging, finance reconciliation, and role-based staff management.
+[![Tests](https://img.shields.io/badge/Tests-118%20Passed-brightgreen)](file:///d:/TheGreatAyurveda/The-Great-Ayurveda/tests/Ayurveda.API.Tests)
 
 ---
 
-## 🏛️ System Architecture
+## 📌 Overview
 
-```mermaid
-flowchart TB
-    subgraph Clients["Clients & Assistive Technologies"]
-        Customer["🛒 Customer / Patient\n(Desktop & Mobile Web)"]
-        Doctor["🩺 Qualified Vaidya\n(Clinical Desk)"]
-        AdminStaff["🛡️ Admin Staff\n(SuperAdmin, Catalog, Finance)"]
-    end
+**The Great Ayurveda** is a software demonstration showcasing modern web engineering practices in ASP.NET Core:
+1. **Public Storefront:** Browsable catalog of 312 classical Ayurvedic formulation listings with distinct imagery, categories, pricing, herbology details, dosage notes, and session-based guest carts.
+2. **Doctor Clinical Portal:** Fictional doctor profiles, tele-consultation booking calendar with time-slot reservation, simulated video/audio modes, and digital prescription workflows.
+3. **Administrative Portal (`/admin-portal`):** Management console for catalog operations, category management, doctor profile approvals, order tracking, and promotional banners.
 
-    subgraph Frontends["Application Hosts (Isolated Hostnames)"]
-        WebSite["Ayurveda.Web (Port 5000 / 5001)\nthegreatayurveda.com\n- Storefront & Wellness Catalog\n- Patient Portal & Checkout\n- Doctor Clinical Portal"]
-        AdminSite["Ayurveda.Admin (Port 7200 / 7201)\nadmin.thegreatayurveda.com\n- Host Isolated & IP Whitelisted\n- Dedicated Admin Auth Cookie\n- Staff Policy Gates & Audit Engine"]
-    end
-
-    subgraph CoreLayers["Clean Architecture Core"]
-        AppLayer["Ayurveda.Application\n- ViewModels, Interfaces\n- DTOs, Business Rules"]
-        DomainLayer["Ayurveda.Domain\n- Entities: Product, Order, Doctor, Appointment\n- Enums, Domain Exceptions"]
-        InfraLayer["Ayurveda.Infrastructure\n- EF Core DbContext & Migrations\n- Identity & BCrypt Hasher\n- Local / Cloud File Storage\n- Email Sender & Search Services"]
-    end
-
-    subgraph DataStore["Data & Persistence"]
-        SQLDB[("Microsoft SQL Server / LocalDB\n- Relational Data & Indexes\n- Temporal Audit Trails")]
-        Cache[("In-Memory & Distributed Cache\n- Trie Suggestion Index\n- Fast Pincode Cache")]
-    end
-
-    Customer -->|HTTPS| WebSite
-    Doctor -->|HTTPS| WebSite
-    AdminStaff -->|HTTPS (Isolated Domain)| AdminSite
-
-    WebSite --> AppLayer
-    AdminSite --> AppLayer
-    AppLayer --> DomainLayer
-    WebSite --> InfraLayer
-    AdminSite --> InfraLayer
-    InfraLayer --> SQLDB
-    InfraLayer --> Cache
-```
+> **Demonstration Notice:** This platform is an educational software demonstration. All formulations, pricing, doctor profiles, and reviews represent sample or illustrative data. No real commercial transactions, medical advice, or physical shipping occurs.
 
 ---
 
-## 🚀 Getting Started & Local Setup
+## 🏛️ Architecture
+
+The solution follows a multi-tier Clean Architecture pattern:
+- **`src/Ayurveda.Domain`**: Core domain entities (Products, Categories, Orders, Doctors, Appointments, ApplicationUser) and enums.
+- **`src/Ayurveda.Application`**: ViewModels, Data Transfer Objects (DTOs), and service interfaces.
+- **`src/Ayurveda.Infrastructure`**: EF Core `AyurvedaDbContext`, SQL Server migrations, identity configuration, image storage, cache busting, and rolling file logging.
+- **`src/Ayurveda.Web`**: The single runnable web application containing the public storefront, customer accounts, doctor portal, and the Admin area (`/admin-portal`).
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
-- Microsoft SQL Server 2022, SQL Server Express, or **LocalDB** (included with Visual Studio)
-- Modern browser (Chrome, Edge, Firefox, Safari)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or higher
+- Microsoft SQL Server 2022, SQL Server Express, or **LocalDB** (standard on Windows with Visual Studio)
 
-### 1. Clone & Restore
+### 1. Clone & Build
 ```bash
 git clone https://github.com/kapil-Dharwal/The-Great-Ayurveda.git
 cd The-Great-Ayurveda
-dotnet restore
+dotnet build
 ```
 
-### 2. Configure Database Connection String
-By default, the projects are configured to use LocalDB:
+### 2. Configure Database Connection
+Configure your SQL Server connection string in `src/Ayurveda.Web/appsettings.json` or via environment variable:
 ```json
 "ConnectionStrings": {
   "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=AyurvedaDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 }
 ```
-If using a custom SQL Server instance, configure via environment variable:
+
+Or via environment variable:
+```powershell
+$env:ConnectionStrings__DefaultConnection="Server=localhost;Database=AyurvedaDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True"
+```
+
+### 3. Database Initialization & Seeding
+On application startup, database migrations and initial seed data are applied automatically:
+- **312 Products:** Seeded directly from `catalog_300plus.json` with matching image assets in `wwwroot/images/products`.
+- **24 Fictional Doctor Profiles:** Representing various classical disciplines.
+- **Administrative Roles & Users:** Configures default roles (`Admin`, `CatalogManager`, `FinanceManager`, `SupportAgent`, `DemoViewer`).
+
+### 4. Running the Application
 ```bash
-# PowerShell
-$env:ConnectionStrings__DefaultConnection="Server=localhost;Database=AyurvedaDb;User Id=sa;Pwd=YourDbCredential123!;TrustServerCertificate=True"
+dotnet run --project src/Ayurveda.Web --urls "http://localhost:5000"
 ```
+Navigate to `http://localhost:5000` in your browser.
 
-### 3. Database Migrations & Automatic Seeding
-Database migrations and seed data automatically execute during startup via `DbInitializer.InitializeAsync()`:
-- **Seed Products:** 15 classical Ayurvedic products with images, ingredients, indications, and stock.
-- **Seed Doctors:** 24 verified fictional Vaidyas across all 12 Ayurvedic specialisations.
-- **Seed Admin Roles & Staff:** Bootstraps administrative roles (`SuperAdmin`, `CatalogManager`, `SupportAgent`, `FinanceManager`).
+---
 
-To manually run migrations via EF CLI:
+## 🧪 Demonstration Mode (`Demo:OpenAccess`)
+
+When `Demo:OpenAccess` is enabled (`true`), the application provides public evaluation features:
+- **Customer Sign-In & Checkout:** Any email address can sign in or register as a sandbox customer without real OTPs or external emails. Real administrative, staff, and seeded doctor accounts are protected and cannot be accessed with arbitrary passwords.
+- **Simulated Payment Sandbox:** Orders and consultation fees simulate payment with a toggleable failure scenario and clear demo labels. No external payment calls are made.
+- **Doctor Portal Demo:** `/doctor/login` allows access to an approved fictional demo doctor profile (`Dr. Aarav Sharma`) with sample appointments.
+- **Read-Only Admin Demo (`DemoViewer`):** Real administrative credentials remain protected. Visitors can evaluate the administrative portal using the `DemoViewer` role (`demo-admin@ayurveda.local` / `DemoAdmin@2026!`). All create, edit, and delete requests are safely rejected server-side, and customer contact information is masked.
+- **Data Isolation & Cleanup:** Demo users have isolated carts and bookings. Demo accounts older than 24 hours are lazily purged on login, and total demo accounts are capped at 300.
+
+---
+
+## 🔬 Testing
+
+The test suite consists of **118 automated integration and unit tests** in `tests/Ayurveda.API.Tests`:
+- Core e-commerce workflows (guest cart isolation, cart merge at login, checkout)
+- Doctor consultation booking and double-booking prevention
+- Authentication security, lockout, and protected account isolation
+- Admin role-based authorization and DemoViewer mutation prevention
+- Cache busting and rate limiting policies
+
+To execute all tests:
 ```bash
-dotnet ef database update --project src/Ayurveda.Infrastructure --startup-project src/Ayurveda.Web
+dotnet test
 ```
-
-### 4. Running the Applications
-
-#### Running Storefront & Doctor Portal (`Ayurveda.Web`)
-```bash
-dotnet run --project src/Ayurveda.Web --urls "https://localhost:5001;http://localhost:5000"
-```
-- Storefront URL: `https://localhost:5001`
-- Doctor Clinical Login: `https://localhost:5001/Account/Login?role=Doctor`
-
-#### Running Isolated Administrative Console (`Ayurveda.Admin`)
-```bash
-dotnet run --project src/Ayurveda.Admin --urls "https://localhost:7201;http://localhost:7200"
-```
-- Admin Console URL: `https://localhost:7201`
-
----
-
-## 🔑 Administrative Staff Credentials
-
-Upon database initialization, the following administrative personnel are bootstrapped:
-
-| Staff Role | Email | Bootstrap Credential | Permission Scope |
-| :--- | :--- | :--- | :--- |
-| **SuperAdmin** | `admin@thegreatayurveda.com` | `Admin__InitialPassword` (Env Var in Production) / Local seed | Full administrative control, audit logs, system settings |
-| **Catalog Manager** | `catalog@thegreatayurveda.com` | Seeded in Development only | Products, inventory, pricing, categories (Finance blocked) |
-| **Support Agent** | `support@thegreatayurveda.com` | Seeded in Development only | Users, tickets, reviews, order status moderation |
-| **Finance Manager** | `finance@thegreatayurveda.com` | Seeded in Development only | Payments, refunds, doctor payouts, GST reports |
-
-> [!NOTE]
-> All administrative accounts enforce 15-minute lockouts after 5 consecutive failed attempts. Multi-factor authentication (TOTP 2FA) is supported and can be enabled per staff user.
-
----
-
-## 🛡️ Security Architecture & OWASP Hardening
-
-1. **Host & Route Isolation:**
-   - The public website (`Ayurveda.Web`) contains zero routes, redirects, or links to administrative consoles.
-   - Admin routes cannot be reached from the public site; public users cannot authenticate into administrative panels.
-2. **Dedicated Cookie Contexts:**
-   - Public Site: `.Ayurveda.Web.Auth`
-   - Administrative Console: `.Ayurveda.Admin.Auth` (Strict SameSite, HttpOnly, secure isolation).
-3. **Anti-Forgery & Safe POST Mutation:**
-   - All state-altering operations (Logout, Order Placement, Cart Actions, Cancellations, Doctor Status Approvals) require strict HTTP `POST` and valid anti-forgery tokens.
-   - GET requests to `/Account/Logout` and `/Auth/Logout` are strictly prohibited and redirect safely without mutation.
-4. **Unified Accessible Confirm Modal:**
-   - WAI-ARIA `role="dialog"`, `aria-modal="true"`, focus trap (`Tab`/`Shift+Tab`), `Escape` cancellation, and Enter submission.
-   - Guarding all logout actions and destructive user operations (address deletions, order cancellations).
-5. **Idle Inactivity Timeout Warnings:**
-   - Monitored inactivity (25-minute default) prompts with an accessible 60-second countdown before performing an automated safe POST sign-out.
-6. **Zero IDOR Paths:**
-   - Cart, wishlist, address, order, and prescription retrieval strictly resolve through authenticated claims principals (`_userManager.GetUserAsync(User)`), ignoring untrusted request payloads.
-7. **BCrypt Legacy Upgrade:**
-   - Automatic zero-friction password re-hashing from legacy MD5/BCrypt hashes to modern ASP.NET Core Identity PBKDF2 with SHA-512 upon successful login.
-
----
-
-## 🧪 Testing & Verification
-
-The test suite encompasses unit, integration, security, and end-to-end regression tests in `Ayurveda.API.Tests`:
-
-```bash
-dotnet test tests/Ayurveda.API.Tests/Ayurveda.API.Tests.csproj
-```
-
-**Test Results:**
-```text
-Passed!  - Failed: 0, Passed: 106, Skipped: 0, Total: 106, Duration: 21 s - Ayurveda.API.Tests.dll (net10.0)
-```
-
-### Test Coverage Highlights:
-- **Phase 1–5:** Core API endpoints, repository patterns, legacy authentication compatibility, search service.
-- **Phase 6:** 12-section modern responsive storefront, self-hosted fonts, luxury branding assets, pincode lookups.
-- **Phase 7:** Doctor directory filters, slot scheduling, IST timezone conversions, double-booking prevention, telemedicine calling rooms.
-- **Phase 8:** Admin KPI dashboards, catalog CSV exports, doctor approval/rejection workflows, role authorization matrix.
-- **Phase 9:** Unified accessible ConfirmModal, anti-forgery POST logouts, session timeouts.
-- **Phase 10:** Full end-to-end regression verifying 3-role authentication, search suggestions, cart-to-order flow, and double-booking guards.
-
----
-
-## 🌐 Production Deployment Architecture
-
-In production, deploy `Ayurveda.Web` and `Ayurveda.Admin` under distinct subdomains behind a reverse proxy (e.g., NGINX, YARP, or Azure Front Door):
-
-```text
-https://thegreatayurveda.com        ──►  Reverse Proxy  ──►  Kestrel (Ayurveda.Web : 5000)
-https://admin.thegreatayurveda.com  ──►  Reverse Proxy  ──►  Kestrel (Ayurveda.Admin : 7200)
-```
-
-### Recommended Environment Variables
-
-| Variable Name | Purpose | Example |
-| :--- | :--- | :--- |
-| `ASPNETCORE_ENVIRONMENT` | Hosting environment | `Production` |
-| `ConnectionStrings__DefaultConnection` | SQL Server connection string | `Server=sql.prod;Database=AyurvedaDb;...` |
-| `AdminSecurity__AllowedIPs__0` | Optional IP allowlist for admin portal | `203.0.113.195` |
-| `Authentication__Google__ClientId` | Google OAuth client ID | `your-client-id.apps.googleusercontent.com` |
-| `Authentication__Google__ClientToken` | Google OAuth client token | `your-google-token` |
-| `Email__SmtpHost` | Production SMTP host | `smtp.sendgrid.net` |
-| `Email__SmtpPort` | Production SMTP port | `587` |
-
----
-
-## 📋 Compliance & Quality Checklist
-
-- [x] **Zero "React App" Strings:** Verified 0 occurrences across all repositories and views.
-- [x] **Zero Hardcoded Credentials:** Connection strings and credential placeholders managed via configuration overrides.
-- [x] **Zero `[AllowAnonymous]` on Admin Routes:** Verified strictly gated behind role and policy requirements.
-- [x] **Zero Vulnerabilities:** Verified via `dotnet list package --vulnerable` across all 8 projects.
-- [x] **Zero IDOR Paths:** Verified with automated security integration tests.
-- [x] **Accessible Dialog Standards:** WCAG 2.1 AA certified with focus-trapped confirmation dialogs.
-- [x] **Audit Logging:** Every administrative mutation tracked with IP, timestamp, user, and delta details.
-
----
-
-## 📄 License & Standards Compliance
-Developed strictly according to **AYUSH Clinical and Ayurvedic Pharmacopoeia Guidelines**.  
-All rights reserved © 2026 The Great Ayurveda.

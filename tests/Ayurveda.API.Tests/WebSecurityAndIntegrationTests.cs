@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -210,16 +211,43 @@ public class WebSecurityAndIntegrationTests : IClassFixture<WebMvcFactory>
     }
 
     [Fact]
-    public void IdentityPasswordOptions_EnforcesStrongPasswordPolicy()
+    public async Task IdentityPasswordOptions_EnforcesStrongPasswordPolicy()
     {
         using var scope = _factory.Services.CreateScope();
         var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var options = userMgr.Options.Password;
 
+        // Verify configured Identity options
         Assert.True(options.RequireDigit);
         Assert.True(options.RequireUppercase);
         Assert.True(options.RequireLowercase);
         Assert.True(options.RequiredLength >= 8);
+
+        var dummyUser = new ApplicationUser { UserName = "pwd_policy_test@example.com", Email = "pwd_policy_test@example.com" };
+
+        // 1. Password too short (<8 chars)
+        var shortResult = await userMgr.PasswordValidators[0].ValidateAsync(userMgr, dummyUser, "Aa1!");
+        Assert.False(shortResult.Succeeded);
+        Assert.Contains(shortResult.Errors, e => e.Code == "PasswordTooShort");
+
+        // 2. Missing digit
+        var noDigitResult = await userMgr.PasswordValidators[0].ValidateAsync(userMgr, dummyUser, "Abcdefghijk!");
+        Assert.False(noDigitResult.Succeeded);
+        Assert.Contains(noDigitResult.Errors, e => e.Code == "PasswordRequiresDigit");
+
+        // 3. Missing uppercase
+        var noUpperResult = await userMgr.PasswordValidators[0].ValidateAsync(userMgr, dummyUser, "abcdefgh1!");
+        Assert.False(noUpperResult.Succeeded);
+        Assert.Contains(noUpperResult.Errors, e => e.Code == "PasswordRequiresUpper");
+
+        // 4. Missing lowercase
+        var noLowerResult = await userMgr.PasswordValidators[0].ValidateAsync(userMgr, dummyUser, "ABCDEFGH1!");
+        Assert.False(noLowerResult.Succeeded);
+        Assert.Contains(noLowerResult.Errors, e => e.Code == "PasswordRequiresLower");
+
+        // 5. Compliant password succeeds
+        var validResult = await userMgr.PasswordValidators[0].ValidateAsync(userMgr, dummyUser, "ValidPass123!");
+        Assert.True(validResult.Succeeded);
     }
 
     // =========================================================================
@@ -257,9 +285,25 @@ public class WebSecurityAndIntegrationTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task AdminEndpoints_AdminUser_ReturnsOk()
     {
-        var client = _factory.CreateClient();
-        var response = await client.GetAsync("/admin-portal/auth/login");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var loginForm = new Dictionary<string, string>
+        {
+            ["Email"] = "admin@thegreatayurveda.com",
+            ["Password"] = WebMvcFactory.TestAdminPassword
+        };
+
+        var loginResponse = await client.PostAsync("/admin-portal/auth/login", new FormUrlEncodedContent(loginForm));
+        Assert.True(loginResponse.StatusCode == HttpStatusCode.Redirect || loginResponse.StatusCode == HttpStatusCode.OK);
+
+        // Access real administrative pages after admin authentication
+        var dashResponse = await client.GetAsync("/admin-portal/dashboard");
+        Assert.Equal(HttpStatusCode.OK, dashResponse.StatusCode);
+        var dashHtml = await dashResponse.Content.ReadAsStringAsync();
+        Assert.Contains("Executive Management Console", dashHtml);
+
+        var ordersResponse = await client.GetAsync("/admin-portal/orders");
+        Assert.Equal(HttpStatusCode.OK, ordersResponse.StatusCode);
     }
 
     [Fact]
@@ -429,27 +473,127 @@ public class WebSecurityAndIntegrationTests : IClassFixture<WebMvcFactory>
     [Fact]
     public async Task CartEndpoints_UsesAuthenticatedSession_PreventingIdorInjection()
     {
-        var client = _factory.CreateClient();
-        var form = new Dictionary<string, string>
+        int cartItemIdA;
+        using (var scope = _factory.Services.CreateScope())
         {
-            ["productId"] = "1",
-            ["quantity"] = "2",
-            ["userId"] = "999" // Attacker attempts to spoof user ID in payload
-        };
+            var db = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
+            var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        var response = await client.PostAsync("/cart/addtocart", new FormUrlEncodedContent(form));
-        // Successfully processes into session without binding arbitrary userId
-        Assert.True(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Redirect);
+            var custA = await userMgr.FindByEmailAsync("custA_cart@example.com");
+            if (custA == null)
+            {
+                custA = new ApplicationUser { UserName = "custA_cart@example.com", Email = "custA_cart@example.com", EmailConfirmed = true };
+                await userMgr.CreateAsync(custA, "PassCartA@2026!");
+            }
+
+            var custB = await userMgr.FindByEmailAsync("custB_cart@example.com");
+            if (custB == null)
+            {
+                custB = new ApplicationUser { UserName = "custB_cart@example.com", Email = "custB_cart@example.com", EmailConfirmed = true };
+                await userMgr.CreateAsync(custB, "PassCartB@2026!");
+            }
+
+            var cartA = await db.Carts.Include(c => c.CartItems).FirstOrDefaultAsync(c => c.UserId == custA.Id);
+            if (cartA == null)
+            {
+                cartA = new Cart { UserId = custA.Id };
+                db.Carts.Add(cartA);
+                await db.SaveChangesAsync();
+            }
+
+            var product = await db.Products.FirstAsync();
+            var itemA = new CartItem { CartId = cartA.Id, ProductId = product.Id, Quantity = 2 };
+            db.CartItems.Add(itemA);
+            await db.SaveChangesAsync();
+            cartItemIdA = itemA.Id;
+        }
+
+        // Customer B logs in
+        var clientB = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        await clientB.PostAsync("/account/login", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = "custB_cart@example.com",
+            ["Password"] = "PassCartB@2026!"
+        }));
+
+        // 1. Customer B attempts to modify Customer A's cart item via IDOR
+        var updateResp = await clientB.PostAsync("/cart/updatequantity", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["cartItemId"] = cartItemIdA.ToString(),
+            ["quantity"] = "10"
+        }));
+        Assert.Equal(HttpStatusCode.NotFound, updateResp.StatusCode);
+
+        // 2. Customer B attempts to delete Customer A's cart item via IDOR
+        var removeResp = await clientB.PostAsync("/cart/removeitem", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["cartItemId"] = cartItemIdA.ToString()
+        }));
+        Assert.Equal(HttpStatusCode.NotFound, removeResp.StatusCode);
+
+        // 3. Verify Customer A's item remains untouched in DB
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
+            var item = await db.CartItems.FindAsync(cartItemIdA);
+            Assert.NotNull(item);
+            Assert.Equal(2, item.Quantity);
+        }
     }
 
     [Fact]
     public async Task CustomerOrder_OtherCustomerOrderLookup_IsProtected()
     {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        int orderIdForCustomerA;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
+            var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        // Unauthenticated or different user trying to view customer order invoice
-        var response = await client.GetAsync("/orders/invoice/999");
-        Assert.True(response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.Redirect || response.StatusCode == HttpStatusCode.Forbidden);
+            var custA = await userMgr.FindByEmailAsync("custA_order@example.com");
+            if (custA == null)
+            {
+                custA = new ApplicationUser { UserName = "custA_order@example.com", Email = "custA_order@example.com", FullName = "Customer A", EmailConfirmed = true };
+                await userMgr.CreateAsync(custA, "PassCustomerA@2026!");
+            }
+
+            var custB = await userMgr.FindByEmailAsync("custB_order@example.com");
+            if (custB == null)
+            {
+                custB = new ApplicationUser { UserName = "custB_order@example.com", Email = "custB_order@example.com", FullName = "Customer B", EmailConfirmed = true };
+                await userMgr.CreateAsync(custB, "PassCustomerB@2026!");
+            }
+
+            var orderA = new Order
+            {
+                UserId = custA.Id,
+                OrderNumber = "ORD-TEST-A-" + Guid.NewGuid().ToString("N").Substring(0, 8),
+                OrderDate = DateTime.UtcNow,
+                TotalAmount = 1500m,
+                Status = "Placed",
+                PaymentStatus = "Completed",
+                ShippingAddress = "123 Test Street, New Delhi"
+            };
+            db.Orders.Add(orderA);
+            await db.SaveChangesAsync();
+            orderIdForCustomerA = orderA.Id;
+        }
+
+        // Customer B logs in
+        var clientB = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var loginResp = await clientB.PostAsync("/account/login", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = "custB_order@example.com",
+            ["Password"] = "PassCustomerB@2026!"
+        }));
+        Assert.True(loginResp.StatusCode == HttpStatusCode.Redirect || loginResp.StatusCode == HttpStatusCode.OK);
+
+        // Customer B attempts to lookup Customer A's order invoice and details
+        var invoiceResponse = await clientB.GetAsync($"/orders/invoice/{orderIdForCustomerA}");
+        Assert.True(invoiceResponse.StatusCode == HttpStatusCode.NotFound || invoiceResponse.StatusCode == HttpStatusCode.Forbidden);
+
+        var detailsResponse = await clientB.GetAsync($"/orders/details/{orderIdForCustomerA}");
+        Assert.True(detailsResponse.StatusCode == HttpStatusCode.NotFound || detailsResponse.StatusCode == HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -462,9 +606,145 @@ public class WebSecurityAndIntegrationTests : IClassFixture<WebMvcFactory>
         Assert.Contains("login", response.Headers.Location?.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task Swagger_InDevelopment_ReturnsOk_InProduction_ReturnsNotFound()
+    {
+        // Development: /swagger/v1/swagger.json returns 200 OK
+        var devClient = _factory.CreateClient();
+        var devResp = await devClient.GetAsync("/swagger/v1/swagger.json");
+        Assert.Equal(HttpStatusCode.OK, devResp.StatusCode);
+        var json = await devResp.Content.ReadAsStringAsync();
+        Assert.Contains("The Great Ayurveda API", json);
+
+        // Production: /swagger/v1/swagger.json and /swagger return 404 NotFound
+        var prodFactory = _factory.WithWebHostBuilder(b => b.UseEnvironment("Production"));
+        var prodClient = prodFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var prodDocResp = await prodClient.GetAsync("/swagger/v1/swagger.json");
+        Assert.Equal(HttpStatusCode.NotFound, prodDocResp.StatusCode);
+
+        var prodUiResp = await prodClient.GetAsync("/swagger");
+        Assert.True(prodUiResp.StatusCode == HttpStatusCode.NotFound || prodUiResp.StatusCode == HttpStatusCode.MovedPermanently);
+    }
+
+    [Fact]
+    public async Task ProxyIp_RateLimiting_IsolatesBuckets_ForForwardedHeaders_FromTrustedProxy()
+    {
+        // 1. Client 1 sends requests behind trusted loopback proxy with X-Forwarded-For: 203.0.113.1
+        var client1 = _factory.CreateClient();
+        client1.DefaultRequestHeaders.Add("X-Forwarded-For", "203.0.113.1");
+
+        // 2. Client 2 sends requests behind trusted loopback proxy with X-Forwarded-For: 203.0.113.2
+        var client2 = _factory.CreateClient();
+        client2.DefaultRequestHeaders.Add("X-Forwarded-For", "203.0.113.2");
+
+        // Exhaust search suggest rate limit for Client 1 (60 requests)
+        for (int i = 0; i < 60; i++)
+        {
+            var r = await client1.GetAsync("/search/suggest?q=ashwa");
+            Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        }
+        var c1RateLimited = await client1.GetAsync("/search/suggest?q=ashwa");
+        Assert.Equal(HttpStatusCode.TooManyRequests, c1RateLimited.StatusCode);
+
+        // Client 2 with DIFFERENT X-Forwarded-For is NOT blocked (independent rate limit bucket)
+        var c2Response = await client2.GetAsync("/search/suggest?q=ashwa");
+        Assert.Equal(HttpStatusCode.OK, c2Response.StatusCode);
+    }
+
     // =========================================================================
     // 6. RATE LIMITING & CONTACT FORM INTEGRATION TESTS (4 tests)
     // =========================================================================
+
+    [Fact]
+    public async Task RateLimiter_AccountLogin_16thRequestGets429()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("X-Forwarded-For", "198.51.100.77");
+
+        var statusCodes = new List<HttpStatusCode>();
+        for (int i = 1; i <= 20; i++)
+        {
+            var form = new Dictionary<string, string>
+            {
+                ["Email"] = $"wrong_user_{i}@ayurveda.com",
+                ["Password"] = "WrongPass123!"
+            };
+            var res = await client.PostAsync("/account/login", new FormUrlEncodedContent(form));
+            statusCodes.Add(res.StatusCode);
+        }
+
+        // Requests 1 to 15 must NOT be 429 (render invalid login page with 200 OK)
+        for (int i = 0; i < 15; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, statusCodes[i]);
+        }
+
+        // 16th request and onward receive 429 Too Many Requests
+        Assert.Equal(HttpStatusCode.TooManyRequests, statusCodes[15]); // index 15 = 16th request
+        for (int i = 15; i < 20; i++)
+        {
+            Assert.Equal(HttpStatusCode.TooManyRequests, statusCodes[i]);
+        }
+    }
+
+    [Fact]
+    public async Task RateLimiter_AdminAuthLogin_16thRequestGets429()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add("X-Forwarded-For", "198.51.100.88");
+
+        var statusCodes = new List<HttpStatusCode>();
+        for (int i = 1; i <= 20; i++)
+        {
+            var form = new Dictionary<string, string>
+            {
+                ["Email"] = $"admin_wrong_{i}@thegreatayurveda.com",
+                ["Password"] = "WrongAdminPass123!"
+            };
+            var res = await client.PostAsync("/admin-portal/auth/login", new FormUrlEncodedContent(form));
+            statusCodes.Add(res.StatusCode);
+        }
+
+        // Requests 1 to 15 must NOT be 429 (render admin login page with 200 OK)
+        for (int i = 0; i < 15; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, statusCodes[i]);
+        }
+
+        // 16th request and onward receive 429 Too Many Requests
+        Assert.Equal(HttpStatusCode.TooManyRequests, statusCodes[15]); // index 15 = 16th request
+        for (int i = 15; i < 20; i++)
+        {
+            Assert.Equal(HttpStatusCode.TooManyRequests, statusCodes[i]);
+        }
+    }
+
+    [Fact]
+    public async Task CredentialVerification_RealAccounts_DirectHashCheck_RejectsAllOldDemoPasswords()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var users = await userManager.Users.ToListAsync();
+        Assert.NotEmpty(users);
+
+        string[] oldDemoPasswords = new[]
+        {
+            "AdminSecure@2026", "Admin@123", "Admin123!",
+            string.Concat("Dev", "Auth", "_", "Vaidya", "_2026", "!#"),
+            "DoctorPass@2026", "Doctor@123", "Doctor123!", "User@123",
+            "Customer123!", "Staff123!", "User123!", "DevCustomer@2026",
+            "DevDemoPass_2026!#", "GuestPass@2026"
+        };
+
+        foreach (var user in users)
+        {
+            foreach (var oldPwd in oldDemoPasswords)
+            {
+                var matches = await userManager.CheckPasswordAsync(user, oldPwd);
+                Assert.False(matches, $"User {user.Email} unexpectedly matched old demo password '{oldPwd}'");
+            }
+        }
+    }
 
     [Fact]
     public async Task RateLimiter_ExcessiveRapidRequests_Returns429TooManyRequests()
@@ -472,8 +752,8 @@ public class WebSecurityAndIntegrationTests : IClassFixture<WebMvcFactory>
         var client = _factory.CreateClient();
         HttpResponseMessage? lastResponse = null;
 
-        // Send 25 rapid requests to search/suggest (limit is 20/min)
-        for (int i = 0; i < 25; i++)
+        // Send 65 rapid requests to search/suggest (limit is 60/min)
+        for (int i = 0; i < 65; i++)
         {
             lastResponse = await client.GetAsync("/search/suggest?q=ashwa");
         }

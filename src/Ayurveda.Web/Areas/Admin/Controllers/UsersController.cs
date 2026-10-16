@@ -25,6 +25,24 @@ public class UsersController : Controller
         _auditService = auditService;
     }
 
+    private static string MaskEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return string.Empty;
+        var parts = email.Split('@');
+        if (parts.Length != 2) return "***@***.com";
+        var name = parts[0];
+        var masked = name.Length <= 2 ? "**" : $"{name[0]}***{name[^1]}";
+        return $"{masked}@{parts[1]}";
+    }
+
+    private static string MaskPhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return string.Empty;
+        var t = phone.Trim();
+        if (t.Length <= 4) return "****";
+        return $"{t[..Math.Min(4, t.Length - 4)]}******{t[^Math.Min(3, t.Length)..]}";
+    }
+
     // -------------------------------------------------------------------------
     // 1. LIST & SEARCH PATIENTS / USERS
     // -------------------------------------------------------------------------
@@ -45,6 +63,16 @@ public class UsersController : Controller
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+
+        if (User.IsInRole("DemoViewer"))
+        {
+            foreach (var u in users)
+            {
+                u.Email = MaskEmail(u.Email);
+                u.UserName = MaskEmail(u.UserName);
+                u.ContactNumber = MaskPhone(u.ContactNumber);
+            }
+        }
 
         var rolesMap = new Dictionary<int, string>();
         foreach (var u in users)
@@ -74,6 +102,13 @@ public class UsersController : Controller
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null) return NotFound();
+
+        if (User.IsInRole("DemoViewer"))
+        {
+            user.Email = MaskEmail(user.Email);
+            user.UserName = MaskEmail(user.UserName);
+            user.ContactNumber = MaskPhone(user.ContactNumber);
+        }
 
         var roles = await _userManager.GetRolesAsync(user);
         var orders = await _context.Orders.Where(o => o.UserId == id).OrderByDescending(o => o.OrderDate).ToListAsync();

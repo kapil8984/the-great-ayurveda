@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Ayurveda.Application.Interfaces;
 using Ayurveda.Application.ViewModels;
 using Ayurveda.Domain.Entities;
@@ -17,6 +18,7 @@ public class DoctorsController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICallProvider _callProvider;
     private readonly IFileStorageService _fileStorage;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<DoctorsController> _logger;
 
     public DoctorsController(
@@ -24,12 +26,14 @@ public class DoctorsController : Controller
         UserManager<ApplicationUser> userManager,
         ICallProvider callProvider,
         IFileStorageService fileStorage,
+        IMemoryCache cache,
         ILogger<DoctorsController> logger)
     {
         _context = context;
         _userManager = userManager;
         _callProvider = callProvider;
         _fileStorage = fileStorage;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -48,6 +52,7 @@ public class DoctorsController : Controller
         string? sortBy = "recommended")
     {
         var query = _context.Doctors
+            .AsNoTracking()
             .Include(d => d.DoctorDetail)
                 .ThenInclude(dd => dd!.Specialization)
             .Where(d => !d.IsDeleted && d.DoctorDetail != null && d.DoctorDetail.Status == 1);
@@ -131,29 +136,72 @@ public class DoctorsController : Controller
             _ => query.OrderByDescending(d => d.DoctorDetail!.IsOnline).ThenByDescending(d => d.DoctorDetail!.Rating)
         };
 
-        var doctorsList = await query
-            .Select(d => new DoctorCardViewModel
-            {
-                Id = d.Id,
-                DoctorName = d.DoctorName,
-                SpecializationName = d.DoctorDetail!.Specialization.Name,
-                ExperienceYears = d.DoctorDetail.Experience,
-                Qualification = d.DoctorDetail.Qualification,
-                Languages = d.DoctorDetail.Language,
-                ConsultationFee = d.DoctorDetail.ConsultationFee,
-                Rating = d.DoctorDetail.Rating,
-                ReviewCount = d.DoctorDetail.ReviewCount,
-                IsOnline = d.DoctorDetail.IsOnline,
-                ProfileImage = d.ProfileImage ?? "/images/doctor-avatar.svg",
-                ClinicAddress = d.DoctorDetail.ClinicAddress
-            })
-            .ToListAsync();
+        var isDefault = string.IsNullOrWhiteSpace(specialization) &&
+                        string.IsNullOrWhiteSpace(experience) &&
+                        string.IsNullOrWhiteSpace(language) &&
+                        string.IsNullOrWhiteSpace(feeRange) &&
+                        string.IsNullOrWhiteSpace(gender) &&
+                        !minRating.HasValue &&
+                        !onlineOnly &&
+                        string.IsNullOrWhiteSpace(search) &&
+                        (sortBy == "recommended" || string.IsNullOrWhiteSpace(sortBy));
 
-        var specializations = await _context.Categories
-            .Where(c => c.IsActive)
-            .Select(c => c.Name)
-            .OrderBy(n => n)
-            .ToListAsync();
+        List<DoctorCardViewModel> doctorsList;
+        if (isDefault)
+        {
+            doctorsList = await _cache.GetOrCreateAsync("Doctors_Default_List", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                return await query
+                    .Select(d => new DoctorCardViewModel
+                    {
+                        Id = d.Id,
+                        DoctorName = d.DoctorName,
+                        SpecializationName = d.DoctorDetail!.Specialization.Name,
+                        ExperienceYears = d.DoctorDetail.Experience,
+                        Qualification = d.DoctorDetail.Qualification,
+                        Languages = d.DoctorDetail.Language,
+                        ConsultationFee = d.DoctorDetail.ConsultationFee,
+                        Rating = d.DoctorDetail.Rating,
+                        ReviewCount = d.DoctorDetail.ReviewCount,
+                        IsOnline = d.DoctorDetail.IsOnline,
+                        ProfileImage = d.ProfileImage ?? "/images/doctor-avatar.svg",
+                        ClinicAddress = d.DoctorDetail.ClinicAddress
+                    })
+                    .ToListAsync();
+            }) ?? new List<DoctorCardViewModel>();
+        }
+        else
+        {
+            doctorsList = await query
+                .Select(d => new DoctorCardViewModel
+                {
+                    Id = d.Id,
+                    DoctorName = d.DoctorName,
+                    SpecializationName = d.DoctorDetail!.Specialization.Name,
+                    ExperienceYears = d.DoctorDetail.Experience,
+                    Qualification = d.DoctorDetail.Qualification,
+                    Languages = d.DoctorDetail.Language,
+                    ConsultationFee = d.DoctorDetail.ConsultationFee,
+                    Rating = d.DoctorDetail.Rating,
+                    ReviewCount = d.DoctorDetail.ReviewCount,
+                    IsOnline = d.DoctorDetail.IsOnline,
+                    ProfileImage = d.ProfileImage ?? "/images/doctor-avatar.svg",
+                    ClinicAddress = d.DoctorDetail.ClinicAddress
+                })
+                .ToListAsync();
+        }
+
+        var specializations = await _cache.GetOrCreateAsync("Doctors_Specializations", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await _context.Categories
+                .AsNoTracking()
+                .Where(c => c.IsActive)
+                .Select(c => c.Name)
+                .OrderBy(n => n)
+                .ToListAsync();
+        }) ?? new List<string>();
 
         var languages = new List<string> { "Hindi", "English", "Sanskrit", "Marathi", "Gujarati", "Malayalam", "Tamil", "Telugu", "Bengali" };
 
@@ -173,10 +221,15 @@ public class DoctorsController : Controller
             SortBy = sortBy
         };
 
-        ViewBag.DoctorBanners = await _context.Banners
-            .Where(b => b.IsActive && b.Placement == "doctors")
-            .OrderBy(b => b.DisplayOrder)
-            .ToListAsync();
+        ViewBag.DoctorBanners = await _cache.GetOrCreateAsync("Doctor_Banners", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await _context.Banners
+                .AsNoTracking()
+                .Where(b => b.IsActive && b.Placement == "doctors")
+                .OrderBy(b => b.DisplayOrder)
+                .ToListAsync();
+        });
 
         return View(model);
     }
@@ -261,7 +314,16 @@ public class DoctorsController : Controller
             _ => doc.DoctorDetail.ConsultationFee
         };
 
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Book", "Doctors", new { id, mode }) });
+        }
+
         var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Book", "Doctors", new { id, mode }) });
+        }
 
         var model = new BookAppointmentViewModel
         {
@@ -273,8 +335,8 @@ public class DoctorsController : Controller
             SelectedDate = DateTime.Today.AddDays(1),
             SelectedTimeSlot = allSlots.FirstOrDefault() ?? "10:00 AM",
             AvailableSlots = allSlots,
-            PatientName = user?.FullName ?? "",
-            PatientContact = user?.ContactNumber ?? ""
+            PatientName = user.FullName ?? "",
+            PatientContact = user.ContactNumber ?? ""
         };
 
         return View(model);
@@ -284,31 +346,21 @@ public class DoctorsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> BookPost(BookAppointmentViewModel model, IFormFile? reportFile)
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Book", "Doctors", new { id = model.DoctorId }) });
+        }
+
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            // Fallback to active demo customer if booking as guest
-            user = await _userManager.FindByEmailAsync("customer@ayurveda.com") 
-                ?? await _context.Users.FirstOrDefaultAsync(u => u.Email != "admin@ayurveda.com" && u.Email != "admin@thegreatayurveda.com");
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Book", "Doctors", new { id = model.DoctorId }) });
+        }
 
-            if (user == null)
-            {
-                user = new ApplicationUser
-                {
-                    UserName = "patient@thegreatayurveda.com",
-                    Email = "patient@thegreatayurveda.com",
-                    FullName = string.IsNullOrWhiteSpace(model.PatientName) ? "Aarav Patel" : model.PatientName,
-                    ContactNumber = string.IsNullOrWhiteSpace(model.PatientContact) ? "+91 98765 12345" : model.PatientContact,
-                    EmailConfirmed = true,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                var createRes = await _userManager.CreateAsync(user, "PatientSecure@2026");
-                if (createRes.Succeeded)
-                {
-                    await _userManager.AddToRoleAsync(user, UserRole.Customer.ToString());
-                }
-            }
+        if (model.SimulateFailure)
+        {
+            TempData["ErrorMessage"] = "Consultation payment simulation failure: Bank authorization timed out or declined. Please retry.";
+            return RedirectToAction(nameof(Book), new { id = model.DoctorId });
         }
 
         var doc = await _context.Doctors
@@ -520,10 +572,15 @@ public class DoctorsController : Controller
     // -------------------------------------------------------------------------
     public async Task<IActionResult> MyAppointments()
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("MyAppointments", "Doctors") });
+        }
+
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            user = await _context.Users.FirstOrDefaultAsync(u => u.Email != "admin@thegreatayurveda.com");
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("MyAppointments", "Doctors") });
         }
 
         var appointments = await _context.Appointments

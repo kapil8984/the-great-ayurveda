@@ -152,7 +152,7 @@
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label fw-bold text-dark m-0"><i class="bi bi-credit-card-2-front text-success me-1"></i> 4. Consultation Fee Payment</label>
-                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill small">Demo Gateway</span>
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill px-3 py-1 small fw-bold"><i class="bi bi-shield-check me-1"></i> Demo payment - no money is charged</span>
                         </div>
 
                         <!-- Payment Method Radios -->
@@ -183,7 +183,7 @@
                         <!-- Simulate Payment Failure Toggle -->
                         <div class="p-3 border rounded-3 bg-danger-subtle border-danger-subtle mb-3">
                             <div class="form-check form-switch m-0">
-                                <input class="form-check-input" type="checkbox" role="switch" id="simulateConsultFailureToggle" />
+                                <input class="form-check-input" type="checkbox" role="switch" asp-for="SimulateFailure" id="simulateConsultFailureToggle" />
                                 <label class="form-check-label small fw-bold text-danger" for="simulateConsultFailureToggle">
                                     <i class="bi bi-exclamation-triangle-fill me-1"></i> Simulate Payment Failure
                                 </label>

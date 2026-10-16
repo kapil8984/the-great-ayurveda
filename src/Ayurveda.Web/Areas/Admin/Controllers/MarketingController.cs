@@ -15,12 +15,14 @@ public class MarketingController : Controller
     private readonly AyurvedaDbContext _context;
     private readonly IFileStorageService _fileStorage;
     private readonly IAuditService _auditService;
+    private readonly ICacheBuster _cacheBuster;
 
-    public MarketingController(AyurvedaDbContext context, IFileStorageService fileStorage, IAuditService auditService)
+    public MarketingController(AyurvedaDbContext context, IFileStorageService fileStorage, IAuditService auditService, ICacheBuster cacheBuster)
     {
         _context = context;
         _fileStorage = fileStorage;
         _auditService = auditService;
+        _cacheBuster = cacheBuster;
     }
 
     // -------------------------------------------------------------------------
@@ -64,6 +66,7 @@ public class MarketingController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("CouponCreated", "Coupon", coupon.Id.ToString(), $"Created coupon {coupon.Code} ({discountType} {discountAmount})", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateCoupon();
 
         TempData["SuccessMessage"] = $"Coupon {coupon.Code} created successfully.";
         return RedirectToAction(nameof(Coupons));
@@ -90,6 +93,7 @@ public class MarketingController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("CouponUpdated", "Coupon", coupon.Id.ToString(), $"Updated coupon {coupon.Code}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateCoupon();
 
         TempData["SuccessMessage"] = $"Coupon {coupon.Code} updated successfully.";
         return RedirectToAction(nameof(Coupons));
@@ -106,6 +110,7 @@ public class MarketingController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("CouponToggled", "Coupon", id.ToString(), $"Toggled coupon {coupon.Code} active state to {coupon.IsActive}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateCoupon();
             TempData["SuccessMessage"] = $"Coupon {coupon.Code} is now {(coupon.IsActive ? "Active" : "Disabled")}.";
         }
         return RedirectToAction(nameof(Coupons));
@@ -122,6 +127,7 @@ public class MarketingController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("CouponDeleted", "Coupon", id.ToString(), $"Deleted coupon {coupon.Code}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateCoupon();
             TempData["SuccessMessage"] = $"Coupon {coupon.Code} deleted.";
         }
         return RedirectToAction(nameof(Coupons));
@@ -179,6 +185,7 @@ public class MarketingController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("BannerCreated", "Banner", banner.Id.ToString(), $"Created promotional banner '{title}' (Placement: {banner.Placement})", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateBanner();
 
         TempData["SuccessMessage"] = $"Banner '{title}' created successfully.";
         return RedirectToAction(nameof(Banners));
@@ -213,6 +220,7 @@ public class MarketingController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("BannerUpdated", "Banner", banner.Id.ToString(), $"Updated promotional banner '{title}'", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateBanner();
 
         TempData["SuccessMessage"] = $"Banner '{title}' updated successfully.";
         return RedirectToAction(nameof(Banners));
@@ -229,6 +237,7 @@ public class MarketingController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("BannerToggled", "Banner", id.ToString(), $"Toggled banner '{banner.Title}' to active={banner.IsActive}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateBanner();
             TempData["SuccessMessage"] = $"Banner '{banner.Title}' is now {(banner.IsActive ? "Active" : "Disabled")}.";
         }
         return RedirectToAction(nameof(Banners));
@@ -245,6 +254,7 @@ public class MarketingController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("BannerDeleted", "Banner", id.ToString(), $"Removed banner #{id}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateBanner();
             TempData["SuccessMessage"] = "Banner deleted.";
         }
         return RedirectToAction(nameof(Banners));

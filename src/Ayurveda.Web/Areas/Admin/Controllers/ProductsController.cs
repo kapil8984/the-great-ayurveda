@@ -17,12 +17,14 @@ public class ProductsController : Controller
     private readonly AyurvedaDbContext _context;
     private readonly IAuditService _auditService;
     private readonly IFileStorageService _fileStorage;
+    private readonly ICacheBuster _cacheBuster;
 
-    public ProductsController(AyurvedaDbContext context, IAuditService auditService, IFileStorageService fileStorage)
+    public ProductsController(AyurvedaDbContext context, IAuditService auditService, IFileStorageService fileStorage, ICacheBuster cacheBuster)
     {
         _context = context;
         _auditService = auditService;
         _fileStorage = fileStorage;
+        _cacheBuster = cacheBuster;
     }
 
     // -------------------------------------------------------------------------
@@ -179,6 +181,7 @@ public class ProductsController : Controller
         }
 
         await _auditService.LogAsync("ProductCreated", "Product", product.Id.ToString(), $"Created new Ayurvedic product '{product.Title}' (SKU: {product.Sku})", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateProduct(product.Id);
 
         TempData["SuccessMessage"] = $"Formulation '{product.Title}' created successfully.";
         return RedirectToAction(nameof(Index));
@@ -281,6 +284,7 @@ public class ProductsController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("ProductUpdated", "Product", product.Id.ToString(), $"Updated product '{product.Title}', Price: ₹{product.Price}, Stock: {product.Stock}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateProduct(product.Id);
 
         TempData["SuccessMessage"] = $"Formulation '{product.Title}' updated successfully.";
         return RedirectToAction(nameof(Index));
@@ -299,6 +303,7 @@ public class ProductsController : Controller
             product.Stock = Math.Max(0, stock);
             await _context.SaveChangesAsync();
             await _auditService.LogAsync("ProductStockUpdated", "Product", id.ToString(), $"Quick stock update for '{product.Title}' to {product.Stock}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateProduct(product.Id);
             TempData["SuccessMessage"] = $"Stock for '{product.Title}' updated to {product.Stock} units.";
         }
         return RedirectToAction(nameof(Index));
@@ -332,8 +337,10 @@ public class ProductsController : Controller
                 _context.Products.Remove(product);
                 await _context.SaveChangesAsync();
                 await _auditService.LogAsync("ProductDeleted", "Product", id.ToString(), $"Deleted formulation '{title}'", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+                _cacheBuster.InvalidateProduct(id);
                 TempData["SuccessMessage"] = $"Formulation '{title}' was deleted successfully.";
             }
+            _cacheBuster.InvalidateProduct(id);
         }
         return RedirectToAction(nameof(Index));
     }
@@ -374,6 +381,7 @@ public class ProductsController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("ProductStatusToggled", "Product", id.ToString(), $"Changed active status to {product.IsActive} for '{product.Title}'", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateProduct(id);
             TempData["SuccessMessage"] = $"Product '{product.Title}' is now {(product.IsActive ? "Published & Live" : "Unpublished")}.";
         }
         return RedirectToAction(nameof(Index));
@@ -445,6 +453,7 @@ public class ProductsController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("CatalogueImportCsv", "Product", "Bulk", $"Imported CSV update for {updatedCount} products", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateProduct();
 
         TempData["SuccessMessage"] = $"Bulk inventory & pricing updated for {updatedCount} formulations.";
         return RedirectToAction(nameof(Index));

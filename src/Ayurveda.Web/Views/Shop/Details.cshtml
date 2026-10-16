@@ -1,7 +1,30 @@
 @model Ayurveda.Application.ViewModels.ProductDetailsViewModel
 @{
     ViewData["Title"] = $"{Model.Title} | The Great Ayurveda";
+    var productJsonLd = System.Text.Json.JsonSerializer.Serialize(new {
+        context = "https://schema.org/",
+        type = "Product",
+        name = Model.Title,
+        image = Model.ImageUrl,
+        description = Model.Description ?? "",
+        sku = Model.Sku,
+        brand = new {
+            type = "Brand",
+            name = Model.Brand ?? "The Great Ayurveda"
+        },
+        offers = new {
+            type = "Offer",
+            url = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}",
+            priceCurrency = "INR",
+            price = Model.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+            availability = Model.IsInStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        }
+    }).Replace("\"context\":", "\"@context\":").Replace("\"type\":", "\"@type\":");
 }
+
+<script type="application/ld+json">
+@Html.Raw(productJsonLd)
+</script>
 
 <div class="container py-4">
     <!-- Breadcrumb -->

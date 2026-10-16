@@ -3,6 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { getDevAdminPassword } = require('./getTestPassword');
 
 const WEB_URL = 'http://localhost:5000';
 const ADMIN_URL = 'http://localhost:7200';
@@ -205,7 +206,7 @@ async function runGroup3Verification() {
         const adminPage = await context.newPage();
         await adminPage.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await adminPage.fill('#adminEmailInput', 'admin@ayurveda.com');
-        await adminPage.fill('#adminPwdInput', 'DevAuth_Vaidya_2026!#');
+        await adminPage.fill('#adminPwdInput', getDevAdminPassword());
         await Promise.all([
             adminPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }),
             adminPage.click('button[type="submit"]')

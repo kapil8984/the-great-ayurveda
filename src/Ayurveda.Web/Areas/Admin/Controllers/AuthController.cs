@@ -59,7 +59,7 @@ public class AuthController : Controller
 
         // Verify that the user has an administrative role
         var roles = await _userManager.GetRolesAsync(user);
-        var adminRoles = new[] { "SuperAdmin", "CatalogManager", "SupportAgent", "FinanceManager", "Admin" };
+        var adminRoles = new[] { "SuperAdmin", "CatalogManager", "SupportAgent", "FinanceManager", "Admin", "DemoViewer" };
         if (!roles.Any(r => adminRoles.Contains(r)))
         {
             ModelState.AddModelError(string.Empty, "Access restricted to authorized administrative personnel.");
@@ -143,9 +143,17 @@ public class AuthController : Controller
     [ActionName("Logout")]
     [Route("admin-portal/logout")]
     [Route("admin-portal/auth/logout")]
-    public IActionResult LogoutGet()
+    public async Task<IActionResult> LogoutGet()
     {
-        // Logout is strictly POST with anti-forgery token. Never allow GET logout links.
+        await HttpContext.SignOutAsync("AdminCookieScheme");
+        try
+        {
+            HttpContext.Session?.Clear();
+        }
+        catch
+        {
+        }
+        TempData["SuccessMessage"] = "Administrative session terminated successfully.";
         return RedirectToAction(nameof(Login));
     }
 

@@ -1,13 +1,13 @@
-# Production Deployment Guide: RunASP.NET (Free Windows Hosting)
+# Production Deployment Guide: MonsterASP (Windows / IIS Hosting)
 
 ## 1. Overview
-This guide provides the complete, exact production deployment procedure for **The Great Ayurveda** unified ASP.NET Core web application to RunASP.NET free Windows/IIS hosting.
+This guide provides the complete, exact production deployment procedure for **The Great Ayurveda** unified ASP.NET Core web application to MonsterASP (or RunASP.NET) Windows/IIS hosting.
 
 ---
 
 ## 2. Prerequisites
-- A registered RunASP.NET hosting account.
-- A free MS SQL Database provisioned from the RunASP.NET control panel.
+- A registered MonsterASP hosting account with IIS ASP.NET Core hosting module (.NET 10 or in-process / out-of-process hosting).
+- An MS SQL Database provisioned from the MonsterASP control panel.
 - .NET 10 SDK installed on the build machine.
 
 ---
@@ -15,6 +15,10 @@ This guide provides the complete, exact production deployment procedure for **Th
 ## 3. Publish Command
 From the root of the repository, execute:
 
+```powershell
+./publish-live.ps1
+```
+Or manually:
 ```powershell
 dotnet publish src/Ayurveda.Web/Ayurveda.Web.csproj -c Release -r win-x64 --no-self-contained -o publish/Web
 ```
@@ -25,30 +29,30 @@ dotnet publish src/Ayurveda.Web/Ayurveda.Web.csproj -c Release -r win-x64 --no-s
 Upload the **contents** of the local publish directory:
 
 - **Local Publish Folder**: `./publish/Web`
-- **Destination Folder on RunASP.NET**: `/site/wwwroot` (or the root directory of your site via RunASP.NET File Manager, FTP/FTPS, or WebDeploy)
+- **Destination Folder on MonsterASP**: `/site/wwwroot` (via MonsterASP File Manager, FTP/FTPS, or WebDeploy)
 
-> **Note**: Do not upload the enclosing `Web` folder itself; upload all files and subfolders inside `./publish/Web` (`Ayurveda.Web.dll`, `web.config`, `appsettings.json`, `wwwroot/`, etc.) directly into `/site/wwwroot`.
+> **Note**: Do not upload the enclosing `Web` folder itself; upload all files and subfolders inside `./publish/Web` (`Ayurveda.Web.dll`, `web.config`, `appsettings.json`, `wwwroot/`, `catalog_300plus.json`, etc.) directly into `/site/wwwroot`.
 
 ---
 
-## 5. RunASP.NET Environment Variables
-Configure the following environment variables in the RunASP.NET Control Panel (under Site Configuration / Environment Variables) or within `web.config` under the `<aspNetCore><environmentVariables>` section:
+## 5. MonsterASP Environment Variables
+Configure the following environment variables in the MonsterASP Control Panel (under Site Configuration / Environment Variables) or within `web.config` under the `<aspNetCore><environmentVariables>` section:
 
 | Environment Variable | Recommended Value / Format | Purpose |
 | :--- | :--- | :--- |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Runs the application in ASP.NET Core Production mode |
-| `ConnectionStrings__DefaultConnection` | `Server=mssqlXX.runasp.net;Database=<your_db_name>;User Id=<your_db_user>;Pwd=<your_db_password>;TrustServerCertificate=True;MultipleActiveResultSets=true;` | Connection string to the RunASP.NET MS SQL database |
-| `Site__BaseUrl` | `http://<your-subdomain>.runasp.net` | Canonical base URL used for sitemap, robots, and metadata tags (**Important**: keep `http://` until HTTPS certificate is activated, then switch to `https://`) |
-| `SeedData__Enabled` | `true` *(first run only)* / `false` *(after initial seeding)* | Controls database auto-seeding |
+| `ConnectionStrings__DefaultConnection` | `Server=mssqlXX.monsterasp.net;Database=<db_name>;User Id=<db_user>;Password=<db_password>;TrustServerCertificate=True;MultipleActiveResultSets=true;` | Connection string to the MonsterASP MS SQL database |
+| `Site__BaseUrl` | `https://<your-subdomain>.monsterasp.net` | Canonical base URL used for sitemap, robots, and metadata tags |
+| `Demo__OpenAccess` | `true` *(for public live demo)* / `false` *(for standard live)* | When `true`, enables demo accounts, sandbox login, demo doctor portal, demo chips on admin login, and simulated payments |
+| `SeedData__Enabled` | `true` *(first run only)* / `false` *(after initial seeding)* | Controls database auto-seeding on application startup |
 | `Admin__InitialPassword` | `<your-strong-initial-admin-credential>` | Initial password for `admin@thegreatayurveda.com` on first seed |
-| `DemoMode__SkipOtp` | `false` | Enforces OTP verification logic for sensitive flows |
-| `DemoMode__ShowCredentialChips` | `false` | Disables demo helper credential chips on login screens |
-| `Auth__RequireEmailVerification` | `false` | Allows immediate access upon customer/doctor signup |
-| `Smtp__Host` | *(Optional: leave blank or set to your SMTP relay, e.g., `smtp-relay.brevo.com`)* | SMTP host for email dispatch |
+| `RateLimit__TrustForwardedFor` | `true` *(if behind proxy/load balancer)* / `false` | When true, uses first client IP from `X-Forwarded-For` header for IP rate limiting |
+| `Auth__RequireEmailVerification` | `false` | Allows immediate access upon customer/doctor signup without blocking on email verification |
+| `Smtp__Host` | *(Optional, e.g. `smtp-relay.brevo.com`)* | SMTP host for email dispatch |
 | `Smtp__Port` | `587` | SMTP port |
 | `Smtp__Username` | *(Optional SMTP username)* | SMTP username |
 | `Smtp__Password` | *(Optional SMTP credentials)* | SMTP outbound credential |
-| `Smtp__FromEmail` | `care@thegreatayurveda.com` | Outbound sender email |
+| `Smtp__FromEmail` | `care@thegreatayurveda.com` | Outbound sender email address |
 
 > **Credential Notice**: Never store plain-text credentials in source control. Always substitute `<placeholder>` values with your actual configuration directly in the host control panel.
 
@@ -57,7 +61,7 @@ Configure the following environment variables in the RunASP.NET Control Panel (u
 ## 6. First-Run Steps & Database Seeding Workflow
 
 1. **Create the MS SQL Database**:
-   - In RunASP.NET Control Panel, navigate to **Databases** -> **MS SQL**.
+   - In MonsterASP Control Panel, navigate to **Databases** -> **MS SQL**.
    - Create a new database.
    - Record the host server (`mssqlXX.runasp.net`), database name, username, and database credential.
 

@@ -20,13 +20,11 @@ public class WishlistController : Controller
 
     private async Task<ApplicationUser?> GetCurrentUserAsync()
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        if (User.Identity?.IsAuthenticated != true)
         {
-            // Fallback to guest or demo user for interactive showcase
-            user = await _context.Users.FirstOrDefaultAsync();
+            return null;
         }
-        return user;
+        return await _userManager.GetUserAsync(User);
     }
 
     public async Task<IActionResult> Index()
@@ -34,7 +32,7 @@ public class WishlistController : Controller
         var user = await GetCurrentUserAsync();
         if (user == null)
         {
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Wishlist") });
         }
 
         var items = await _context.WishlistItems
@@ -126,7 +124,7 @@ public class WishlistController : Controller
         var user = await GetCurrentUserAsync();
         if (user == null)
         {
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Wishlist") });
         }
 
         // 1. Remove from Wishlist

@@ -22,10 +22,15 @@ public class OrdersController : Controller
 
     private async Task<ApplicationUser?> GetCurrentUserAsync()
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        if (User.Identity?.IsAuthenticated != true)
         {
-            user = await _context.Users.FirstOrDefaultAsync();
+            return null;
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null && !string.IsNullOrEmpty(User.Identity.Name))
+        {
+            user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == User.Identity.Name || u.Email == User.Identity.Name);
         }
         return user;
     }

@@ -16,13 +16,15 @@ public class DoctorsController : Controller
     private readonly IEmailSender _emailSender;
     private readonly IAuditService _auditService;
     private readonly IFileStorageService _fileStorage;
+    private readonly ICacheBuster _cacheBuster;
 
-    public DoctorsController(AyurvedaDbContext context, IEmailSender emailSender, IAuditService auditService, IFileStorageService fileStorage)
+    public DoctorsController(AyurvedaDbContext context, IEmailSender emailSender, IAuditService auditService, IFileStorageService fileStorage, ICacheBuster cacheBuster)
     {
         _context = context;
         _emailSender = emailSender;
         _auditService = auditService;
         _fileStorage = fileStorage;
+        _cacheBuster = cacheBuster;
     }
 
     // -------------------------------------------------------------------------
@@ -88,6 +90,7 @@ public class DoctorsController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("DoctorCreated", "Doctor", doctor.Id.ToString(), $"Admin created doctor Dr. {doctor.DoctorName}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateDoctor();
 
         TempData["SuccessMessage"] = $"Dr. {doctor.DoctorName} created and approved.";
         return RedirectToAction(nameof(Index));
@@ -183,6 +186,7 @@ public class DoctorsController : Controller
                 "The Great Ayurveda - Clinical Application Approved",
                 $"<p>Dear Dr. {doctor.DoctorName},</p><p>Your AYUSH medical credentials have been verified and approved. Your consultation chamber is now active for patients.</p>");
 
+            _cacheBuster.InvalidateDoctor();
             TempData["SuccessMessage"] = $"Dr. {doctor.DoctorName} has been approved successfully.";
         }
 
@@ -216,6 +220,7 @@ public class DoctorsController : Controller
                 "The Great Ayurveda - Application Review Status",
                 $"<p>Dear Dr. {doctor.DoctorName},</p><p>Regarding your practice registration application:</p><blockquote style='color:#777'>{rejectionReason}</blockquote><p>Please reach out to verification@thegreatayurveda.com with updated credentials.</p>");
 
+            _cacheBuster.InvalidateDoctor();
             TempData["SuccessMessage"] = $"Dr. {doctor.DoctorName}'s application has been rejected with audit notice.";
         }
 
@@ -254,6 +259,7 @@ public class DoctorsController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("DoctorSuspended", "Doctor", doctorId.ToString(), $"Suspended Dr. {doctor.DoctorName}. Reason: {reason ?? "Administrative review"}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateDoctor();
             TempData["SuccessMessage"] = $"Dr. {doctor.DoctorName} has been suspended from taking consultations.";
         }
         return RedirectToAction(nameof(Index));
@@ -270,6 +276,7 @@ public class DoctorsController : Controller
             await _context.SaveChangesAsync();
 
             await _auditService.LogAsync("DoctorReactivated", "Doctor", doctorId.ToString(), $"Reactivated Dr. {doctor.DoctorName}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            _cacheBuster.InvalidateDoctor();
             TempData["SuccessMessage"] = $"Dr. {doctor.DoctorName} has been reactivated.";
         }
         return RedirectToAction(nameof(Index));
@@ -344,6 +351,7 @@ public class DoctorsController : Controller
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync("DoctorUpdated", "Doctor", id.ToString(), $"Updated profile for Dr. {doctor.DoctorName}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        _cacheBuster.InvalidateDoctor();
         TempData["SuccessMessage"] = $"Profile for Dr. {doctor.DoctorName} updated successfully.";
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -390,6 +398,7 @@ public class DoctorsController : Controller
                 await _auditService.LogAsync("DoctorHardDeleted", "Doctor", id.ToString(), $"Permanently deleted Dr. {name}", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
                 TempData["SuccessMessage"] = $"Dr. {name} had no references and was permanently deleted.";
             }
+            _cacheBuster.InvalidateDoctor();
         }
         return RedirectToAction(nameof(Index));
     }

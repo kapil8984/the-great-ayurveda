@@ -12,12 +12,6 @@ public class AyurvedaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
     {
     }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        base.OnConfiguring(optionsBuilder);
-        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-    }
-
     // Legacy tables for compatibility & migration
     public DbSet<User> LegacyUsers => Set<User>();
     public DbSet<Admin> LegacyAdmins => Set<Admin>();

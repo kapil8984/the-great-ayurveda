@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { getDevAdminPassword } = require('./getTestPassword');
 
 const ADMIN_URL = 'http://localhost:7200';
 const WEB_URL = 'http://localhost:5000';
@@ -41,7 +42,7 @@ async function runGroup5Verification() {
         assert(emailInput !== null && passInput !== null, 'Admin login form fields present (#adminEmailInput, #adminPwdInput)');
 
         await emailInput.fill('admin@ayurveda.com');
-        await passInput.fill('DevAuth_Vaidya_2026!#');
+        await passInput.fill(getDevAdminPassword());
         await Promise.all([
             page.waitForURL(url => !url.href.includes('/Auth/Login'), { timeout: 20000 }),
             page.click('button[type="submit"]')

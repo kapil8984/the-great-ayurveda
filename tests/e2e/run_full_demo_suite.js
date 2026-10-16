@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { getDevAdminPassword } = require('./getTestPassword');
 
 const WEB_URL = 'http://localhost:5000';
 const ADMIN_URL = 'http://localhost:7200';
@@ -338,7 +339,7 @@ async function run() {
         console.log('\n--- STEP 6: Admin Portal Deep Verification ---');
         await page.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'networkidle' });
         await page.fill('#adminEmailInput', 'admin@ayurveda.com');
-        await page.fill('#adminPwdInput', 'DevAuth_Vaidya_2026!#');
+        await page.fill('#adminPwdInput', getDevAdminPassword());
         await page.click('#adminLoginForm button[type="submit"]');
         await page.waitForTimeout(2000);
 

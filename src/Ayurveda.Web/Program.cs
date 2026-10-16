@@ -12,6 +12,10 @@ using Ayurveda.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Rolling File Logger in App_Data/logs (7-day retention)
+var logsDir = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "logs");
+builder.Logging.AddProvider(new RollingFileLoggerProvider(logsDir));
+
 // Data Protection Keys Persistence
 var dataProtectionConfig = builder.Configuration["DataProtection:KeyPath"]
     ?? builder.Configuration["DataProtection:KeysPath"]
@@ -35,7 +39,6 @@ builder.Services.AddDbContext<AyurvedaDbContext>((_, options) =>
     {
         options.UseSqlServer(connectionString, b => b.MigrationsAssembly("Ayurveda.Infrastructure"));
     }
-    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
 // ASP.NET Core Identity
@@ -89,25 +92,25 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireSuperAdmin", policy =>
     {
         policy.AddAuthenticationSchemes("AdminCookieScheme");
-        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin");
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", "DemoViewer");
     });
 
     options.AddPolicy("RequireCatalogManagement", policy =>
     {
         policy.AddAuthenticationSchemes("AdminCookieScheme");
-        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.CatalogManager.ToString());
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.CatalogManager.ToString(), "DemoViewer");
     });
 
     options.AddPolicy("RequireFinanceManagement", policy =>
     {
         policy.AddAuthenticationSchemes("AdminCookieScheme");
-        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.FinanceManager.ToString());
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.FinanceManager.ToString(), "DemoViewer");
     });
 
     options.AddPolicy("RequireCustomerSupport", policy =>
     {
         policy.AddAuthenticationSchemes("AdminCookieScheme");
-        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.SupportAgent.ToString());
+        policy.RequireRole(UserRole.SuperAdmin.ToString(), "Admin", UserRole.SupportAgent.ToString(), "DemoViewer");
     });
 });
 
@@ -119,6 +122,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IPaymentProvider, PaymentProvider>();
 builder.Services.AddScoped<ICallProvider, CallProvider>();
 builder.Services.AddScoped<ITelephonyProvider, TelephonyProvider>();
+builder.Services.AddScoped<ICacheBuster, CacheBuster>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();
@@ -135,7 +139,25 @@ builder.Services.Configure<RouteOptions>(options =>
     options.LowercaseQueryStrings = false;
 });
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<Ayurveda.Web.Filters.DemoViewerReadOnlyFilter>();
+});
+
+builder.Services.AddHostedService<Ayurveda.Web.Services.WorkingSetTrimmerService>();
+
+#if DEBUG
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    {
+        Title = "The Great Ayurveda API",
+        Version = "v1",
+        Description = "Development JSON API documentation for The Great Ayurveda endpoints."
+    });
+});
+#endif
 
 var app = builder.Build();
 
@@ -241,12 +263,40 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+#if DEBUG
+else
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "The Great Ayurveda API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
+#endif
+
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    ForwardLimit = 2
+};
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+forwardedHeadersOptions.KnownProxies.Add(System.Net.IPAddress.Loopback);
+forwardedHeadersOptions.KnownProxies.Add(System.Net.IPAddress.IPv6Loopback);
+
+var additionalProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>();
+if (additionalProxies != null)
+{
+    foreach (var p in additionalProxies)
+    {
+        if (System.Net.IPAddress.TryParse(p, out var parsedIp))
+            forwardedHeadersOptions.KnownProxies.Add(parsedIp);
+    }
+}
+app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseHttpsRedirection();
+app.UseStatusCodePagesWithReExecute("/home/notfound");
 
 // 301 Permanent Redirect for uppercase route paths to enforce strict lowercase canonical URLs
 app.Use(async (context, next) =>
@@ -292,11 +342,28 @@ app.Use(async (context, next) =>
 
     var isSearchSuggest = HttpMethods.IsGet(method) && path.StartsWith("/search/suggest");
 
-    if ((isAuthPost || isSearchSuggest) && context.Request.Headers["X-Bypass-RateLimit"] != "loadtest")
+    if (isAuthPost || isSearchSuggest)
     {
         var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
-        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var limit = isAuthPost ? 15 : 20; // 15 requests/min for auth forms, 20 requests/min for search suggest
+        var configuration = context.RequestServices.GetRequiredService<IConfiguration>();
+        var trustForwardedFor = configuration.GetValue<bool>("RateLimit:TrustForwardedFor", false);
+
+        string ip = "unknown";
+        if (trustForwardedFor)
+        {
+            var fwd = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(fwd))
+            {
+                ip = fwd.Split(',')[0].Trim();
+            }
+        }
+        if (ip == "unknown")
+        {
+            ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        }
+
+        var searchLimit = configuration.GetValue<int?>("RateLimit:SearchSuggestLimit") ?? 60;
+        var limit = isAuthPost ? 15 : searchLimit;
         var prefix = isAuthPost ? "rl_auth_" : "rl_suggest_";
         var key = $"{prefix}{ip}_{path}";
 
@@ -401,6 +468,8 @@ app.MapGet("/sitemap.xml", async (AyurvedaDbContext db, IConfiguration config, H
     sb.AppendLine("</urlset>");
     return Results.Content(sb.ToString(), "application/xml", System.Text.Encoding.UTF8);
 });
+
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));
 
 app.MapControllerRoute(
     name: "default",

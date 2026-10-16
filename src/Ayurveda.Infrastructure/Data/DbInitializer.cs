@@ -25,7 +25,7 @@ public static class DbInitializer
             bool seedEnabled = configuration?.GetValue<bool?>("SeedData:Enabled") ?? isDev;
 
             // 0. Schema Alignment, Foreign Key Repairs & Data Sync
-            await AlignDatabaseSchemaAndFixDataAsync(context, userManager, roleManager, logger, isDev);
+            await AlignDatabaseSchemaAndFixDataAsync(context, userManager, roleManager, logger, isDev, configuration);
 
             // 1. Seed Roles
             var roles = new[]
@@ -36,7 +36,8 @@ public static class DbInitializer
                 UserRole.SuperAdmin.ToString(),
                 UserRole.CatalogManager.ToString(),
                 UserRole.SupportAgent.ToString(),
-                UserRole.FinanceManager.ToString()
+                UserRole.FinanceManager.ToString(),
+                "DemoViewer"
             };
 
             foreach (var role in roles)
@@ -68,9 +69,13 @@ public static class DbInitializer
                 }
                 else
                 {
-                    adminPassword = configuration?["Admin:InitialPassword"]
-                        ?? configuration?["DevDemo:AdminPassword"]
-                        ?? "DevAuth_Vaidya_2026!#";
+                    var devPass = GetUntrackedDevPassword(configuration);
+                    if (string.IsNullOrWhiteSpace(devPass))
+                    {
+                        logger.LogWarning("No development demo password found in user-secrets or untracked App_Data/dev_demo_password.txt. Generating an ephemeral secure password for this session.");
+                        devPass = "Dev_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9";
+                    }
+                    adminPassword = devPass;
                 }
 
                 var primaryAdminEmail = configuration?["Admin:InitialEmail"] ?? "admin@thegreatayurveda.com";
@@ -103,10 +108,33 @@ public static class DbInitializer
                 logger.LogInformation("Admin user {Email} already exists. Retaining credentials without modification.", adminUser.Email);
             }
 
+            // DemoViewer Provisioning (For Read-Only Demo Admin Portal Access)
+            var demoViewer = await userManager.FindByEmailAsync("demo-admin@ayurveda.local");
+            if (demoViewer == null)
+            {
+                demoViewer = new ApplicationUser
+                {
+                    UserName = "demo-admin@ayurveda.local",
+                    Email = "demo-admin@ayurveda.local",
+                    FullName = "Demo Admin Viewer",
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    IsDemo = true,
+                    LockoutEnabled = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var viewerRes = await userManager.CreateAsync(demoViewer, "DemoAdmin@2026!");
+                if (viewerRes.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(demoViewer, "DemoViewer");
+                    logger.LogInformation("Seeded DemoViewer read-only account demo-admin@ayurveda.local");
+                }
+            }
+
             // Seed subordinate staff roles only in Development
             if (isDev)
             {
-                var devStaffPassword = configuration?["DevDemo:AdminPassword"] ?? "DevAuth_Vaidya_2026!#";
+                var devStaffPassword = GetUntrackedDevPassword(configuration) ?? ("Staff_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9");
                 var devStaff = new (string Email, string Name, string[] Roles)[]
                 {
                     ("catalog@thegreatayurveda.com", "Catalog Manager", new[] { "CatalogManager" }),
@@ -282,9 +310,10 @@ public static class DbInitializer
                     Path.Combine(AppContext.BaseDirectory, "catalog_300plus.json"),
                     Path.Combine(AppContext.BaseDirectory, "Data", "catalog_300plus.json"),
                     Path.Combine(Directory.GetCurrentDirectory(), "catalog_300plus.json"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "Data", "catalog_300plus.json"),
                     Path.Combine(Directory.GetCurrentDirectory(), "src", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json"),
                     Path.Combine(Directory.GetCurrentDirectory(), "..", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json"),
-                    @"D:\TheGreatAyurveda\The-Great-Ayurveda\src\Ayurveda.Infrastructure\Data\catalog_300plus.json"
+                    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "src", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json")
                 };
 
                 string? jsonPath = candidates.FirstOrDefault(File.Exists);
@@ -293,6 +322,19 @@ public static class DbInitializer
                 {
                     var jsonContent = await File.ReadAllTextAsync(jsonPath);
                     catalogData = System.Text.Json.JsonSerializer.Deserialize<List<ProductJsonItem>>(jsonContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+
+                if (catalogData == null || !catalogData.Any())
+                {
+                    if (isProd)
+                    {
+                        logger.LogCritical("FATAL: catalog_300plus.json is missing or failed to parse in Production. Application startup aborted.");
+                        throw new FileNotFoundException("FATAL: catalog_300plus.json is missing in Production environment.");
+                    }
+                    else
+                    {
+                        logger.LogWarning("catalog_300plus.json not found in development candidates.");
+                    }
                 }
 
                 if (catalogData != null && catalogData.Any())
@@ -318,7 +360,7 @@ public static class DbInitializer
                                 Stock = item.Stock,
                                 CategoryId = sub.CategoryId,
                                 SubcategoryId = sub.Id,
-                                ImageUrl = $"/images/products/{s}.webp",
+                                ImageUrl = !string.IsNullOrWhiteSpace(item.ImageUrl) ? item.ImageUrl : $"/images/products/{s}.webp",
                                 AverageRating = item.Rating,
                                 Sku = item.Sku,
                                 Tags = item.Tags,
@@ -385,13 +427,11 @@ public static class DbInitializer
                 }
             }
 
-            // Ensure all product images and inventory distribution
+            // Ensure realistic inventory distribution
             var allProducts = await context.Products.ToListAsync();
             int prdIndex = 0;
             foreach (var p in allProducts)
             {
-                var s = GenerateProductSlug(p.Title);
-                p.ImageUrl = $"/images/products/{s}.webp";
                 if (prdIndex % 15 == 0) p.Stock = 0; // Out of stock
                 else if (prdIndex % 7 == 0) p.Stock = 3; // Low stock
                 prdIndex++;
@@ -454,7 +494,7 @@ public static class DbInitializer
             await SeedFestivalOffersAsync(context, logger);
 
             // 8. Seed 24 Fictional Ayurvedic Doctors (Phase 7)
-            await SeedDoctorsAsync(context, userManager, logger, isDev, configuration?["DevDemo:DoctorCredential"]);
+            await SeedDoctorsAsync(context, userManager, logger, isDev, configuration?["DevDemo:DoctorCredential"], configuration);
 
             // Ensure doctor avatars are unique and assigned
             var allDoctors = await context.Doctors.Include(d => d.DoctorDetail).ToListAsync();
@@ -486,7 +526,8 @@ public static class DbInitializer
         UserManager<ApplicationUser> userManager,
         ILogger logger,
         bool isDev = true,
-        string? devDoctorCredential = null)
+        string? devDoctorCredential = null,
+        IConfiguration? configuration = null)
     {
         var categories = await context.Categories.ToListAsync();
         var defaultCat = categories.FirstOrDefault() ?? throw new InvalidOperationException("Categories not seeded");
@@ -596,7 +637,7 @@ public static class DbInitializer
 
         int doctorCounter = 1;
         var docPwd = isDev 
-            ? (devDoctorCredential ?? "DevDemoPass_2026!#") 
+            ? (devDoctorCredential ?? configuration?["DevDemo:DoctorPassword"] ?? GetUntrackedDevPassword(configuration) ?? ("Doc_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9")) 
             : Guid.NewGuid().ToString("N") + "!Aa9#" + Guid.NewGuid().ToString("N");
         foreach (var def in doctorDefs)
         {
@@ -2057,7 +2098,8 @@ public static class DbInitializer
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole<int>> roleManager,
         ILogger logger,
-        bool isDevelopment = true)
+        bool isDevelopment = true,
+        IConfiguration? configuration = null)
     {
         try
         {
@@ -2215,7 +2257,10 @@ END
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     };
-                    var custRes = await userManager.CreateAsync(customerUser, "DevCustomer@2026");
+                    var custPwd = isDevelopment
+                        ? (configuration?["DevDemo:CustomerPassword"] ?? GetUntrackedDevPassword(configuration) ?? ("Cust_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9"))
+                        : Guid.NewGuid().ToString("N") + "!Aa9#" + Guid.NewGuid().ToString("N");
+                    var custRes = await userManager.CreateAsync(customerUser, custPwd);
                     if (custRes.Succeeded)
                     {
                         await userManager.AddToRoleAsync(customerUser, UserRole.Customer.ToString());
@@ -2244,14 +2289,17 @@ END
         if (string.IsNullOrWhiteSpace(relativeUrl)) return false;
         var trimmed = relativeUrl.TrimStart('~').TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
         var cur = Directory.GetCurrentDirectory();
+        var baseDir = AppContext.BaseDirectory;
         
         var paths = new[]
         {
             Path.Combine(cur, "wwwroot", trimmed),
+            Path.Combine(baseDir, "wwwroot", trimmed),
             Path.Combine(cur, "..", "Ayurveda.Web", "wwwroot", trimmed),
             Path.Combine(cur, "..", "Ayurveda.Admin", "wwwroot", trimmed),
             Path.Combine(cur, "src", "Ayurveda.Web", "wwwroot", trimmed),
-            Path.Combine(cur, "src", "Ayurveda.Admin", "wwwroot", trimmed)
+            Path.Combine(cur, "src", "Ayurveda.Admin", "wwwroot", trimmed),
+            Path.Combine(baseDir, "..", "..", "..", "..", "src", "Ayurveda.Web", "wwwroot", trimmed)
         };
 
         foreach (var p in paths)
@@ -2322,7 +2370,7 @@ END
         {
             if (string.IsNullOrWhiteSpace(p.ImageUrl) || !ImageFileExists(p.ImageUrl))
             {
-                p.ImageUrl = "/images/products/placeholder.svg";
+                p.ImageUrl = "/images/placeholder.svg";
             }
 
             if (!p.Images.Any(pi => pi.IsPrimary && ImageFileExists(pi.ImageUrl)))
@@ -2354,6 +2402,11 @@ END
         }
 
         await context.SaveChangesAsync();
+
+        var totalProducts = await context.Products.CountAsync();
+        var distinctImages = await context.Products.Select(p => p.ImageUrl).Distinct().CountAsync();
+        var placeholderCount = await context.Products.CountAsync(p => p.ImageUrl.Contains("placeholder"));
+        logger.LogInformation("Product image audit: Verified {Total} products across {Distinct} distinct existing images, {Placeholders} placeholders.", totalProducts, distinctImages, placeholderCount);
         logger.LogInformation("Image repair completed: All category, doctor, product, and yoga images verified on disk.");
     }
 
@@ -2457,5 +2510,51 @@ END
 
         await context.SaveChangesAsync();
         logger.LogInformation("Seeded and verified Diwali & Navratri festival offers/coupons.");
+    }
+
+    private static string? GetUntrackedDevPassword(IConfiguration? configuration)
+    {
+        var pass = configuration?["DevDemo:AdminPassword"]
+                ?? configuration?["Admin:InitialPassword"]
+                ?? configuration?["DevDemo:Password"];
+        if (!string.IsNullOrWhiteSpace(pass))
+        {
+            return pass.Trim();
+        }
+
+        var untrackedPaths = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "App_Data", "dev_demo_password.txt"),
+            Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "dev_demo_password.txt"),
+            Path.Combine(AppContext.BaseDirectory, "App_Data", "dev_credentials.json"),
+            Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "dev_credentials.json")
+        };
+
+        foreach (var p in untrackedPaths)
+        {
+            try
+            {
+                if (File.Exists(p))
+                {
+                    var text = File.ReadAllText(p).Trim();
+                    if (p.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(text);
+                        if (doc.RootElement.TryGetProperty("Password", out var elem) || doc.RootElement.TryGetProperty("AdminPassword", out elem))
+                        {
+                            var jsonPass = elem.GetString()?.Trim();
+                            if (!string.IsNullOrWhiteSpace(jsonPass)) return jsonPass;
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        return text;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        return null;
     }
 }

@@ -6,7 +6,7 @@ using Ayurveda.Application.Interfaces;
 namespace Ayurveda.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize(AuthenticationSchemes = "AdminCookieScheme", Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager,Admin")]
+[Authorize(AuthenticationSchemes = "AdminCookieScheme", Roles = "SuperAdmin,CatalogManager,SupportAgent,FinanceManager,Admin,DemoViewer")]
 [Route("admin-portal/search")]
 public class SearchController : Controller
 {

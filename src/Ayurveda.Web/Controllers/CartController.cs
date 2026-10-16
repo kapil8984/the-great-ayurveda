@@ -1,6 +1,8 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Ayurveda.Application.ViewModels;
 using Ayurveda.Domain.Entities;
 using Ayurveda.Domain.Enums;
@@ -10,49 +12,67 @@ namespace Ayurveda.Web.Controllers;
 
 public class CartController : Controller
 {
+    private const string GuestCartSessionKey = "GuestCart_Items";
     private readonly AyurvedaDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IMemoryCache _cache;
 
-    public CartController(AyurvedaDbContext context, UserManager<ApplicationUser> userManager)
+    public class GuestCartItemDto
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    public CartController(AyurvedaDbContext context, UserManager<ApplicationUser> userManager, IMemoryCache cache)
     {
         _context = context;
         _userManager = userManager;
+        _cache = cache;
     }
 
-    private async Task<ApplicationUser> GetOrCreateUserCartUserAsync()
+    private async Task<ApplicationUser?> GetAuthenticatedUserAsync()
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        if (User.Identity?.IsAuthenticated == true)
         {
-            var demoUser = await _context.Users.FirstOrDefaultAsync();
-            if (demoUser == null)
-            {
-                demoUser = new ApplicationUser
-                {
-                    UserName = "guest@ayurveda.local",
-                    Email = "guest@ayurveda.local",
-                    FullName = "Guest Customer",
-                    EmailConfirmed = true
-                };
-                await _userManager.CreateAsync(demoUser, "GuestPass@2026");
-            }
-            user = demoUser;
+            return await _userManager.GetUserAsync(User);
         }
-        return user;
+        return null;
     }
 
-    private async Task<Cart> GetOrCreateUserCartAsync()
+    private List<GuestCartItemDto> GetGuestCart()
     {
-        var user = await GetOrCreateUserCartUserAsync();
+        var json = HttpContext.Session.GetString(GuestCartSessionKey);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new List<GuestCartItemDto>();
+        }
 
+        try
+        {
+            return JsonSerializer.Deserialize<List<GuestCartItemDto>>(json) ?? new List<GuestCartItemDto>();
+        }
+        catch
+        {
+            return new List<GuestCartItemDto>();
+        }
+    }
+
+    private void SaveGuestCart(List<GuestCartItemDto> items)
+    {
+        var json = JsonSerializer.Serialize(items);
+        HttpContext.Session.SetString(GuestCartSessionKey, json);
+    }
+
+    private async Task<Cart?> GetOrCreateUserCartAsync(int userId)
+    {
         var cart = await _context.Carts
             .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Product)
-            .FirstOrDefaultAsync(c => c.UserId == user.Id);
+            .FirstOrDefaultAsync(c => c.UserId == userId);
 
         if (cart == null)
         {
-            cart = new Cart { UserId = user.Id };
+            cart = new Cart { UserId = userId };
             _context.Carts.Add(cart);
             await _context.SaveChangesAsync();
         }
@@ -62,27 +82,65 @@ public class CartController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var user = await GetOrCreateUserCartUserAsync();
-        var cart = await GetOrCreateUserCartAsync();
+        var user = await GetAuthenticatedUserAsync();
+        List<CartItemViewModel> items = new();
+        int cartId = 0;
+
+        if (user != null)
+        {
+            var cart = await GetOrCreateUserCartAsync(user.Id);
+            if (cart != null)
+            {
+                cartId = cart.Id;
+                items = cart.CartItems.Select(ci => new CartItemViewModel
+                {
+                    CartItemId = ci.Id,
+                    ProductId = ci.ProductId,
+                    Title = ci.Product.Title,
+                    Brand = ci.Product.Brand,
+                    ImageUrl = ci.Product.ImageUrl,
+                    UnitPrice = ci.Product.Price,
+                    Mrp = ci.Product.Mrp,
+                    Quantity = ci.Quantity,
+                    Stock = ci.Product.Stock
+                }).ToList();
+            }
+        }
+        else
+        {
+            var guestItems = GetGuestCart();
+            if (guestItems.Any())
+            {
+                var productIds = guestItems.Select(gi => gi.ProductId).Distinct().ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id) && p.IsActive)
+                    .ToDictionaryAsync(p => p.Id);
+
+                foreach (var gi in guestItems)
+                {
+                    if (products.TryGetValue(gi.ProductId, out var product))
+                    {
+                        items.Add(new CartItemViewModel
+                        {
+                            CartItemId = gi.ProductId,
+                            ProductId = gi.ProductId,
+                            Title = product.Title,
+                            Brand = product.Brand,
+                            ImageUrl = product.ImageUrl,
+                            UnitPrice = product.Price,
+                            Mrp = product.Mrp,
+                            Quantity = Math.Min(product.Stock, Math.Max(1, gi.Quantity)),
+                            Stock = product.Stock
+                        });
+                    }
+                }
+            }
+        }
 
         var appliedCouponCode = HttpContext.Session.GetString("AppliedCouponCode");
         decimal couponDiscount = 0;
         string? couponSuccess = null;
         string? couponError = null;
-
-        var items = cart.CartItems.Select(ci => new CartItemViewModel
-        {
-            CartItemId = ci.Id,
-            ProductId = ci.ProductId,
-            Title = ci.Product.Title,
-            Brand = ci.Product.Brand,
-            ImageUrl = ci.Product.ImageUrl,
-            UnitPrice = ci.Product.Price,
-            Mrp = ci.Product.Mrp,
-            Quantity = ci.Quantity,
-            Stock = ci.Product.Stock
-        }).ToList();
-
         decimal subtotal = items.Sum(i => i.TotalPrice);
 
         if (!string.IsNullOrWhiteSpace(appliedCouponCode))
@@ -120,29 +178,32 @@ public class CartController : Controller
             }
         }
 
-        // Saved for later items (from Wishlist)
-        var savedItems = await _context.WishlistItems
-            .Include(w => w.Product)
-            .Where(w => w.UserId == user.Id && w.Product.IsActive)
-            .OrderByDescending(w => w.CreatedAt)
-            .Take(5)
-            .Select(w => new CartItemViewModel
-            {
-                CartItemId = w.Id,
-                ProductId = w.ProductId,
-                Title = w.Product.Title,
-                Brand = w.Product.Brand,
-                ImageUrl = w.Product.ImageUrl,
-                UnitPrice = w.Product.Price,
-                Mrp = w.Product.Mrp,
-                Quantity = 1,
-                Stock = w.Product.Stock
-            })
-            .ToListAsync();
+        List<CartItemViewModel> savedItems = new();
+        if (user != null)
+        {
+            savedItems = await _context.WishlistItems
+                .Include(w => w.Product)
+                .Where(w => w.UserId == user.Id && w.Product.IsActive)
+                .OrderByDescending(w => w.CreatedAt)
+                .Take(5)
+                .Select(w => new CartItemViewModel
+                {
+                    CartItemId = w.Id,
+                    ProductId = w.ProductId,
+                    Title = w.Product.Title,
+                    Brand = w.Product.Brand,
+                    ImageUrl = w.Product.ImageUrl,
+                    UnitPrice = w.Product.Price,
+                    Mrp = w.Product.Mrp,
+                    Quantity = 1,
+                    Stock = w.Product.Stock
+                })
+                .ToListAsync();
+        }
 
         var model = new CartViewModel
         {
-            CartId = cart.Id,
+            CartId = cartId,
             Items = items,
             SavedForLaterItems = savedItems,
             AppliedCouponCode = appliedCouponCode,
@@ -151,10 +212,15 @@ public class CartController : Controller
             CouponError = couponError
         };
 
-        ViewBag.CartBanners = await _context.Banners
-            .Where(b => b.IsActive && b.Placement == "cart")
-            .OrderBy(b => b.DisplayOrder)
-            .ToListAsync();
+        ViewBag.CartBanners = await _cache.GetOrCreateAsync("Cart_Banners", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            return await _context.Banners
+                .AsNoTracking()
+                .Where(b => b.IsActive && b.Placement == "cart")
+                .OrderBy(b => b.DisplayOrder)
+                .ToListAsync();
+        });
 
         return View(model);
     }
@@ -163,31 +229,55 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddToCart(int productId, int quantity = 1)
     {
-        var cart = await GetOrCreateUserCartAsync();
         var product = await _context.Products.FindAsync(productId);
-
         if (product == null || !product.IsActive)
         {
             TempData["ErrorMessage"] = "Product is no longer available.";
             return RedirectToAction(nameof(Index));
         }
 
-        var item = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
-        if (item != null)
+        var user = await GetAuthenticatedUserAsync();
+        if (user != null)
         {
-            item.Quantity = Math.Min(product.Stock, item.Quantity + quantity);
+            var cart = await GetOrCreateUserCartAsync(user.Id);
+            if (cart != null)
+            {
+                var item = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
+                if (item != null)
+                {
+                    item.Quantity = Math.Min(product.Stock, item.Quantity + quantity);
+                }
+                else
+                {
+                    cart.CartItems.Add(new CartItem
+                    {
+                        CartId = cart.Id,
+                        ProductId = productId,
+                        Quantity = Math.Min(product.Stock, Math.Max(1, quantity))
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
         }
         else
         {
-            cart.CartItems.Add(new CartItem
+            var guestItems = GetGuestCart();
+            var item = guestItems.FirstOrDefault(gi => gi.ProductId == productId);
+            if (item != null)
             {
-                CartId = cart.Id,
-                ProductId = productId,
-                Quantity = Math.Min(product.Stock, Math.Max(1, quantity))
-            });
+                item.Quantity = Math.Min(product.Stock, item.Quantity + quantity);
+            }
+            else
+            {
+                guestItems.Add(new GuestCartItemDto
+                {
+                    ProductId = productId,
+                    Quantity = Math.Min(product.Stock, Math.Max(1, quantity))
+                });
+            }
+            SaveGuestCart(guestItems);
         }
 
-        await _context.SaveChangesAsync();
         TempData["SuccessMessage"] = $"Added '{product.Title}' to your basket!";
         return RedirectToAction(nameof(Index));
     }
@@ -196,53 +286,104 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> BuyNow(int productId, int quantity = 1)
     {
-        var cart = await GetOrCreateUserCartAsync();
         var product = await _context.Products.FindAsync(productId);
-
         if (product == null || !product.IsActive)
         {
             TempData["ErrorMessage"] = "Product is unavailable.";
             return RedirectToAction("Index", "Shop");
         }
 
-        var item = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
-        if (item != null)
+        var user = await GetAuthenticatedUserAsync();
+        if (user != null)
         {
-            item.Quantity = Math.Max(1, quantity);
+            var cart = await GetOrCreateUserCartAsync(user.Id);
+            if (cart != null)
+            {
+                var item = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
+                if (item != null)
+                {
+                    item.Quantity = Math.Max(1, quantity);
+                }
+                else
+                {
+                    cart.CartItems.Add(new CartItem { CartId = cart.Id, ProductId = productId, Quantity = Math.Max(1, quantity) });
+                }
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("Index", "Checkout");
         }
         else
         {
-            cart.CartItems.Add(new CartItem { CartId = cart.Id, ProductId = productId, Quantity = Math.Max(1, quantity) });
+            var guestItems = GetGuestCart();
+            var item = guestItems.FirstOrDefault(gi => gi.ProductId == productId);
+            if (item != null)
+            {
+                item.Quantity = Math.Max(1, quantity);
+            }
+            else
+            {
+                guestItems.Add(new GuestCartItemDto
+                {
+                    ProductId = productId,
+                    Quantity = Math.Max(1, quantity)
+                });
+            }
+            SaveGuestCart(guestItems);
+            return RedirectToAction("Index", "Checkout");
         }
-
-        await _context.SaveChangesAsync();
-        return RedirectToAction("Index", "Checkout");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddToCartAjax(int productId, int quantity = 1)
     {
-        var cart = await GetOrCreateUserCartAsync();
         var product = await _context.Products.FindAsync(productId);
-
         if (product == null || !product.IsActive)
         {
             return Json(new { success = false, message = "Product is currently unavailable." });
         }
 
-        var item = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
-        if (item != null)
+        var user = await GetAuthenticatedUserAsync();
+        int totalCount = 0;
+
+        if (user != null)
         {
-            item.Quantity = Math.Min(product.Stock, item.Quantity + quantity);
+            var cart = await GetOrCreateUserCartAsync(user.Id);
+            if (cart != null)
+            {
+                var item = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
+                if (item != null)
+                {
+                    item.Quantity = Math.Min(product.Stock, item.Quantity + quantity);
+                }
+                else
+                {
+                    cart.CartItems.Add(new CartItem { CartId = cart.Id, ProductId = productId, Quantity = Math.Min(product.Stock, Math.Max(1, quantity)) });
+                }
+                await _context.SaveChangesAsync();
+                totalCount = cart.CartItems.Sum(ci => ci.Quantity);
+            }
         }
         else
         {
-            cart.CartItems.Add(new CartItem { CartId = cart.Id, ProductId = productId, Quantity = Math.Min(product.Stock, Math.Max(1, quantity)) });
+            var guestItems = GetGuestCart();
+            var item = guestItems.FirstOrDefault(gi => gi.ProductId == productId);
+            if (item != null)
+            {
+                item.Quantity = Math.Min(product.Stock, item.Quantity + quantity);
+            }
+            else
+            {
+                guestItems.Add(new GuestCartItemDto
+                {
+                    ProductId = productId,
+                    Quantity = Math.Min(product.Stock, Math.Max(1, quantity))
+                });
+            }
+            SaveGuestCart(guestItems);
+            totalCount = guestItems.Sum(gi => gi.Quantity);
         }
 
-        await _context.SaveChangesAsync();
-        var totalCount = cart.CartItems.Sum(ci => ci.Quantity);
         return Json(new { success = true, cartCount = totalCount, message = $"Added '{product.Title}' to basket!" });
     }
 
@@ -250,9 +391,18 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateQuantity(int cartItemId, int quantity)
     {
-        var item = await _context.CartItems.Include(ci => ci.Product).FirstOrDefaultAsync(ci => ci.Id == cartItemId);
-        if (item != null)
+        var user = await GetAuthenticatedUserAsync();
+        if (user != null)
         {
+            var cart = await GetOrCreateUserCartAsync(user.Id);
+            if (cart == null) return NotFound();
+
+            var item = cart.CartItems.FirstOrDefault(ci => ci.Id == cartItemId || ci.ProductId == cartItemId);
+            if (item == null)
+            {
+                return NotFound();
+            }
+
             if (quantity <= 0)
             {
                 _context.CartItems.Remove(item);
@@ -260,10 +410,12 @@ public class CartController : Controller
             }
             else
             {
-                if (quantity > item.Product.Stock)
+                var product = await _context.Products.FindAsync(item.ProductId);
+                var maxStock = product?.Stock ?? 99;
+                if (quantity > maxStock)
                 {
-                    TempData["ErrorMessage"] = $"Only {item.Product.Stock} units currently available in stock.";
-                    item.Quantity = item.Product.Stock;
+                    TempData["ErrorMessage"] = $"Only {maxStock} units currently available in stock.";
+                    item.Quantity = maxStock;
                 }
                 else
                 {
@@ -272,6 +424,35 @@ public class CartController : Controller
             }
             await _context.SaveChangesAsync();
         }
+        else
+        {
+            var guestItems = GetGuestCart();
+            var item = guestItems.FirstOrDefault(gi => gi.ProductId == cartItemId);
+            if (item != null)
+            {
+                if (quantity <= 0)
+                {
+                    guestItems.Remove(item);
+                    TempData["SuccessMessage"] = "Item removed from basket.";
+                }
+                else
+                {
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    var maxStock = product?.Stock ?? 99;
+                    if (quantity > maxStock)
+                    {
+                        TempData["ErrorMessage"] = $"Only {maxStock} units currently available in stock.";
+                        item.Quantity = maxStock;
+                    }
+                    else
+                    {
+                        item.Quantity = quantity;
+                    }
+                }
+                SaveGuestCart(guestItems);
+            }
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -279,13 +460,33 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveItem(int cartItemId)
     {
-        var item = await _context.CartItems.FindAsync(cartItemId);
-        if (item != null)
+        var user = await GetAuthenticatedUserAsync();
+        if (user != null)
         {
+            var cart = await GetOrCreateUserCartAsync(user.Id);
+            if (cart == null) return NotFound();
+
+            var item = cart.CartItems.FirstOrDefault(ci => ci.Id == cartItemId || ci.ProductId == cartItemId);
+            if (item == null)
+            {
+                return NotFound();
+            }
+
             _context.CartItems.Remove(item);
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Item removed from basket.";
         }
+        else
+        {
+            var guestItems = GetGuestCart();
+            var item = guestItems.FirstOrDefault(gi => gi.ProductId == cartItemId);
+            if (item != null)
+            {
+                guestItems.Remove(item);
+                SaveGuestCart(guestItems);
+            }
+        }
+
+        TempData["SuccessMessage"] = "Item removed from basket.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -293,29 +494,37 @@ public class CartController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveForLater(int cartItemId)
     {
-        var user = await GetOrCreateUserCartUserAsync();
-        var item = await _context.CartItems.FindAsync(cartItemId);
-
-        if (item != null)
+        var user = await GetAuthenticatedUserAsync();
+        if (user == null)
         {
-            // Add to Wishlist
-            var existingWish = await _context.WishlistItems.FirstOrDefaultAsync(w => w.UserId == user.Id && w.ProductId == item.ProductId);
-            if (existingWish == null)
-            {
-                _context.WishlistItems.Add(new WishlistItem
-                {
-                    UserId = user.Id,
-                    ProductId = item.ProductId,
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
-
-            // Remove from Cart
-            _context.CartItems.Remove(item);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Item saved for later in your wishlist.";
+            TempData["ErrorMessage"] = "Please sign in to save items to your wishlist.";
+            return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
         }
+
+        var cart = await GetOrCreateUserCartAsync(user.Id);
+        if (cart == null) return NotFound();
+
+        var item = cart.CartItems.FirstOrDefault(ci => ci.Id == cartItemId || ci.ProductId == cartItemId);
+        if (item == null)
+        {
+            return NotFound();
+        }
+
+        var existingWish = await _context.WishlistItems.FirstOrDefaultAsync(w => w.UserId == user.Id && w.ProductId == item.ProductId);
+        if (existingWish == null)
+        {
+            _context.WishlistItems.Add(new WishlistItem
+            {
+                UserId = user.Id,
+                ProductId = item.ProductId,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        _context.CartItems.Remove(item);
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = "Item saved for later in your wishlist.";
         return RedirectToAction(nameof(Index));
     }
 

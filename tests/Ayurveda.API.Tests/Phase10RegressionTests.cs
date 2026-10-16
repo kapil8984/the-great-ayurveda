@@ -40,6 +40,37 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
         return client;
     }
 
+    private async Task<HttpClient> CreateAuthenticatedCustomerClientAsync(string email = "patient_phase10@ayurveda.com", string password = "Password@2026!")
+    {
+        using (var scope = _webFactory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var existing = await userManager.FindByEmailAsync(email);
+            if (existing == null)
+            {
+                var user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FullName = "Phase10 Customer",
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await userManager.CreateAsync(user, password);
+                await userManager.AddToRoleAsync(user, "Customer");
+            }
+        }
+
+        var client = _webFactory.CreateClient();
+        var form = new Dictionary<string, string>
+        {
+            ["Email"] = email,
+            ["Password"] = password
+        };
+        await client.PostAsync("/account/login", new FormUrlEncodedContent(form));
+        return client;
+    }
+
     // -------------------------------------------------------------------------
     // 1. SIGNUP & LOGIN FLOWS FOR ALL THREE ROLES (CUSTOMER, DOCTOR, ADMIN)
     // -------------------------------------------------------------------------
@@ -115,7 +146,37 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
             Assert.True(addResponse.StatusCode == HttpStatusCode.Redirect || addResponse.StatusCode == HttpStatusCode.OK);
         }
 
-        // Checkout renders delivery addresses and summary
+        // 1. Anonymous checkout redirects to login
+        var noRedirectClient = _webFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var anonCheckout = await noRedirectClient.GetAsync("/checkout");
+        Assert.Equal(HttpStatusCode.Redirect, anonCheckout.StatusCode);
+
+        // 2. Customer signs in and cart is merged
+        using (var scope = _webFactory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            if (await userManager.FindByEmailAsync("patient_checkout_flow@ayurveda.com") == null)
+            {
+                var user = new ApplicationUser
+                {
+                    UserName = "patient_checkout_flow@ayurveda.com",
+                    Email = "patient_checkout_flow@ayurveda.com",
+                    FullName = "Patient Checkout",
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await userManager.CreateAsync(user, "Password@2026!");
+                await userManager.AddToRoleAsync(user, "Customer");
+            }
+        }
+
+        await client.PostAsync("/account/login", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = "patient_checkout_flow@ayurveda.com",
+            ["Password"] = "Password@2026!"
+        }));
+
+        // 3. Checkout renders delivery addresses and summary
         var checkoutResponse = await client.GetAsync("/checkout");
         Assert.Equal(HttpStatusCode.OK, checkoutResponse.StatusCode);
         var checkoutHtml = await checkoutResponse.Content.ReadAsStringAsync();
@@ -158,7 +219,7 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
             testDoctorId = pendingDoc.Id;
         }
 
-        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
 
         // Admin approves the doctor
         var approveResponse = await adminClient.PostAsync($"/admin-portal/Doctors/Approve?doctorId={testDoctorId}", new FormUrlEncodedContent(new Dictionary<string, string>()));
@@ -192,7 +253,28 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
             var activeDoc = await db.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.DoctorDetail != null && d.DoctorDetail.Status == 1);
             Assert.NotNull(activeDoc);
             doctorId = activeDoc.Id;
+
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            if (await userManager.FindByEmailAsync("patient_book_e2e@ayurveda.com") == null)
+            {
+                var user = new ApplicationUser
+                {
+                    UserName = "patient_book_e2e@ayurveda.com",
+                    Email = "patient_book_e2e@ayurveda.com",
+                    FullName = "Patient Book E2E",
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await userManager.CreateAsync(user, "Password@2026!");
+                await userManager.AddToRoleAsync(user, "Customer");
+            }
         }
+
+        await client.PostAsync("/account/login", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["Email"] = "patient_book_e2e@ayurveda.com",
+            ["Password"] = "Password@2026!"
+        }));
 
         var bookingDate = DateTime.Today.AddDays(2);
         var timeSlot = "11:00 AM";
@@ -241,7 +323,7 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
         Assert.Equal(HttpStatusCode.OK, docLoginResponse.StatusCode);
 
         // 3. Admin Portal Layout
-        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var adminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var adminDash = await adminClient.GetAsync("/admin-portal/dashboard");
         var adminHtml = await adminDash.Content.ReadAsStringAsync();
 
@@ -259,7 +341,7 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
     public async Task E2E_AdminAuthorizationMatrix_EnforcesRoleBoundaries()
     {
         // 1. CatalogManager: Allowed to view products, forbidden from finance
-        var catalogClient = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var catalogClient = await CreateAuthenticatedAdminClientAsync("catalog@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var productsResponse = await catalogClient.GetAsync("/admin-portal/products");
         Assert.Equal(HttpStatusCode.OK, productsResponse.StatusCode);
 
@@ -268,12 +350,12 @@ public class Phase10RegressionTests : IClassFixture<WebMvcFactory>
                     (financeResponse.StatusCode == HttpStatusCode.Redirect && financeResponse.Headers.Location?.ToString().Contains("accessdenied", StringComparison.OrdinalIgnoreCase) == true));
 
         // 2. FinanceManager: Allowed to view finance
-        var financeClient = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var financeClient = await CreateAuthenticatedAdminClientAsync("finance@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var financeOk = await financeClient.GetAsync("/admin-portal/finance");
         Assert.Equal(HttpStatusCode.OK, financeOk.StatusCode);
 
         // 3. SuperAdmin: Allowed everywhere
-        var superAdminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", "DevAuth_Vaidya_2026!#");
+        var superAdminClient = await CreateAuthenticatedAdminClientAsync("admin@thegreatayurveda.com", WebMvcFactory.TestAdminPassword);
         var adminProducts = await superAdminClient.GetAsync("/admin-portal/products");
         var adminFinance = await superAdminClient.GetAsync("/admin-portal/finance");
         var adminAudit = await superAdminClient.GetAsync("/admin-portal/audit");

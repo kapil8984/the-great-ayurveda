@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { getDevAdminPassword } = require('./getTestPassword');
 
 const WEB_URL = 'http://localhost:5000';
 const ADMIN_URL = 'http://localhost:7200';
@@ -66,7 +67,7 @@ async function run() {
         console.log('\n--- 2. Testing Admin Login & "View Website" Links ---');
         await page.goto(`${ADMIN_URL}/Auth/Login`, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await page.fill('#adminEmailInput', 'admin@ayurveda.com');
-        await page.fill('#adminPwdInput', 'DevAuth_Vaidya_2026!#');
+        await page.fill('#adminPwdInput', getDevAdminPassword());
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(e => console.log('Navigation event note:', e.message)),
             page.click('button[type="submit"]')
