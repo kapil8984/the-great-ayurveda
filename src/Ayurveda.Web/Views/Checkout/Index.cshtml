@@ -251,7 +251,7 @@
                         {
                             <div class="d-flex align-items-center justify-content-between mb-2 small pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
-                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/dhanvantari-botanicals-classical-shatavari-chyawanprash-formulation-no-1.webp" : item.ImageUrl)" width="38" height="38" class="rounded border p-1" style="object-fit: contain;" alt="@item.Title" onerror="this.onerror=null;this.src='/images/products/dhanvantari-botanicals-classical-shatavari-chyawanprash-formulation-no-1.webp';" />
+                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/dhanvantari-botanicals-classical-shatavari-chyawanprash-formulation-no-1.webp" : item.ImageUrl)" width="38" height="38" class="rounded border p-1" style="object-fit: contain;" alt="@item.Title" data-fallback="/images/placeholder.svg" />
                                     <div>
                                         <div class="text-truncate fw-semibold" style="max-width: 140px;">@item.Title</div>
                                         <div class="text-muted" style="font-size: 0.72rem;">Qty: @item.Quantity</div>
@@ -291,7 +291,7 @@
                         <span id="displayGrandTotal">₹@Model.Cart.GrandTotal.ToString("N2")</span>
                     </div>
 
-                    <button type="button" id="btnInitiatePayment" class="btn btn-tga-gold w-100 py-3 fs-6 rounded-pill shadow-sm fw-bold">
+                    <button type="button" id="btnInitiatePayment" class="btn btn-tga-gold w-100 py-3 fs-6 rounded-pill shadow-sm fw-bold" style="min-height: 44px;">
                         <i class="bi bi-lock-fill me-1"></i> Pay &amp; Place Order (₹@Model.Cart.GrandTotal.ToString("N0"))
                     </button>
 
@@ -301,6 +301,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- Mobile Sticky Payment Trigger Bar -->
+        <div class="d-lg-none position-fixed start-0 end-0 bg-white border-top shadow-lg p-2 px-3 d-flex align-items-center justify-content-between" style="bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 1045;">
+            <div>
+                <span class="text-xs text-muted d-block">Total Payable</span>
+                <span class="fs-5 fw-bold text-success">₹@Model.Cart.GrandTotal.ToString("N0")</span>
+            </div>
+            <button type="button" class="btn btn-tga-gold rounded-pill px-4 fw-bold text-dark d-flex align-items-center gap-2" onclick="document.getElementById('btnInitiatePayment').click()" style="min-height: 44px;">
+                <i class="bi bi-lock-fill"></i> Pay Now
+            </button>
+        </div>
     </form>
 </div>
 
@@ -308,7 +319,7 @@
      MODAL: Realistic Payment Processing & Result Simulator
      ========================================================================= -->
 <div class="modal fade" id="paymentProcessModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
             <!-- Modal Header with Demo Tag -->
             <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center bg-light">

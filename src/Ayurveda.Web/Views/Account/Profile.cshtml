@@ -32,7 +32,7 @@
                          alt="@Model.FullName" 
                          class="rounded-circle shadow-sm object-fit-cover border border-3 border-success border-opacity-25" 
                          style="width: 100px; height: 100px;" 
-                         onerror="this.src='/images/doctor-avatar.svg'" />
+                         data-fallback="/images/doctor-avatar.svg" />
                 </div>
                 <h5 class="fw-bold text-dark mb-1 font-serif">@Model.FullName</h5>
                 <p class="small text-muted mb-3 text-truncate">@Model.Email</p>
@@ -104,7 +104,7 @@
                                          alt="Profile Preview" 
                                          class="rounded-circle shadow-sm object-fit-cover border border-2 border-warning" 
                                          style="width: 80px; height: 80px;" 
-                                         onerror="this.src='/images/doctor-avatar.svg'" />
+                                         data-fallback="/images/doctor-avatar.svg" />
                                 </div>
                                 <div>
                                     <label class="form-label small fw-semibold text-dark mb-1">Profile Photo</label>

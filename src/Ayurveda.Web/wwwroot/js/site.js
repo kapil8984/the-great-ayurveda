@@ -3,6 +3,22 @@
 // Features: Smart Search, Prakriti Quiz, Deals Timer, Carousel, Ajax Cart
 // ==========================================================================
 
+// Centralized, loop-proof image error fallback handler
+function initImgFallback() {
+    window.addEventListener("error", function (e) {
+        var target = e.target;
+        if (!target || target.tagName !== "IMG") return;
+        if (target.getAttribute("data-fb-done") === "true") {
+            target.style.opacity = "0.7";
+            return;
+        }
+        target.setAttribute("data-fb-done", "true");
+        var fb = target.getAttribute("data-fallback") || "/images/placeholder.svg";
+        target.src = fb;
+    }, true);
+}
+initImgFallback();
+
 document.addEventListener("DOMContentLoaded", function () {
     initSearchBox();
     initConfirmModal();
@@ -95,19 +111,19 @@ function initSearchBox() {
                 fetch(`/search/suggest?q=${encodeURIComponent(query)}&scope=${encodeURIComponent(scope)}`, {
                     signal: abortController.signal
                 })
-                .then(res => {
-                    if (!res.ok) throw new Error("Search network error");
-                    return res.json();
-                })
-                .then(data => {
-                    selectedIndex = -1;
-                    renderSuggestions(data, dropdown, query, scope, input);
-                })
-                .catch(err => {
-                    if (err.name !== "AbortError") {
-                        console.error("Search suggest error:", err);
-                    }
-                });
+                    .then(res => {
+                        if (!res.ok) throw new Error("Search network error");
+                        return res.json();
+                    })
+                    .then(data => {
+                        selectedIndex = -1;
+                        renderSuggestions(data, dropdown, query, scope, input);
+                    })
+                    .catch(err => {
+                        if (err.name !== "AbortError") {
+                            console.error("Search suggest error:", err);
+                        }
+                    });
             }, 250);
         });
 
@@ -185,20 +201,20 @@ function saveRecentSearch(scope, query) {
         list.unshift(query.trim());
         if (list.length > 6) list.pop();
         localStorage.setItem(`tga_recent_searches_${scope}`, JSON.stringify(list));
-    } catch {}
+    } catch { }
 }
 
 function clearRecentSearches(scope, dropdown, input) {
     try {
         localStorage.removeItem(`tga_recent_searches_${scope}`);
         renderRecentAndTrending(dropdown, scope, input);
-    } catch {}
+    } catch { }
 }
 
 function renderRecentAndTrending(dropdown, scope, input) {
     const recents = getRecentSearches(scope);
     const trending = [
-        "Chyawanprash", "Ashwagandha", "Triphala", "Kumkumadi Tailam", 
+        "Chyawanprash", "Ashwagandha", "Triphala", "Kumkumadi Tailam",
         "A2 Cow Ghee", "Giloy Ghanvati", "Hair Fall Oil"
     ];
 
@@ -696,7 +712,7 @@ function initIdleTimeoutModal() {
             bsIdleModal.hide();
             resetIdleTimer();
 
-            fetch("/Home/Ping", { method: "HEAD" }).catch(() => {});
+            fetch("/Home/Ping", { method: "HEAD" }).catch(() => { });
         });
     }
 
@@ -741,29 +757,29 @@ function initAjaxCart() {
                 },
                 body: `productId=${encodeURIComponent(productId)}&quantity=1`
             })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
 
-                if (data.success) {
-                    const badge = document.getElementById("cartCountBadge");
-                    if (badge) {
-                        badge.innerText = data.cartCount;
-                        badge.classList.add("scale-up");
-                        setTimeout(() => badge.classList.remove("scale-up"), 300);
+                    if (data.success) {
+                        const badge = document.getElementById("cartCountBadge");
+                        if (badge) {
+                            badge.innerText = data.cartCount;
+                            badge.classList.add("scale-up");
+                            setTimeout(() => badge.classList.remove("scale-up"), 300);
+                        }
+                        showToast("Added to Cart", data.message || "Item added to your basket.");
+                    } else {
+                        showToast("Notice", data.message || "Unable to add item.", "warning");
                     }
-                    showToast("Added to Cart", data.message || "Item added to your basket.");
-                } else {
-                    showToast("Notice", data.message || "Unable to add item.", "warning");
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-                console.error("Cart error:", err);
-                showToast("Error", "Could not add item to basket. Please try again.", "danger");
-            });
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    console.error("Cart error:", err);
+                    showToast("Error", "Could not add item to basket. Please try again.", "danger");
+                });
         });
     });
 }

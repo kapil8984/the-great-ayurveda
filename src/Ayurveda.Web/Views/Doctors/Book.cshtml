@@ -59,8 +59,16 @@
                                 <span asp-validation-for="SelectedDate" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small text-muted">Time Slot (Indian Standard Time) *</label>
-                                <select asp-for="SelectedTimeSlot" class="form-select rounded-pill" required>
+                                <label class="form-label small text-muted">Select Time Slot (Indian Standard Time / IST) *</label>
+                                <div class="d-flex flex-wrap gap-2 mb-2" id="slotChipsContainer">
+                                    @foreach (var slot in (Model.AvailableSlots?.Any() == true ? Model.AvailableSlots : new List<string> { "10:00 AM", "11:30 AM", "02:30 PM", "04:00 PM", "06:00 PM" }))
+                                    {
+                                        <button type="button" class="btn btn-outline-success rounded-pill px-3 py-2 slot-chip-btn @(Model.SelectedTimeSlot == slot || (string.IsNullOrEmpty(Model.SelectedTimeSlot) && slot == "10:00 AM") ? "active" : "")" data-slot="@slot" style="min-height: 44px;">
+                                            <i class="bi bi-clock me-1"></i> @slot
+                                        </button>
+                                    }
+                                </div>
+                                <select asp-for="SelectedTimeSlot" class="form-select rounded-pill d-none" id="selectedTimeSlotSelect" required>
                                     @if (Model.AvailableSlots != null && Model.AvailableSlots.Any())
                                     {
                                         @foreach (var slot in Model.AvailableSlots)
@@ -210,7 +218,7 @@
      MODAL: Realistic Payment Processing & Result Simulator for Doctor Fee
      ========================================================================= -->
 <div class="modal fade" id="consultPaymentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
             <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center bg-light">
                 <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 small">
@@ -279,6 +287,18 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".slot-chip-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            document.querySelectorAll(".slot-chip-btn").forEach(function (b) { b.classList.remove("active"); });
+            this.classList.add("active");
+            var slot = this.getAttribute("data-slot");
+            var sel = document.getElementById("selectedTimeSlotSelect");
+            if (sel && slot) {
+                sel.value = slot;
+            }
+        });
+    });
+
     const btnPay = document.getElementById("btnInitiateConsultPayment");
     const failureToggle = document.getElementById("simulateConsultFailureToggle");
     const bookForm = document.getElementById("bookConsultationForm");

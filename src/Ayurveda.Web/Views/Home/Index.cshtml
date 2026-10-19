@@ -1,13 +1,38 @@
 @model Ayurveda.Application.ViewModels.HomeViewModel
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment WebHostEnv
 @{
     ViewData["Title"] = "The Great Ayurveda | Authentic Ayurveda Care & Consultation";
     var heroBanners = ViewBag.HeroBanners as List<Ayurveda.Domain.Entities.Banner> ?? new();
     var middleBanners = ViewBag.MiddleBanners as List<Ayurveda.Domain.Entities.Banner> ?? new();
+
+    string? GetMobileBannerUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+        var ext = System.IO.Path.GetExtension(url);
+        if (string.IsNullOrEmpty(ext)) return null;
+        var mobileUrl = url.Substring(0, url.Length - ext.Length) + "-m" + ext;
+        var webRoot = WebHostEnv.WebRootPath ?? System.IO.Path.Combine(WebHostEnv.ContentRootPath, "wwwroot");
+        var physical = System.IO.Path.Combine(webRoot, mobileUrl.TrimStart('/', '\\').Replace('/', System.IO.Path.DirectorySeparatorChar));
+        return System.IO.File.Exists(physical) ? mobileUrl : null;
+    }
+}
+
+@section Styles {
+    @if (heroBanners.Any())
+    {
+        var firstHero = heroBanners.First();
+        var mobileFirst = GetMobileBannerUrl(firstHero.ImageUrl);
+        @if (!string.IsNullOrEmpty(mobileFirst))
+        {
+            <link rel="preload" as="image" href="@mobileFirst" media="(max-width: 576px)" />
+        }
+        <link rel="preload" as="image" href="@firstHero.ImageUrl" media="(min-width: 577px)" />
+    }
 }
 
 @if (heroBanners.Any())
 {
-    <!-- Storefront Full-Width Ken Burns Hero Carousel (Autoplay 4.5s) -->
+    <!-- Storefront Responsive Ken Burns Hero Carousel (Autoplay 4.5s) -->
     <div class="hero-carousel-container position-relative overflow-hidden mb-4">
         <div id="homeHeroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="4500" data-bs-pause="hover">
             <!-- Indicators with Dynamic Progress Bar -->
@@ -25,22 +50,34 @@
                 @for (int i = 0; i < heroBanners.Count; i++)
                 {
                     var b = heroBanners[i];
+                    var mobUrl = GetMobileBannerUrl(b.ImageUrl);
                     <div class="carousel-item @(i == 0 ? "active" : "")" data-slide-index="@i">
                         <a href="@(b.LinkUrl ?? "/Shop")" class="d-block text-decoration-none position-relative hero-slide-link">
                             <div class="hero-slide-img-wrap overflow-hidden">
-                                <img src="@b.ImageUrl" class="d-block w-100 banner-img hero-kenburns-img" alt="@b.Title" style="height: 520px; object-fit: cover;" onerror="this.src='/images/banners/banner-hero-diwali.webp'" />
+                                <picture class="hero-banner-picture w-100 h-100">
+                                    @if (!string.IsNullOrEmpty(mobUrl))
+                                    {
+                                        <source media="(max-width: 576px)" srcset="@mobUrl" />
+                                    }
+                                    <img src="@b.ImageUrl" 
+                                         class="d-block w-100 banner-img hero-kenburns-img" 
+                                         alt="@b.Title" 
+                                         data-fallback="/images/placeholder.svg" 
+                                         decoding="async" 
+                                         fetchpriority="@(i == 0 ? "high" : "auto")" />
+                                </picture>
                             </div>
                             <div class="hero-overlay-gradient"></div>
                             @if (!string.IsNullOrWhiteSpace(b.Title))
                             {
-                                <div class="carousel-caption text-start banner-caption-box p-4 p-lg-5">
+                                <div class="carousel-caption text-start banner-caption-box p-3 p-md-4 p-lg-5">
                                     <span class="badge bg-warning bg-opacity-90 text-dark fw-bold px-3 py-1 rounded-pill mb-2 shadow-xs text-uppercase small banner-badge">
                                         <i class="bi bi-stars me-1"></i> Authentic Ayurveda Heritage
                                     </span>
                                     <h2 class="display-5 fw-bold text-white mb-2 banner-caption-title font-serif">@b.Title</h2>
                                     @if (!string.IsNullOrWhiteSpace(b.Subtitle))
                                     {
-                                        <p class="lead text-light text-opacity-90 mb-4 banner-caption-subtitle max-w-700">@b.Subtitle</p>
+                                        <p class="lead text-light text-opacity-90 mb-3 mb-md-4 banner-caption-subtitle max-w-700">@b.Subtitle</p>
                                     }
                                     <span class="btn btn-tga-gold btn-lg fw-bold rounded-pill px-4 py-2 banner-caption-btn text-dark shadow-md">
                                         Explore Formulations <i class="bi bi-arrow-right ms-2"></i>
@@ -52,11 +89,11 @@
                 }
             </div>
 
-            <!-- Stylish Navigation Arrows -->
-            <button class="carousel-control-prev tga-carousel-nav-btn start-0 ms-3" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="prev" aria-label="Previous Slide">
+            <!-- Stylish Navigation Arrows (Hidden on mobile phones, swipe + dots active) -->
+            <button class="carousel-control-prev tga-carousel-nav-btn start-0 ms-3 d-none d-md-flex" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="prev" aria-label="Previous Slide">
                 <span class="carousel-nav-icon shadow-sm"><i class="bi bi-chevron-left"></i></span>
             </button>
-            <button class="carousel-control-next tga-carousel-nav-btn end-0 me-3" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="next" aria-label="Next Slide">
+            <button class="carousel-control-next tga-carousel-nav-btn end-0 me-3 d-none d-md-flex" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="next" aria-label="Next Slide">
                 <span class="carousel-nav-icon shadow-sm"><i class="bi bi-chevron-right"></i></span>
             </button>
         </div>
@@ -323,11 +360,18 @@ else
             <div class="row g-4">
                 @foreach (var mb in middleBanners)
                 {
+                    var mobUrl = GetMobileBannerUrl(mb.ImageUrl);
                     <div class="col-sm-6 @(middleBanners.Count >= 4 ? "col-lg-3" : (middleBanners.Count == 3 ? "col-lg-4" : "col-lg-6"))">
                         <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 hover-lift bg-white transition-base">
                             <a href="@(mb.LinkUrl ?? "/Shop")" class="d-block text-decoration-none">
-                                <div class="position-relative overflow-hidden" style="height: 160px;">
-                                    <img src="@mb.ImageUrl" alt="@mb.Title" class="w-100 h-100 banner-middle-img" style="object-fit: cover;" onerror="this.src='/images/banners/banner-hero-diwali.webp'" />
+                                <div class="position-relative overflow-hidden middle-banner-aspect">
+                                    <picture class="w-100 h-100 d-block">
+                                        @if (!string.IsNullOrEmpty(mobUrl))
+                                        {
+                                            <source media="(max-width: 576px)" srcset="@mobUrl" />
+                                        }
+                                        <img src="@mb.ImageUrl" alt="@mb.Title" class="w-100 h-100 banner-middle-img" style="object-fit: cover;" loading="lazy" decoding="async" data-fallback="/images/placeholder.svg" />
+                                    </picture>
                                     <div class="position-absolute bottom-0 start-0 end-0 p-2 text-white" style="background: linear-gradient(transparent, rgba(14, 40, 25, 0.85));">
                                         <h6 class="fw-bold mb-0 text-white font-serif" style="font-size: 1.05rem;">@mb.Title</h6>
                                     </div>
@@ -355,10 +399,17 @@ else
             <div class="row g-4">
                 @foreach (var mb in middleBanners)
                 {
-                    <div class="col-md-6 col-lg-3">
+                    var mobUrl = GetMobileBannerUrl(mb.ImageUrl);
+                    <div class="col-6 col-lg-3">
                         <div class="card middle-promo-banner-card h-100 border-0 shadow-sm">
-                            <div class="position-relative overflow-hidden">
-                                <img src="@mb.ImageUrl" alt="@mb.Title" class="middle-promo-banner-img" onerror="this.src='/images/banners/banner-hero-diwali.webp'" />
+                            <div class="position-relative overflow-hidden middle-promo-img-wrap">
+                                <picture class="w-100 h-100 d-block">
+                                    @if (!string.IsNullOrEmpty(mobUrl))
+                                    {
+                                        <source media="(max-width: 576px)" srcset="@mobUrl" />
+                                    }
+                                    <img src="@mb.ImageUrl" alt="@mb.Title" class="middle-promo-banner-img w-100" loading="lazy" decoding="async" data-fallback="/images/placeholder.svg" />
+                                </picture>
                                 <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-gradient-dark-transparent">
                                     <span class="badge bg-warning text-dark fw-bold text-uppercase small shadow-xs">Curated Ritual</span>
                                 </div>
@@ -404,7 +455,7 @@ else
                         </div>
                     </div>
                     <div class="col-lg-4 text-center mt-3 mt-lg-0">
-                        <img src="/images/banners/banner-hero-diwali.webp" alt="Diwali Festive Offer" class="img-fluid rounded-3 shadow-md border border-warning border-opacity-30" style="max-height: 180px; object-fit: cover;" onerror="this.src='/images/categories/gift-hampers.svg'" />
+                        <img src="/images/banners/banner-hero-diwali.webp" alt="Diwali Festive Offer" class="img-fluid rounded-3 shadow-md border border-warning border-opacity-30" style="max-height: 180px; object-fit: cover;" loading="lazy" decoding="async" data-fallback="/images/categories/gift-hampers.svg" />
                     </div>
                 </div>
             </div>
@@ -859,24 +910,24 @@ else
 <section class="py-5 bg-white reveal-on-scroll">
     <div class="container py-4">
         <!-- 11A. 4 Quality Promises -->
-        <div class="row g-4 mb-5 pb-4 border-bottom">
-            <div class="col-md-3 text-center">
-                <div class="h1 text-success mb-2"><i class="bi bi-shield-check"></i></div>
+        <div class="row g-3 g-md-4 mb-5 pb-4 border-bottom">
+            <div class="col-6 col-md-3 text-center">
+                <div class="h2 text-success mb-2"><i class="bi bi-shield-check"></i></div>
                 <h6 class="fw-bold text-dark mb-1">Classical Purity</h6>
                 <p class="text-xs text-muted mb-0">Sample content for demonstration.</p>
             </div>
-            <div class="col-md-3 text-center">
-                <div class="h1 text-success mb-2"><i class="bi bi-book"></i></div>
+            <div class="col-6 col-md-3 text-center">
+                <div class="h2 text-success mb-2"><i class="bi bi-book"></i></div>
                 <h6 class="fw-bold text-dark mb-1">Classical Texts</h6>
                 <p class="text-xs text-muted mb-0">Sample content for demonstration.</p>
             </div>
-            <div class="col-md-3 text-center">
-                <div class="h1 text-success mb-2"><i class="bi bi-tree"></i></div>
+            <div class="col-6 col-md-3 text-center">
+                <div class="h2 text-success mb-2"><i class="bi bi-tree"></i></div>
                 <h6 class="fw-bold text-dark mb-1">Ethically Wildcrafted</h6>
                 <p class="text-xs text-muted mb-0">Sample content for demonstration.</p>
             </div>
-            <div class="col-md-3 text-center">
-                <div class="h1 text-success mb-2"><i class="bi bi-hospital"></i></div>
+            <div class="col-6 col-md-3 text-center">
+                <div class="h2 text-success mb-2"><i class="bi bi-hospital"></i></div>
                 <h6 class="fw-bold text-dark mb-1">Ayurvedic Vaidyas</h6>
                 <p class="text-xs text-muted mb-0">Sample doctor profile (fictional).</p>
             </div>
@@ -995,10 +1046,10 @@ else
                     </div>
                 </div>
                 <div class="d-flex justify-content-center gap-2 mt-4">
-                    <button class="btn btn-sm btn-outline-success rounded-circle" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev" aria-label="Previous Testimonials" style="width: 36px; height: 36px;">
+                    <button class="btn btn-sm btn-outline-success rounded-circle d-inline-flex align-items-center justify-content-center" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev" aria-label="Previous Testimonials" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;">
                         <i class="bi bi-chevron-left"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-success rounded-circle" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next" aria-label="Next Testimonials" style="width: 36px; height: 36px;">
+                    <button class="btn btn-sm btn-outline-success rounded-circle d-inline-flex align-items-center justify-content-center" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next" aria-label="Next Testimonials" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;">
                         <i class="bi bi-chevron-right"></i>
                     </button>
                 </div>

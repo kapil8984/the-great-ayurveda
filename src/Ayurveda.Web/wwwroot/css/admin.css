@@ -234,3 +234,66 @@ main {
         animation: none !important;
     }
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS & TOUCH FOUNDATION FOR ADMIN PORTAL
+   ========================================================================== */
+html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+input, select, textarea, .form-control, .form-select {
+    font-size: 16px !important; /* Prevent iOS zoom */
+    min-height: 44px;
+}
+
+@media (max-width: 767.98px) {
+    .btn {
+        min-height: 44px;
+    }
+    main {
+        padding: 1rem !important;
+    }
+    .admin-header {
+        padding: 0.5rem 1rem !important;
+    }
+}
+
+/* Charts resize and keep minimum height */
+.chart-container, [id$="Chart"], canvas {
+    min-height: 260px;
+    max-width: 100% !important;
+}
+
+/* Table Horizontal Containers */
+.table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Admin Modals Full-Screen on Phones */
+@media (max-width: 575.98px) {
+    .modal-dialog:not(.modal-dialog-centered) {
+        margin: 0;
+        max-width: 100%;
+    }
+    .modal-dialog.modal-fullscreen-sm-down .modal-content,
+    .modal-fullscreen-sm-down .modal-content {
+        min-height: 100vh;
+        border-radius: 0 !important;
+    }
+}
+
+/* Offcanvas Drawer Support for Admin Sidebar */
+@media (max-width: 767.98px) {
+    .admin-sidebar.offcanvas-md {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1060;
+        width: 280px !important;
+    }
+}

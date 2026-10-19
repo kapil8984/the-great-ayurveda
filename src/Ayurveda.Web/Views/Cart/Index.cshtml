@@ -22,7 +22,7 @@
             @foreach (var cb in cartBanners)
             {
                 <a href="@(cb.LinkUrl ?? "/Shop")" class="d-block mb-3 rounded-4 overflow-hidden shadow-sm">
-                    <img src="@cb.ImageUrl" alt="@cb.Title" class="w-100" style="max-height: 180px; object-fit: cover;" onerror="this.src='/images/banners/banner-yoga.svg'" />
+                    <img src="@cb.ImageUrl" alt="@cb.Title" class="w-100" style="max-height: 180px; object-fit: cover;" data-fallback="/images/banners/banner-yoga.svg" />
                 </a>
             }
         </div>
@@ -278,6 +278,17 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Mobile Sticky Order Summary Bar -->
+        <div class="d-lg-none position-fixed start-0 end-0 bg-white border-top shadow-lg p-2 px-3 d-flex align-items-center justify-content-between" style="bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 1045;">
+            <div>
+                <span class="text-xs text-muted d-block">Total Payable</span>
+                <span class="fs-5 fw-bold text-success">₹@Model.GrandTotal.ToString("N0")</span>
+            </div>
+            <a asp-controller="Checkout" asp-action="Index" class="btn btn-tga-gold rounded-pill px-4 fw-bold text-dark d-flex align-items-center gap-2" style="min-height: 44px;">
+                <span>Checkout</span> <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     }
     else

@@ -59,7 +59,7 @@
     <div class="row g-3">
         <!-- Main Video Frame -->
         <div class="col-lg-8 col-xl-9">
-            <div class="card border-0 shadow rounded-4 overflow-hidden bg-black position-relative" style="min-height: 620px; height: 620px;">
+            <div class="card border-0 shadow rounded-4 overflow-hidden bg-black position-relative call-room-video-card">
                 <!-- Simulated Doctor Screen -->
                 <div class="w-100 h-100 position-relative d-flex flex-column align-items-center justify-content-center text-center p-4" id="doctorVideoContainer" style="background: radial-gradient(circle at center, #1b3323 0%, #0d1a12 60%, #050a07 100%);">
                     
@@ -85,7 +85,7 @@
                             <img src="@docImage" alt="Dr. @docName" 
                                  class="rounded-circle shadow-lg border border-3 border-success position-relative"
                                  style="width: 170px; height: 170px; object-fit: cover; z-index: 2; background-color: #244631;"
-                                 onerror="this.src='/images/doctor-avatar.svg'" />
+                                 data-fallback="/images/doctor-avatar.svg" />
 
                             <!-- Active Speaking Audio Wave Indicator -->
                             <div class="position-absolute bottom-0 start-50 translate-middle-x bg-black bg-opacity-75 border border-success rounded-pill px-3 py-1 d-flex align-items-center gap-1" style="z-index: 3;">
@@ -105,7 +105,7 @@
                     </div>
 
                     <!-- Patient Picture-In-Picture Overlay (Bottom Right) -->
-                    <div class="position-absolute bottom-0 end-0 m-3 rounded-4 overflow-hidden shadow-lg border border-2 border-secondary bg-dark" 
+                    <div class="position-absolute bottom-0 end-0 m-3 rounded-4 overflow-hidden shadow-lg border border-2 border-secondary bg-dark call-room-pip" 
                          style="width: 180px; height: 130px; z-index: 20; background: #121815;">
                         <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center p-2 text-center position-relative" id="patientPipBox">
                             <div class="rounded-circle bg-secondary bg-opacity-25 p-2 mb-1" id="patientPipAvatar">
@@ -117,9 +117,9 @@
                     </div>
 
                     <!-- Bottom Floating Call Controls Bar -->
-                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 d-flex align-items-center gap-2 p-2 rounded-pill bg-black bg-opacity-75 border border-secondary shadow-lg" style="z-index: 30;">
+                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 d-flex align-items-center gap-2 p-2 rounded-pill bg-black bg-opacity-75 border border-secondary shadow-lg call-room-controls" style="z-index: 30;">
                         <!-- Mute Audio -->
-                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="toggleMicBtn" style="width: 44px; height: 44px;" title="Mute/Unmute Mic">
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="toggleMicBtn" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;" title="Mute/Unmute Mic">
                             <i class="bi bi-mic-fill" id="micIcon"></i>
                         </button>
 

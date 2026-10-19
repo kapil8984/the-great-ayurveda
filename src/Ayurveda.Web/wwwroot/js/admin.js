@@ -1,3 +1,19 @@
+// Centralized loop-proof image fallback handler
+function initImgFallback() {
+    window.addEventListener("error", function (e) {
+        var target = e.target;
+        if (!target || target.tagName !== "IMG") return;
+        if (target.getAttribute("data-fb-done") === "true") {
+            target.style.opacity = "0.7";
+            return;
+        }
+        target.setAttribute("data-fb-done", "true");
+        var fb = target.getAttribute("data-fallback") || "/images/placeholder.svg";
+        target.src = fb;
+    }, true);
+}
+initImgFallback();
+
 // Admin Smart Search & Interactions Engine
 document.addEventListener("DOMContentLoaded", function () {
     initAdminSearchBox();

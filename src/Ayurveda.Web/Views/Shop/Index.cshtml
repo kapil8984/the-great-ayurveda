@@ -33,7 +33,7 @@
             @foreach (var sb in shopBanners)
             {
                 <a href="@(sb.LinkUrl ?? "/Shop")" class="d-block mb-3 rounded-4 overflow-hidden shadow-sm">
-                    <img src="@sb.ImageUrl" alt="@sb.Title" class="w-100" style="max-height: 220px; object-fit: cover;" onerror="this.src='/images/banners/banner-newarrivals.svg'" />
+                    <img src="@sb.ImageUrl" alt="@sb.Title" class="w-100" style="max-height: 220px; object-fit: cover;" data-fallback="/images/banners/banner-newarrivals.svg" />
                 </a>
             }
         </div>
@@ -367,6 +367,137 @@
                 </div>
             }
         </main>
+    </div>
+</div>
+
+<!-- Sticky Mobile Filter Button (Bottom Floating Pill) -->
+<div class="d-lg-none position-fixed start-50 translate-middle-x" style="bottom: calc(66px + env(safe-area-inset-bottom, 0px)); z-index: 1040;">
+    <button type="button" class="btn btn-tga-primary rounded-pill shadow-lg px-4 py-2 d-flex align-items-center gap-2 fw-bold text-nowrap" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" style="min-height: 44px;">
+        <i class="bi bi-sliders"></i> Filter &amp; Sort
+        @if (Model.ActiveChips != null && Model.ActiveChips.Any())
+        {
+            <span class="badge bg-warning text-dark rounded-pill">@Model.ActiveChips.Count</span>
+        }
+    </button>
+</div>
+
+<!-- Mobile Filters Offcanvas Drawer -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
+    <div class="offcanvas-header bg-light border-bottom py-3">
+        <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center gap-2" id="filtersOffcanvasLabel">
+            <i class="bi bi-sliders text-success"></i> Filter &amp; Sort
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" style="min-width: 44px; min-height: 44px;"></button>
+    </div>
+    <div class="offcanvas-body p-3">
+        <!-- Sort By -->
+        <div class="mb-4">
+            <h6 class="fw-bold small text-uppercase text-muted mb-2">Sort Results</h6>
+            <form method="get" id="mobileSortForm">
+                <input type="hidden" name="categoryId" value="@Model.SelectedCategoryId" />
+                <input type="hidden" name="subcategoryId" value="@Model.SelectedSubcategoryId" />
+                <input type="hidden" name="brand" value="@Model.SelectedBrand" />
+                <input type="hidden" name="minPrice" value="@Model.MinPrice" />
+                <input type="hidden" name="maxPrice" value="@Model.MaxPrice" />
+                <input type="hidden" name="minRating" value="@Model.MinRating" />
+                <input type="hidden" name="minDiscount" value="@Model.MinDiscount" />
+                <input type="hidden" name="inStockOnly" value="@(Model.InStockOnly ? "true" : "false")" />
+                <input type="hidden" name="query" value="@Model.SearchQuery" />
+                <input type="hidden" name="concern" value="@Model.Concern" />
+                <input type="hidden" name="viewMode" value="@Model.ViewMode" />
+                <select name="sort" class="form-select rounded-pill shadow-sm" onchange="document.getElementById('mobileSortForm').submit()" style="min-height: 44px;">
+                    <option value="popular" selected="@(Model.SelectedSort == "popular")">Most Popular</option>
+                    <option value="rating" selected="@(Model.SelectedSort == "rating")">Customer Rating: High to Low</option>
+                    <option value="price_asc" selected="@(Model.SelectedSort == "price_asc")">Price: Low to High</option>
+                    <option value="price_desc" selected="@(Model.SelectedSort == "price_desc")">Price: High to Low</option>
+                    <option value="discount" selected="@(Model.SelectedSort == "discount")">Biggest Discount</option>
+                    <option value="newest" selected="@(Model.SelectedSort == "newest")">Newest Arrivals</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- Categories -->
+        <div class="mb-4 pt-3 border-top">
+            <h6 class="fw-bold small text-uppercase text-muted mb-2">Categories</h6>
+            <div class="list-group list-group-flush small" style="max-height: 200px; overflow-y: auto;">
+                <a href="@Url.Action("Index", new { subcategoryId = (int?)null, brand = Model.SelectedBrand, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-1 border-0 @(Model.SelectedCategoryId == null ? "fw-bold text-success" : "text-muted")" style="min-height: 44px;">
+                    <span>All Categories</span>
+                    <span class="badge @(Model.SelectedCategoryId == null ? "bg-success text-white" : "bg-light text-muted") rounded-pill">@Model.TotalCount</span>
+                </a>
+                @foreach (var cat in Model.Categories)
+                {
+                    <a href="@Url.Action("Index", new { categoryId = cat.Id, brand = Model.SelectedBrand, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-1 border-0 @(Model.SelectedCategoryId == cat.Id ? "fw-bold text-success" : "text-muted")" style="min-height: 44px;">
+                        <span class="text-truncate" style="max-width: 170px;">@cat.Name</span>
+                        <span class="badge @(Model.SelectedCategoryId == cat.Id ? "bg-success text-white" : "bg-light text-muted") rounded-pill">@cat.ProductCount</span>
+                    </a>
+                }
+            </div>
+        </div>
+
+        <!-- Health Concerns -->
+        <div class="mb-4 pt-3 border-top">
+            <h6 class="fw-bold small text-uppercase text-muted mb-2">Health Concern</h6>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var c in Model.AvailableConcerns)
+                {
+                    var isSelected = !string.IsNullOrWhiteSpace(Model.Concern) && Model.Concern.Equals(c, StringComparison.OrdinalIgnoreCase);
+                    <a href="@Url.Action("Index", new { categoryId = Model.SelectedCategoryId, subcategoryId = Model.SelectedSubcategoryId, brand = Model.SelectedBrand, concern = isSelected ? null : c, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                       class="badge @(isSelected ? "bg-success text-white" : "bg-light text-dark border") rounded-pill p-2 text-decoration-none small d-inline-flex align-items-center" style="min-height: 38px;">
+                        @c
+                    </a>
+                }
+            </div>
+        </div>
+
+        <!-- Brands -->
+        <div class="mb-4 pt-3 border-top">
+            <h6 class="fw-bold small text-uppercase text-muted mb-2">Ayurvedic Brands</h6>
+            <div class="d-flex flex-column gap-1 small">
+                @foreach (var b in Model.Brands)
+                {
+                    var isSelected = !string.IsNullOrWhiteSpace(Model.SelectedBrand) && Model.SelectedBrand == b.Name;
+                    <a href="@Url.Action("Index", new { categoryId = Model.SelectedCategoryId, subcategoryId = Model.SelectedSubcategoryId, brand = isSelected ? null : b.Name, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                       class="d-flex justify-content-between align-items-center text-decoration-none py-2 px-1 rounded @(isSelected ? "fw-bold text-success bg-light" : "text-muted")" style="min-height: 44px;">
+                        <span><i class="bi @(isSelected ? "bi-check-circle-fill text-success" : "bi-circle text-muted") me-2"></i>@b.Name</span>
+                        <span class="badge bg-light text-muted rounded-pill">@b.ProductCount</span>
+                    </a>
+                }
+            </div>
+        </div>
+
+        <!-- Price Range -->
+        <div class="mb-4 pt-3 border-top">
+            <h6 class="fw-bold small text-uppercase text-muted mb-2">Price Range</h6>
+            <div class="d-flex flex-column gap-1 small">
+                <a href="@Url.Action("Index", new { categoryId = Model.SelectedCategoryId, subcategoryId = Model.SelectedSubcategoryId, brand = Model.SelectedBrand, minPrice = 0, maxPrice = 300, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                   class="text-decoration-none py-2 px-1 rounded @(Model.MinPrice == 0 && Model.MaxPrice == 300 ? "fw-bold text-success bg-light" : "text-muted")" style="min-height: 44px;">Under ₹300</a>
+                <a href="@Url.Action("Index", new { categoryId = Model.SelectedCategoryId, subcategoryId = Model.SelectedSubcategoryId, brand = Model.SelectedBrand, minPrice = 300, maxPrice = 600, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                   class="text-decoration-none py-2 px-1 rounded @(Model.MinPrice == 300 && Model.MaxPrice == 600 ? "fw-bold text-success bg-light" : "text-muted")" style="min-height: 44px;">₹300 - ₹600</a>
+                <a href="@Url.Action("Index", new { categoryId = Model.SelectedCategoryId, subcategoryId = Model.SelectedSubcategoryId, brand = Model.SelectedBrand, minPrice = 600, maxPrice = 1200, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                   class="text-decoration-none py-2 px-1 rounded @(Model.MinPrice == 600 && Model.MaxPrice == 1200 ? "fw-bold text-success bg-light" : "text-muted")" style="min-height: 44px;">₹600 - ₹1,200</a>
+                <a href="@Url.Action("Index", new { categoryId = Model.SelectedCategoryId, subcategoryId = Model.SelectedSubcategoryId, brand = Model.SelectedBrand, minPrice = 1200, maxPrice = (decimal?)null, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })" 
+                   class="text-decoration-none py-2 px-1 rounded @(Model.MinPrice == 1200 ? "fw-bold text-success bg-light" : "text-muted")" style="min-height: 44px;">Above ₹1,200</a>
+            </div>
+        </div>
+
+        <!-- In Stock Switch -->
+        <div class="pt-3 border-top mb-4">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="mobileStockSwitch" @(Model.InStockOnly ? "checked" : "")
+                       onchange="window.location.href = '@Url.Action("Index", new { categoryId = Model.SelectedCategoryId, subcategoryId = Model.SelectedSubcategoryId, brand = Model.SelectedBrand, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating, minDiscount = Model.MinDiscount, inStockOnly = !Model.InStockOnly, sort = Model.SelectedSort, viewMode = Model.ViewMode })'" />
+                <label class="form-check-label fw-semibold text-dark" for="mobileStockSwitch">Exclude Out of Stock</label>
+            </div>
+        </div>
+    </div>
+    <div class="offcanvas-footer p-3 bg-light border-top d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill flex-fill d-inline-flex align-items-center justify-content-center" style="min-height: 44px;">
+            Clear All
+        </a>
+        <button type="button" class="btn btn-tga-primary rounded-pill flex-fill d-inline-flex align-items-center justify-content-center" data-bs-dismiss="offcanvas" style="min-height: 44px;">
+            Apply Filters
+        </button>
     </div>
 </div>
 

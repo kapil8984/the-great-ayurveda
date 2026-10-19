@@ -79,7 +79,7 @@
                         <label class="form-label fw-semibold">Profile Photo / Artwork</label>
                         <input type="file" name="profileImageFile" class="form-control rounded-3" accept="image/*" id="docEditImgInput" />
                         <div class="mt-2 d-flex align-items-center gap-3">
-                            <img id="docCurrentPhoto" src="@(string.IsNullOrEmpty(Model.ProfileImage) ? "/images/doctor-avatar.svg" : Model.ProfileImage)" alt="Photo" class="rounded-circle border p-1" style="width: 72px; height: 72px; object-fit: cover;" onerror="this.src='/images/doctor-avatar.svg'" />
+                            <img id="docCurrentPhoto" src="@(string.IsNullOrEmpty(Model.ProfileImage) ? "/images/doctor-avatar.svg" : Model.ProfileImage)" alt="Photo" class="rounded-circle border p-1" style="width: 72px; height: 72px; object-fit: cover;" data-fallback="/images/doctor-avatar.svg" />
                             <span class="small text-muted">Upload a new file to replace current portrait image.</span>
                         </div>
                     </div>

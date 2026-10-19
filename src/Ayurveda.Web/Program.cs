@@ -392,6 +392,24 @@ app.Use(async (context, next) =>
 var uploadsDir = Path.Combine(builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot"), "uploads");
 Directory.CreateDirectory(uploadsDir);
 
+// Startup: verify static file infrastructure is present
+{
+    var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    var webRoot = builder.Environment.WebRootPath;
+    if (string.IsNullOrEmpty(webRoot) || !Directory.Exists(webRoot))
+    {
+        startupLogger.LogError("STARTUP: WebRootPath is null or does not exist. Static files will not be served.");
+    }
+    else
+    {
+        var siteCss = Path.Combine(webRoot, "css", "site.css");
+        if (!File.Exists(siteCss))
+        {
+            startupLogger.LogError("STARTUP: wwwroot/css/site.css was not found. The application may have been published without its wwwroot bundle.");
+        }
+    }
+}
+
 // Security Headers & Admin Host Isolation
 app.Use(async (context, next) =>
 {
@@ -469,7 +487,18 @@ app.MapGet("/sitemap.xml", async (AyurvedaDbContext db, IConfiguration config, H
     return Results.Content(sb.ToString(), "application/xml", System.Text.Encoding.UTF8);
 });
 
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));
+app.MapGet("/health", (IWebHostEnvironment env) =>
+{
+    var webRoot = env.WebRootPath;
+    var staticFilesStatus = "missing";
+    if (!string.IsNullOrEmpty(webRoot) && Directory.Exists(webRoot))
+    {
+        var siteCss = Path.Combine(webRoot, "css", "site.css");
+        if (File.Exists(siteCss))
+            staticFilesStatus = "ok";
+    }
+    return Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow, staticFiles = staticFilesStatus });
+});
 
 app.MapControllerRoute(
     name: "default",

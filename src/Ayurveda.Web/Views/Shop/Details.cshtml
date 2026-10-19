@@ -303,7 +303,7 @@
 
     <!-- Tabs / Detailed Information: Pharmacopoeia, How To Use, Precautions, Reviews, Q&A -->
     <div class="card p-4 rounded-4 border-0 shadow-sm bg-white mb-5">
-        <ul class="nav nav-tabs border-bottom mb-4" id="productTabs" role="tablist">
+        <ul class="nav nav-tabs border-bottom mb-4 flex-nowrap overflow-x-auto text-nowrap pb-1" id="productTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active fw-bold text-dark" id="herbs-tab" data-bs-toggle="tab" data-bs-target="#herbsTab" type="button" role="tab">
                     Botanical Pharmacopoeia
@@ -477,6 +477,39 @@
             </div>
         </div>
     }
+</div>
+
+<!-- Sticky Mobile "Add to Basket / Buy Now" Bottom Bar -->
+<div class="d-md-none position-fixed start-0 end-0 bg-white border-top shadow-lg p-2 d-flex align-items-center justify-content-between gap-2" style="bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 1045;">
+    <div class="ps-2 flex-grow-1 overflow-hidden">
+        <div class="text-xs text-muted text-truncate">@Model.Title</div>
+        <div class="fw-bold text-success fs-6">₹@Model.Price.ToString("N0")</div>
+    </div>
+    <div class="d-flex gap-2 flex-shrink-0">
+        @if (Model.IsInStock)
+        {
+            <form asp-controller="Cart" asp-action="AddToCart" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="productId" value="@Model.Id" />
+                <input type="hidden" name="quantity" value="1" />
+                <button type="submit" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-1" style="min-height: 44px;">
+                    <i class="bi bi-cart-plus"></i> Add
+                </button>
+            </form>
+            <form asp-controller="Cart" asp-action="BuyNow" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="productId" value="@Model.Id" />
+                <input type="hidden" name="quantity" value="1" />
+                <button type="submit" class="btn btn-tga-gold btn-sm rounded-pill px-3 fw-bold text-dark d-flex align-items-center gap-1" style="min-height: 44px;">
+                    <i class="bi bi-lightning-charge-fill"></i> Buy Now
+                </button>
+            </form>
+        }
+        else
+        {
+            <button class="btn btn-secondary btn-sm rounded-pill px-3" disabled style="min-height: 44px;">Out of Stock</button>
+        }
+    </div>
 </div>
 
 @section Scripts {

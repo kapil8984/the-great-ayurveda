@@ -40,7 +40,7 @@
             @foreach (var db in docBanners)
             {
                 <a href="@(db.LinkUrl ?? "/Doctors")" class="d-block mb-3 rounded-4 overflow-hidden shadow-sm">
-                    <img src="@db.ImageUrl" alt="@db.Title" class="w-100" style="max-height: 200px; object-fit: cover;" onerror="this.src='/images/banners/banner-freeconsult.svg'" />
+                    <img src="@db.ImageUrl" alt="@db.Title" class="w-100" style="max-height: 200px; object-fit: cover;" data-fallback="/images/banners/banner-freeconsult.svg" />
                 </a>
             }
         </div>

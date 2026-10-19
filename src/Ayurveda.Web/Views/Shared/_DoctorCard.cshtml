@@ -9,7 +9,7 @@
                      alt="@Model.DoctorName" 
                      width="64" height="64" 
                      style="object-fit: cover; background: #EAF4EE;" 
-                     onerror="this.onerror=null;this.src='/images/doctor-avatar.svg';" />
+                     data-fallback="/images/doctor-avatar.svg" />
                 @if (Model.IsOnline)
                 {
                     <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle" title="Online for instant consultation"></span>
@@ -49,18 +49,18 @@
         </div>
 
         <div class="mt-auto pt-3 d-flex gap-2">
-            <a asp-controller="Doctors" asp-action="Profile" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm rounded-pill flex-fill">
+            <a asp-controller="Doctors" asp-action="Profile" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm rounded-pill flex-fill d-inline-flex align-items-center justify-content-center" style="min-height: 44px;">
                 View Profile
             </a>
             @if (Model.IsOnline)
             {
-                <a asp-controller="Doctors" asp-action="Book" asp-route-id="@Model.Id" asp-route-mode="Video" class="btn btn-success btn-sm rounded-pill flex-fill d-inline-flex align-items-center justify-content-center gap-1 shadow-xs">
+                <a asp-controller="Doctors" asp-action="Book" asp-route-id="@Model.Id" asp-route-mode="Video" class="btn btn-success btn-sm rounded-pill flex-fill d-inline-flex align-items-center justify-content-center gap-1 shadow-xs" style="min-height: 44px;">
                     <span class="spinner-grow spinner-grow-sm text-light" style="width: 8px; height: 8px;" role="status"></span> Call Now
                 </a>
             }
             else
             {
-                <a asp-controller="Doctors" asp-action="Book" asp-route-id="@Model.Id" class="btn btn-tga-gold btn-sm rounded-pill flex-fill fw-semibold">
+                <a asp-controller="Doctors" asp-action="Book" asp-route-id="@Model.Id" class="btn btn-tga-gold btn-sm rounded-pill flex-fill fw-semibold d-inline-flex align-items-center justify-content-center text-dark" style="min-height: 44px;">
                     Book Slot
                 </a>
             }

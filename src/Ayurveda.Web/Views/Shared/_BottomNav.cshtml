@@ -1,0 +1,45 @@
+@{
+    var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAct = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+}
+
+<!-- Fixed Bottom Navigation Bar for Mobile Phones (320px - 767px) -->
+<nav class="tga-bottom-nav d-flex d-md-none align-items-center justify-content-around" aria-label="Mobile Navigation">
+    <a asp-controller="Home" asp-action="Index" 
+       class="tga-bottom-nav-item @(currentCtrl == "Home" && currentAct == "Index" ? "active" : "")" 
+       aria-label="Home">
+        <i class="bi @(currentCtrl == "Home" && currentAct == "Index" ? "bi-house-door-fill" : "bi-house-door")"></i>
+        <span>Home</span>
+    </a>
+
+    <a asp-controller="Shop" asp-action="Index" 
+       class="tga-bottom-nav-item @(currentCtrl == "Shop" ? "active" : "")" 
+       aria-label="Shop Medicines">
+        <i class="bi @(currentCtrl == "Shop" ? "bi-grid-fill" : "bi-grid")"></i>
+        <span>Shop</span>
+    </a>
+
+    <a asp-controller="Doctors" asp-action="Index" 
+       class="tga-bottom-nav-item @(currentCtrl == "Doctors" ? "active" : "")" 
+       aria-label="Consult Doctors">
+        <i class="bi @(currentCtrl == "Doctors" ? "bi-camera-video-fill" : "bi-camera-video")"></i>
+        <span>Doctors</span>
+    </a>
+
+    <a asp-controller="Cart" asp-action="Index" 
+       class="tga-bottom-nav-item position-relative @(currentCtrl == "Cart" ? "active" : "")" 
+       aria-label="Shopping Cart">
+        <i class="bi @(currentCtrl == "Cart" ? "bi-bag-fill" : "bi-bag")"></i>
+        <span class="position-absolute top-1 start-50 translate-middle badge rounded-pill bg-success bottom-nav-badge" id="bottomNavCartBadge" style="font-size: 0.62rem; padding: 0.2em 0.45em; display: @(ViewBag.CartCount != null && (int)ViewBag.CartCount > 0 ? "inline-block" : "none");">
+            @(ViewBag.CartCount ?? 0)
+        </span>
+        <span>Cart</span>
+    </a>
+
+    <a asp-controller="Account" asp-action="@(User.Identity?.IsAuthenticated == true ? "Profile" : "Login")" 
+       class="tga-bottom-nav-item @(currentCtrl == "Account" || currentCtrl == "Orders" ? "active" : "")" 
+       aria-label="My Account">
+        <i class="bi @(User.Identity?.IsAuthenticated == true ? (currentCtrl == "Account" ? "bi-person-circle" : "bi-person") : "bi-person")"></i>
+        <span>Account</span>
+    </a>
+</nav>

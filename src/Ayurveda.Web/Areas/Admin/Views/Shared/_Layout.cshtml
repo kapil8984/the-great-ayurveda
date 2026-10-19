@@ -6,7 +6,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>@(ViewData["Title"] != null ? $"{ViewData["Title"]} | TGA Admin Portal" : "Admin Portal | The Great Ayurveda")</title>
     <meta name="description" content="Secure administrative management portal for The Great Ayurveda." />
     <meta name="robots" content="noindex, nofollow" />
@@ -26,13 +26,14 @@
 <body class="d-flex">
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <!-- Left Sidebar Navigation -->
-        <aside class="admin-sidebar p-3 d-flex flex-column" style="width: 260px; flex-shrink: 0;">
+        <!-- Left Sidebar Navigation (Offcanvas Drawer on mobile, Fixed Sidebar on desktop) -->
+        <aside class="admin-sidebar p-3 d-flex flex-column offcanvas-md offcanvas-start" id="adminSidebarOffcanvas" tabindex="-1" style="width: 260px; flex-shrink: 0;">
             <div class="mb-3 px-2 d-flex align-items-center justify-content-between">
                 <img src="/images/admin-logo-full.svg" alt="The Great Ayurveda Admin Portal" height="42" class="img-fluid" />
                 <button class="btn btn-sm btn-outline-light rounded-circle p-1 d-none d-md-inline-flex align-items-center justify-content-center" id="adminSidebarToggle" title="Collapse/Expand Sidebar" style="width: 30px; height: 30px;">
                     <i class="bi bi-layout-sidebar"></i>
                 </button>
+                <button type="button" class="btn-close btn-close-white d-md-none ms-auto" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebarOffcanvas" aria-label="Close" style="min-width: 44px; min-height: 44px;"></button>
             </div>
 
             <a href="/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm w-100 rounded-pill mb-3 d-flex align-items-center justify-content-center gap-2 fw-semibold text-white shadow-xs" style="border-color: rgba(44,126,80,0.6); background: rgba(44,126,80,0.25);" id="adminSidebarViewWebsiteBtn" title="Open Public Website in new tab">
@@ -132,8 +133,11 @@
     <div class="flex-grow-1 d-flex flex-column min-vh-100">
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <header class="admin-header py-2 px-4 d-flex justify-content-between align-items-center gap-3">
-                <div class="d-flex align-items-center gap-3 flex-grow-1">
+            <header class="admin-header py-2 px-3 px-md-4 d-flex justify-content-between align-items-center gap-2 gap-md-3">
+                <div class="d-flex align-items-center gap-2 gap-md-3 flex-grow-1">
+                    <button class="btn btn-outline-secondary btn-sm d-md-none rounded-pill p-2 d-inline-flex align-items-center justify-content-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebarOffcanvas" aria-controls="adminSidebarOffcanvas" style="min-width: 44px; min-height: 44px;" aria-label="Open Sidebar Menu">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
                     <h5 class="fw-bold mb-0 text-dark text-nowrap d-none d-md-block">Management Console</h5>
                     <partial name="_SearchBox" />
                 </div>

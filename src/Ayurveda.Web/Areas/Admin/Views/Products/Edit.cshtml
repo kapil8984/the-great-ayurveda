@@ -76,7 +76,7 @@
                 <label class="form-label small fw-semibold">Upload New Main Image File (Max 5MB)</label>
                 <input type="file" name="imageFile" id="mainImageEditInput" class="form-control rounded-3" accept="image/*,.svg" />
                 <div class="d-flex align-items-center gap-3 mt-2">
-                    <img id="mainImgEditPreview" src="@Model.ImageUrl" alt="Current Photo" class="rounded-3 border p-1" style="width: 80px; height: 80px; object-fit: contain; background: #fafafa;" onerror="this.src='/images/products/placeholder.svg'" />
+                    <img id="mainImgEditPreview" src="@Model.ImageUrl" alt="Current Photo" class="rounded-3 border p-1" style="width: 80px; height: 80px; object-fit: contain; background: #fafafa;" data-fallback="/images/placeholder.svg" />
                     <span class="text-xs text-muted">Current main image. Select a file to replace it.</span>
                 </div>
             </div>

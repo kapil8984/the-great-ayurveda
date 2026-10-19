@@ -11,7 +11,7 @@
     </a>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div class="d-flex align-items-center gap-3">
-            <img src="@(string.IsNullOrEmpty(doc.ProfileImage) ? "/images/doctor-avatar.svg" : doc.ProfileImage)" alt="Dr. @doc.DoctorName" width="60" height="60" class="rounded-circle border bg-light shadow-sm" style="object-fit: cover;" onerror="this.onerror=null;this.src='/images/doctor-avatar.svg';" />
+            <img src="@(string.IsNullOrEmpty(doc.ProfileImage) ? "/images/doctor-avatar.svg" : doc.ProfileImage)" alt="Dr. @doc.DoctorName" width="60" height="60" class="rounded-circle border bg-light shadow-sm" style="object-fit: cover;" data-fallback="/images/doctor-avatar.svg" />
             <div>
                 <h2 class="fw-bold mb-1">Dr. @doc.DoctorName</h2>
                 <p class="text-muted small mb-0">@(detail?.Specialization?.Name ?? "Classical Ayurveda") • Registered @doc.CreatedAt.ToString("dd MMM yyyy")</p>

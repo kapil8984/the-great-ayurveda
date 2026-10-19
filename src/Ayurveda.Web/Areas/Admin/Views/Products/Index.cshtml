@@ -92,7 +92,7 @@
                                 <div class="d-flex align-items-center gap-3">
                                     <img src="@(string.IsNullOrEmpty(prod.ImageUrl) ? "/images/products/placeholder.svg" : prod.ImageUrl)" 
                                          alt="@prod.Title" width="44" height="44" class="rounded-3 border p-1 bg-light" style="object-fit: contain;" 
-                                         onerror="this.onerror=null;this.src='/images/products/placeholder.svg';" />
+                                         data-fallback="/images/products/placeholder.svg" />
                                     <div>
                                         <div class="fw-bold text-dark">@prod.Title</div>
                                         <div class="small text-muted" style="font-size: 0.75rem;">@prod.Brand</div>
