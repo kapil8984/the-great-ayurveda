@@ -1,0 +1,21 @@
+{
+  "name": "The Great Ayurveda Admin Portal",
+  "short_name": "TGA Admin",
+  "description": "Administration & Doctor Verification Portal for The Great Ayurveda",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111814",
+  "theme_color": "#18221D",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

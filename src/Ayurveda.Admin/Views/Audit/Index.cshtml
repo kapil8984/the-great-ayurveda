@@ -1,0 +1,109 @@
+@model List<Ayurveda.Domain.Entities.AuditLog>
+@{
+    ViewData["Title"] = "Security & Governance Audit Trail";
+    var entities = ViewBag.EntityList as List<string> ?? new();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-shield-check text-success me-2"></i>Security &amp; Operational Audit Trail</h2>
+        <p class="text-muted small mb-0">Immutable chronological record of administrative actions, role modifications, and financial events.</p>
+    </div>
+    <div class="badge bg-secondary text-white fs-6 px-3 py-2 rounded-pill">
+        Total Recorded Events: @ViewBag.TotalCount
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-5">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@ViewBag.SearchQuery" class="form-control border-start-0" placeholder="Search by action, details, actor email..." />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="entity" class="form-select form-select-sm">
+                <option value="">-- All Target Entities --</option>
+                @foreach (var e in entities)
+                {
+                    <option value="@e" selected="@(ViewBag.SelectedEntity == e)">@e</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-success btn-sm rounded-pill w-100">Filter Trail</button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden bg-white">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 font-monospace small">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Timestamp (UTC)</th>
+                    <th>Action</th>
+                    <th>Target Entity</th>
+                    <th>Details / Delta</th>
+                    <th>Actor Identity</th>
+                    <th class="text-end pe-4">IP Origin</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted font-sans-serif">
+                            <i class="bi bi-shield-x display-4 d-block mb-2"></i>
+                            No audit log events match criteria.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var l in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 text-muted">@l.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-secondary border">@l.Action</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark">@l.EntityName</span>
+                                @if (!string.IsNullOrEmpty(l.EntityId))
+                                {
+                                    <span class="text-muted">#@l.EntityId</span>
+                                }
+                            </td>
+                            <td class="font-sans-serif text-dark" style="max-width: 320px;">
+                                @l.Details
+                            </td>
+                            <td class="text-success fw-semibold">@l.UserEmail</td>
+                            <td class="text-end pe-4 text-muted">@l.IpAddress</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if ((int)ViewBag.TotalPages > 1)
+    {
+        <div class="card-footer bg-white border-0 py-3">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0 font-sans-serif">
+                    @for (int p = 1; p <= (int)ViewBag.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == (int)ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@p" asp-route-entity="@ViewBag.SelectedEntity" asp-route-search="@ViewBag.SearchQuery">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

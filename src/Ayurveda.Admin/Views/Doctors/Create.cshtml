@@ -1,0 +1,111 @@
+@{
+    ViewData["Title"] = "Add Ayurvedic Doctor";
+    var specializations = ViewBag.Specializations as List<Ayurveda.Domain.Entities.Category> ?? new();
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="text-decoration-none text-muted small">
+        <i class="bi bi-arrow-left me-1"></i> Back to Doctor Practice Directory
+    </a>
+    <h3 class="fw-bold text-dark mt-2">
+        <i class="bi bi-person-plus text-success me-2"></i> Register &amp; Approve New Doctor
+    </h3>
+    <p class="text-muted small">Onboard a qualified Ayurvedic clinician to the tele-consultation platform.</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post" enctype="multipart/form-data" id="createDoctorForm">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Doctor Full Name <span class="text-danger">*</span></label>
+                            <input type="text" name="doctorName" class="form-control" placeholder="e.g. Dr. Rajeshwar Sharma" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" placeholder="e.g. dr.sharma@ayurveda.com" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Contact Number</label>
+                            <input type="tel" name="contactNumber" class="form-control" placeholder="+91 98765 00001" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Clinical Specialization <span class="text-danger">*</span></label>
+                            <select name="specializationId" class="form-select" required>
+                                @foreach (var spec in specializations)
+                                {
+                                    <option value="@spec.Id">@spec.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Qualifications</label>
+                            <input type="text" name="qualification" value="BAMS, MD (Ayurveda)" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Experience (Years)</label>
+                            <input type="number" name="experience" value="10" min="0" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Consultation Fee (₹)</label>
+                            <input type="number" name="consultationFee" value="499" min="0" step="50" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Clinic / Hospital Address</label>
+                        <input type="text" name="clinicAddress" class="form-control" placeholder="Ayurveda Wellness Chamber, Civil Lines, Jaipur" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Professional Bio &amp; Clinical Focus</label>
+                        <textarea name="bio" rows="3" class="form-control" placeholder="Specialist in Nadi Pariksha, Panchakarma therapy, and chronic gut disorders..."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Profile Photo / Artwork</label>
+                        <input type="file" name="profileImageFile" class="form-control" accept="image/*" id="docImgInput" />
+                        <div class="form-text">Optional. If no photo is uploaded, a handsome professional SVG avatar will be assigned automatically.</div>
+                        <div class="mt-2 text-center" id="previewContainer" style="display:none;">
+                            <img id="previewImg" src="#" alt="Preview" class="border rounded-circle p-1" style="width: 90px; height: 90px; object-fit: cover;" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" id="btnSubmitCreateDoctor" class="btn btn-success rounded-pill px-4 fw-semibold">
+                            <i class="bi bi-check-lg me-1"></i> Register &amp; Approve Doctor
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('docImgInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const preview = document.getElementById('previewImg');
+                    preview.src = evt.target.result;
+                    document.getElementById('previewContainer').style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+}

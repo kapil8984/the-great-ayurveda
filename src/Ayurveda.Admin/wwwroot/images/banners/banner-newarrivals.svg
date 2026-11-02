@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="newBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14532D"/>
+      <stop offset="50%" stop-color="#15803D"/>
+      <stop offset="100%" stop-color="#166534"/>
+    </linearGradient>
+    <radialGradient id="natureGlow" cx="80%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#FBBF24" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#14532D" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#newBg)"/>
+  <rect width="1200" height="400" fill="url(#natureGlow)"/>
+
+  <!-- Wild Forest Botanical Herbs Artwork -->
+  <g transform="translate(980, 200)">
+    <circle cx="0" cy="0" r="140" fill="none" stroke="#BBF7D0" stroke-width="2" opacity="0.3"/>
+    <!-- Mortar & Pestle (Kharal) -->
+    <path d="M-60,30 C-60,85 60,85 60,30 Z" fill="#FBBF24"/>
+    <ellipse cx="0" cy="30" rx="60" ry="16" fill="#D97706"/>
+    <!-- Pestle -->
+    <rect x="-10" y="-40" width="20" height="70" rx="10" transform="rotate(25)" fill="#78350F"/>
+    <!-- Sprouting Herb Leaves -->
+    <path d="M-25,-10 C-45,-45 -20,-70 5,-60 C0,-35 -15,-20 -25,-10 Z" fill="#86EFAC"/>
+    <path d="M15,-15 C35,-50 15,-75 -10,-65 C-5,-40 10,-25 15,-15 Z" fill="#4ADE80"/>
+  </g>
+
+  <!-- Content -->
+  <g transform="translate(80, 75)">
+    <rect x="0" y="0" width="300" height="34" rx="17" fill="#BBF7D0" fill-opacity="0.25"/>
+    <text x="20" y="22" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#BBF7D0" letter-spacing="2">&#x1F33F; WILD HARVEST RECENT ARRIVALS</text>
+
+    <text x="0" y="95" font-family="'Cinzel', Georgia, serif" font-size="44" font-weight="800" fill="#FFFFFF" letter-spacing="1">Direct From Himalayan Forests</text>
+    <text x="0" y="145" font-family="system-ui, sans-serif" font-size="20" font-weight="400" fill="#DCFCE7">Ethically Foraged Single-Origin Roots, Barks, Pure Shilajit &amp; Kutki</text>
+    <text x="0" y="180" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#86EFAC">Lab batch-tested for heavy metals and active bio-compounds</text>
+
+    <g transform="translate(0, 215)">
+      <rect x="0" y="0" width="220" height="48" rx="24" fill="#BBF7D0"/>
+      <text x="32" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#14532D">Explore Harvest &#x2192;</text>
+      <rect x="240" y="0" width="200" height="48" rx="24" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+      <text x="260" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF">Lab Certifications</text>
+    </g>
+  </g>
+</svg>

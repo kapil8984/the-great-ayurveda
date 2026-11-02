@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <defs>
+    <radialGradient id="stressAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#EDE9FE" stop-opacity="0.95" />
+      <stop offset="70%" stop-color="#DDD6FE" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#EDE9FE" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="stressMoon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="50%" stop-color="#FACC15" />
+      <stop offset="100%" stop-color="#CA8A04" />
+    </linearGradient>
+    <linearGradient id="stressRoot" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="50%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+    <linearGradient id="stressBrahmi" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80" />
+      <stop offset="100%" stop-color="#15803D" />
+    </linearGradient>
+    <filter id="stressShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#4C1D95" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Circular Backdrop -->
+  <circle cx="80" cy="80" r="72" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5" />
+  <circle cx="80" cy="80" r="62" fill="url(#stressAura)" />
+
+  <g opacity="0.3" stroke="#7C3AED" stroke-width="1" fill="none">
+    <circle cx="80" cy="80" r="54" stroke-dasharray="3 3" />
+  </g>
+
+  <!-- Tranquil Silver-Gold Crescent Moon (Sleep & Calming Energy) -->
+  <g filter="url(#stressShadow)">
+    <path d="M98 42 C74 42 54 62 54 86 C54 110 74 130 98 130 C82 122 72 105 72 86 C72 67 82 50 98 42 Z" fill="url(#stressMoon)" />
+  </g>
+
+  <!-- Ashwagandha Botanical Roots (Withania somnifera) -->
+  <g filter="url(#stressShadow)">
+    <!-- Main Root Trunk -->
+    <path d="M72 128 C74 114 78 102 76 90 C75 84 71 80 73 74 L81 76 C79 84 83 90 84 98 C86 110 82 120 78 130 Z" fill="url(#stressRoot)" />
+    <!-- Secondary Root Branch -->
+    <path d="M76 96 C68 98 60 106 56 114 L52 110 C58 100 68 92 76 90 Z" fill="url(#stressRoot)" />
+    <!-- Tertiary Root Tendril -->
+    <path d="M82 104 C90 108 96 116 100 126 L95 128 C92 118 86 112 82 108 Z" fill="url(#stressRoot)" />
+  </g>
+
+  <!-- Brahmi (Bacopa monnieri - Brain & Memory Tonic) Leaves -->
+  <g filter="url(#stressShadow)">
+    <!-- Brahmi Leaf Pair 1 -->
+    <ellipse cx="94" cy="74" rx="7" ry="10" transform="rotate(30 94 74)" fill="url(#stressBrahmi)" />
+    <path d="M94 65 C95 72 94 78 94 83" stroke="#DCFCE7" stroke-width="1" fill="none" opacity="0.7" />
+
+    <!-- Brahmi Leaf Pair 2 -->
+    <ellipse cx="106" cy="86" rx="6.5" ry="9" transform="rotate(-40 106 86)" fill="url(#stressBrahmi)" />
+    
+    <!-- Small Brahmi Leaf -->
+    <ellipse cx="102" cy="100" rx="5.5" ry="8" transform="rotate(20 102 100)" fill="url(#stressBrahmi)" />
+  </g>
+
+  <!-- Serene Starlight / Deep Sleep Astral Constellations -->
+  <path d="M48 54 L50 59 L55 61 L50 63 L48 68 L46 63 L41 61 L46 59 Z" fill="#A78BFA" />
+  <path d="M116 50 L117.5 53.5 L121 55 L117.5 56.5 L116 60 L114.5 56.5 L111 55 L114.5 53.5 Z" fill="#FDE047" />
+  <circle cx="108" cy="38" r="1.5" fill="#DDD6FE" />
+  <circle cx="44" cy="90" r="2" fill="#DDD6FE" />
+</svg>

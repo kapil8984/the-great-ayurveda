@@ -1,0 +1,147 @@
+@model Ayurveda.Application.ViewModels.AdminOrderListViewModel
+@{
+    ViewData["Title"] = "Order Processing & Dispatch";
+    var statuses = new[] { "All", "Placed", "Packed", "Shipped", "Delivered", "Cancelled", "ReturnRequested", "Returned" };
+    var currentStatus = Model.SelectedStatus ?? "All";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-cart-check text-success me-2"></i>Orders &amp; Dispatch</h2>
+        <p class="text-muted small mb-0">Track order lifecycle, shipment tracking numbers, invoices, and returns.</p>
+    </div>
+    <div class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success-subtle rounded-pill">
+        Total Orders: @Model.TotalCount
+    </div>
+</div>
+
+<!-- Status Tabs Bar -->
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        @foreach (var s in statuses)
+        {
+            <a asp-action="Index" asp-route-status="@(s == "All" ? "" : s)" asp-route-search="@Model.SearchQuery" 
+               class="btn btn-sm rounded-pill px-3 @(currentStatus == s ? "btn-success text-white shadow-xs" : "btn-outline-secondary")">
+                @s
+            </a>
+        }
+    </div>
+
+    <form method="get" class="row g-2 align-items-center">
+        <input type="hidden" name="status" value="@Model.SelectedStatus" />
+        <div class="col-md-9">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@Model.SearchQuery" class="form-control border-start-0" placeholder="Search by order number or customer email..." />
+            </div>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-success btn-sm rounded-pill w-100">Search</button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Orders Table -->
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden bg-white">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th class="ps-4">Order Ref</th>
+                    <th>Customer</th>
+                    <th>Order Date</th>
+                    <th>Payment Mode</th>
+                    <th class="text-end">Total Amount</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Orders.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                            No orders found matching the filter.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var o in Model.Orders)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <a asp-action="Details" asp-route-id="@o.Id" class="fw-bold text-dark text-decoration-none">
+                                    #@o.OrderNumber
+                                </a>
+                                @if (!string.IsNullOrEmpty(o.TrackingNumber))
+                                {
+                                    <div class="small text-muted font-monospace" style="font-size: 0.725rem;">Trk: @o.TrackingNumber</div>
+                                }
+                            </td>
+                            <td>
+                                <div class="small fw-semibold text-dark">@(o.User?.FullName ?? "Customer")</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">@(o.User?.Email ?? "Guest")</div>
+                            </td>
+                            <td class="small text-muted">@o.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    @o.PaymentMethod
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold text-success">₹@o.TotalAmount.ToString("N0")</td>
+                            <td class="text-center">
+                                @if (o.Status == "Delivered")
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Delivered</span>
+                                }
+                                else if (o.Status == "Shipped")
+                                {
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Shipped</span>
+                                }
+                                else if (o.Status == "Packed")
+                                {
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">Packed</span>
+                                }
+                                else if (o.Status == "Cancelled")
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Cancelled</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">@o.Status</span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <a asp-action="Details" asp-route-id="@o.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1">
+                                    Manage
+                                </a>
+                                <a asp-action="Invoice" asp-route-id="@o.Id" class="btn btn-light btn-sm rounded-circle p-2" target="_blank" title="Print Invoice">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-white border-0 py-3">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@p" asp-route-status="@Model.SelectedStatus" asp-route-search="@Model.SearchQuery">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

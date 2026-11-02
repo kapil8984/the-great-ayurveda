@@ -1,0 +1,57 @@
+@model List<Ayurveda.Domain.Entities.ProductQuestion>
+@{
+    ViewData["Title"] = "Customer Product Inquiries & Q&A";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-question-circle text-success me-2"></i>Product Q&amp;A Moderation</h2>
+        <p class="text-muted small mb-0">Answer customer technical inquiries regarding herb interactions, dosage, and Contraindications.</p>
+    </div>
+    <a asp-action="Reviews" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="bi bi-arrow-left me-1"></i> Reviews Moderation
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+    @if (!Model.Any())
+    {
+        <p class="text-muted small py-4 text-center mb-0">No customer questions submitted.</p>
+    }
+    else
+    {
+        <div class="list-group list-group-flush">
+            @foreach (var q in Model)
+            {
+                <div class="list-group-item px-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge bg-success-subtle text-success">@(q.Product?.Title ?? "Product")</span>
+                        <span class="text-muted" style="font-size: 0.725rem;">Asked by @q.AskedBy • @q.CreatedAt.ToString("dd MMM yyyy")</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mt-1 mb-2">Q: @q.QuestionText</h6>
+
+                    @if (!string.IsNullOrEmpty(q.AnswerText))
+                    {
+                        <div class="p-3 bg-light rounded-3 small border-start border-4 border-success mb-2">
+                            <strong>Official Vaidya Answer:</strong> @q.AnswerText
+                            <div class="text-muted mt-1" style="font-size: 0.7rem;">Answered by @q.AnsweredBy</div>
+                        </div>
+                    }
+
+                    <button class="btn btn-outline-success btn-sm rounded-pill px-3 py-1" type="button" data-bs-toggle="collapse" data-bs-target="#answerBox-@q.Id">
+                        <i class="bi bi-pencil me-1"></i> @(string.IsNullOrEmpty(q.AnswerText) ? "Answer Question" : "Update Answer")
+                    </button>
+
+                    <div class="collapse mt-3" id="answerBox-@q.Id">
+                        <form asp-action="AnswerQuestion" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="questionId" value="@q.Id" />
+                            <textarea name="answerText" rows="3" class="form-control rounded-3 mb-2" placeholder="Write clinical guidance / answer..." required>@q.AnswerText</textarea>
+                            <button type="submit" class="btn btn-success btn-sm rounded-pill px-4">Post Answer</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

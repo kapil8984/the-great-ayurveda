@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="pkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451A03"/>
+      <stop offset="50%" stop-color="#78350F"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <radialGradient id="oilGlow" cx="80%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#451A03" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#pkBg)"/>
+  <rect width="1200" height="400" fill="url(#oilGlow)"/>
+
+  <!-- Shirodhara Pot & Oil Vessel Motif -->
+  <g transform="translate(980, 200)">
+    <circle cx="0" cy="0" r="140" fill="none" stroke="#FDE68A" stroke-width="2" stroke-dasharray="4 6" opacity="0.3"/>
+    <!-- Shirodhara Hanging Pot (Varti Patra) -->
+    <path d="M-50,-50 L50,-50 C40,-10 35,40 0,60 C-35,40 -40,-10 -50,-50 Z" fill="#F59E0B"/>
+    <!-- Rim -->
+    <ellipse cx="0" cy="-50" rx="50" ry="12" fill="#D97706"/>
+    <!-- Oil Droplet Streaming Down -->
+    <path d="M0,60 C-8,75 -8,90 0,105 C8,90 8,75 0,60 Z" fill="#FDE68A"/>
+    <!-- Ripples on Body Surface below -->
+    <ellipse cx="0" cy="115" rx="40" ry="10" fill="none" stroke="#FDE68A" stroke-width="2" opacity="0.6"/>
+    <ellipse cx="0" cy="115" rx="65" ry="15" fill="none" stroke="#FDE68A" stroke-width="1.5" opacity="0.3"/>
+  </g>
+
+  <!-- Content -->
+  <g transform="translate(80, 75)">
+    <rect x="0" y="0" width="310" height="34" rx="17" fill="#FDE68A" fill-opacity="0.2"/>
+    <text x="20" y="22" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#FDE68A" letter-spacing="2">&#x1F9D8; AUTHENTIC PANCHAKARMA KITS</text>
+
+    <text x="0" y="95" font-family="'Cinzel', Georgia, serif" font-size="44" font-weight="800" fill="#FFFFFF" letter-spacing="1">At-Home Deep Cellular Detox</text>
+    <text x="0" y="145" font-family="system-ui, sans-serif" font-size="20" font-weight="400" fill="#FEF3C7">Nasya Oils, Kansa Vatki Foot Bowls, Abhyanga Herbal Tailas &amp; Basti Accessories</text>
+    <text x="0" y="180" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#FDE68A">Complete with Vaidya video guidance manual &amp; dietary instructions</text>
+
+    <g transform="translate(0, 215)">
+      <rect x="0" y="0" width="220" height="48" rx="24" fill="#F59E0B"/>
+      <text x="32" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#451A03">Shop Therapy Kits &#x2192;</text>
+      <rect x="240" y="0" width="200" height="48" rx="24" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+      <text x="260" y="30" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF">How It Works</text>
+    </g>
+  </g>
+</svg>

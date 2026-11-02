@@ -1,0 +1,212 @@
+@model Ayurveda.Application.ViewModels.AdminDoctorDetailsViewModel
+@{
+    var doc = Model.Doctor;
+    var detail = doc.DoctorDetail;
+    ViewData["Title"] = $"Vaidya Profile — Dr. {doc.DoctorName}";
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill mb-2">
+        <i class="bi bi-arrow-left me-1"></i> Back to Doctor Directory
+    </a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <img src="@(string.IsNullOrEmpty(doc.ProfileImage) ? "/images/doctor-avatar.svg" : doc.ProfileImage)" alt="Dr. @doc.DoctorName" width="60" height="60" class="rounded-circle border bg-light shadow-sm" style="object-fit: cover;" onerror="this.onerror=null;this.src='/images/doctor-avatar.svg';" />
+            <div>
+                <h2 class="fw-bold mb-1">Dr. @doc.DoctorName</h2>
+                <p class="text-muted small mb-0">@(detail?.Specialization?.Name ?? "Classical Ayurveda") • Registered @doc.CreatedAt.ToString("dd MMM yyyy")</p>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a asp-action="Edit" asp-route-id="@doc.Id" id="btnEditDoctor" class="btn btn-outline-success btn-sm rounded-pill px-3">
+                <i class="bi bi-pencil me-1"></i> Edit Doctor
+            </a>
+
+            @if (detail?.Status == 1)
+            {
+                <form asp-action="Suspend" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="doctorId" value="@doc.Id" />
+                    <button type="submit" id="btnBlockDoctor" class="btn btn-outline-warning btn-sm rounded-pill px-3">
+                        <i class="bi bi-pause-circle me-1"></i> Block Doctor
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="Reactivate" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="doctorId" value="@doc.Id" />
+                    <button type="submit" id="btnUnblockDoctor" class="btn btn-success btn-sm rounded-pill px-3">
+                        <i class="bi bi-play-circle me-1"></i> Unblock Doctor
+                    </button>
+                </form>
+            }
+
+            <button type="button" id="btnOpenDeleteDoctorModal" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#deleteDoctorModal">
+                <i class="bi bi-trash me-1"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Credentials & Financial Summary -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-card-checklist text-success me-2"></i>Medical Credentials</h5>
+            
+            <div class="mb-3">
+                <span class="text-muted small">State / Council Reg. Number</span>
+                <div class="fw-bold font-monospace text-dark">@(detail?.RegistrationNumber ?? "Pending Verification")</div>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small">Registration Council</span>
+                <div class="fw-semibold text-dark">@(detail?.RegistrationCouncil ?? "Central Council of Indian Medicine")</div>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <span class="text-muted small">Clinical Experience</span>
+                    <div class="fw-bold text-dark">@(detail?.Experience ?? 0) Years</div>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted small">Degree / Qualification</span>
+                    <div class="fw-bold text-dark">@(detail?.Qualification ?? "BAMS")</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small">Languages Spoken</span>
+                <div class="fw-semibold text-dark">@(detail?.Language ?? "Hindi, English")</div>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small">Consultation Fee</span>
+                <div class="fs-5 fw-bold text-success">₹@(detail?.ConsultationFee ?? 500m)</div>
+            </div>
+
+            <div class="mb-0">
+                <span class="text-muted small">Clinic / Dispensary Address</span>
+                <div class="small text-dark">@(detail?.ClinicAddress ?? "Registered Clinical Facility")</div>
+            </div>
+        </div>
+
+        <!-- Telemedicine Financial Ledger -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-cash-stack text-success me-2"></i>Practice Financials</h5>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted small">Gross Consultations:</span>
+                <span class="fw-bold text-dark">₹@Model.GrossEarnings.ToString("N0")</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted small">Platform Fee (15%):</span>
+                <span class="text-muted small">-₹@((Model.GrossEarnings * 0.15m).ToString("N0"))</span>
+            </div>
+            <hr class="my-2" />
+            <div class="d-flex justify-content-between">
+                <span class="fw-bold small text-dark">Net Settled / Credit:</span>
+                <span class="fw-bold text-success">₹@Model.SettledPayouts.ToString("N0")</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Consultation History & Reviews -->
+    <div class="col-lg-8">
+        <!-- Recent Consultations Table -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-calendar2-check text-success me-2"></i>Recent Patient Consultations</h5>
+            @if (!Model.RecentAppointments.Any())
+            {
+                <p class="text-muted small mb-0 py-3 text-center">No consultations booked with this physician yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Ref #</th>
+                                <th>Date &amp; Time (UTC)</th>
+                                <th>Patient</th>
+                                <th>Mode</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var appt in Model.RecentAppointments)
+                            {
+                                <tr>
+                                    <td class="fw-bold small">#@appt.Id</td>
+                                    <td class="small">@appt.StartUtc.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                    <td class="small fw-semibold">@appt.PatientName</td>
+                                    <td><span class="badge bg-light text-dark border">@appt.ConsultationType</span></td>
+                                    <td class="text-center"><span class="badge bg-success-subtle text-success">@appt.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Patient Feedback -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-chat-heart text-success me-2"></i>Patient Feedback</h5>
+                <span class="badge bg-light text-dark border">@Model.Reviews.Count Reviews</span>
+            </div>
+
+            @if (!Model.Reviews.Any())
+            {
+                <p class="text-muted small mb-0 py-3 text-center">No reviews recorded for this doctor.</p>
+            }
+            else
+            {
+                <div class="list-group list-group-flush">
+                    @foreach (var r in Model.Reviews)
+                    {
+                        <div class="list-group-item px-0 py-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small text-dark">@(r.User != null ? r.User.FullName : "Patient")</span>
+                                <div class="text-warning small">
+                                    @for (int i = 0; i < r.Rating; i++) { <span>★</span> }
+                                </div>
+                            </div>
+                            <p class="small text-muted mb-1">@r.ReviewText</p>
+                            <span class="text-muted" style="font-size: 0.725rem;">Reviewed on @r.CreatedAt.ToString("dd MMM yyyy")</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Delete Doctor Modal -->
+<div class="modal fade" id="deleteDoctorModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Doctor Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p>Are you sure you want to delete <strong>Dr. @doc.DoctorName</strong>?</p>
+                <div class="alert alert-light border small text-muted">
+                    <i class="bi bi-info-circle me-1 text-primary"></i> If this doctor has patient appointments or consultation records, the account will be safely <strong>soft-deleted</strong> to retain clinical records while immediately hiding them from public consultation listings.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="Delete" asp-route-id="@doc.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" id="btnConfirmDeleteDoctor" class="btn btn-danger rounded-pill px-4">
+                        Delete Doctor
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

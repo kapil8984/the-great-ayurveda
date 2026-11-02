@@ -1,0 +1,200 @@
+@model Ayurveda.Domain.Entities.Appointment
+@{
+    ViewData["Title"] = $"Consultation Audit — #{Model.Id:D5}";
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill mb-2">
+        <i class="bi bi-arrow-left me-1"></i> Back to Appointments
+    </a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">Consultation #@Model.Id.ToString("D5")</h2>
+            <p class="text-muted small mb-0">Dr. @Model.Doctor.DoctorName with @Model.PatientName • Slot: @Model.AppointmentDate.ToString("dd MMM yyyy") (@Model.TimeSlot)</p>
+        </div>
+        <div class="d-flex gap-2">
+            @if (Model.Status != "Cancelled" && Model.Status != "Completed")
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#reassignModal">
+                    <i class="bi bi-person-gear me-1"></i> Reassign Doctor
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="bi bi-x-circle me-1"></i> Cancel Consultation
+                </button>
+                <form asp-action="MarkNoShow" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Record as Patient No-Show?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="party" value="Patient" />
+                    <button type="submit" class="btn btn-outline-warning btn-sm rounded-pill px-3">
+                        <i class="bi bi-person-x me-1"></i> Patient No-Show
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Session Telemetry & Notes -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-journal-medical text-success me-2"></i>Clinical Findings &amp; Digital Rx</h5>
+            
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <span class="text-muted small">Dosha Diagnosis</span>
+                    <div class="fw-bold text-dark">@(Model.DoshaDiagnosis ?? "Not recorded")</div>
+                </div>
+                <div class="col-md-6">
+                    <span class="text-muted small">Follow-up Recommendation</span>
+                    <div class="fw-semibold text-dark">@(Model.FollowUpDateUtc.HasValue ? Model.FollowUpDateUtc.Value.ToString("dd MMM yyyy") : "None specified")</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small">Doctor's Clinical Notes</span>
+                <div class="p-3 bg-light rounded-3 small">
+                    @(string.IsNullOrEmpty(Model.PrescriptionNotes) ? "No clinical notes submitted." : Model.PrescriptionNotes)
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small">Dietary &amp; Dinacharya Regimen (Pathya)</span>
+                <div class="p-3 bg-light rounded-3 small">
+                    @(string.IsNullOrEmpty(Model.DietaryAdvice) ? "No dietary instructions recorded." : Model.DietaryAdvice)
+                </div>
+            </div>
+
+            <div>
+                <span class="text-muted small">Prescribed Formulations Payload</span>
+                <pre class="p-3 bg-light rounded-3 small mb-0 font-monospace" style="max-height: 180px; overflow-y: auto;">@(Model.PrescriptionProductsJson ?? "[]")</pre>
+            </div>
+        </div>
+
+        <!-- Tele-Calling Audit Logs -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-broadcast text-primary me-2"></i>Tele-Call Technical Dossier</h5>
+            <div class="row g-3 small">
+                <div class="col-md-4">
+                    <span class="text-muted">WebRTC Room:</span>
+                    <div class="font-monospace text-truncate" title="@Model.MeetingRoomId">@(Model.MeetingRoomId ?? "Standard Room")</div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">Call Duration:</span>
+                    <div class="fw-bold text-dark">@(Model.CallDurationSeconds > 0 ? $"{Model.CallDurationSeconds / 60}m {Model.CallDurationSeconds % 60}s" : "N/A")</div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">Session Window:</span>
+                    <div>@(Model.JoinedAtUtc.HasValue ? Model.JoinedAtUtc.Value.ToString("hh:mm tt") : "—") to @(Model.LeftAtUtc.HasValue ? Model.LeftAtUtc.Value.ToString("hh:mm tt") : "—")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Dispute Resolution & Parties -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-people text-success me-2"></i>Parties Involved</h5>
+            
+            <div class="mb-3 p-3 bg-light rounded-3">
+                <div class="small text-muted text-uppercase fw-semibold mb-1">Doctor</div>
+                <div class="fw-bold text-dark">Dr. @Model.Doctor.DoctorName</div>
+                <div class="small text-muted">@Model.Doctor.Email</div>
+                <div class="small text-muted font-monospace">@Model.Doctor.ContactNumber</div>
+            </div>
+
+            <div class="p-3 bg-light rounded-3">
+                <div class="small text-muted text-uppercase fw-semibold mb-1">Patient</div>
+                <div class="fw-bold text-dark">@Model.PatientName</div>
+                <div class="small text-muted">Age @Model.PatientAge • @Model.PatientGender</div>
+                <div class="small text-muted font-monospace">@Model.PatientContact</div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-shield-exclamation text-warning me-2"></i>Dispute Resolution</h5>
+            <form asp-action="ResolveDispute" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Administrative Resolution Action</label>
+                    <textarea name="resolutionNotes" rows="3" class="form-control rounded-3" placeholder="Log mediation notes or settlement rationale..." required></textarea>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="issueRefund" value="true" id="refundCheck">
+                    <label class="form-check-label small text-danger fw-semibold" for="refundCheck">
+                        Cancel Appointment &amp; Issue Patient Refund (₹@Model.ConsultationFee)
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-outline-dark rounded-pill w-100 py-2">
+                    Submit Resolution
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reassign Doctor Modal -->
+<div class="modal fade" id="reassignModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="Reassign" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-person-gear text-primary me-2"></i>Reassign Consultation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-muted small">Select an alternate verified Vaidya to take over this consultation with @Model.PatientName.</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Target Doctor</label>
+                        <select name="newDoctorId" class="form-select rounded-3" required>
+                            @if (ViewBag.ActiveDoctors != null)
+                            {
+                                foreach (var d in (List<Ayurveda.Domain.Entities.Doctor>)ViewBag.ActiveDoctors)
+                                {
+                                    <option value="@d.Id" selected="@(d.Id == Model.DoctorId)">Dr. @d.DoctorName (@(d.DoctorDetail?.Specialization?.Name ?? "General"))</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Confirm Reassignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Consultation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="Cancel" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-x-circle me-2"></i>Cancel Consultation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-muted small">Are you sure you want to cancel Consultation #@Model.Id? The patient and doctor will be notified.</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Cancellation Reason</label>
+                        <textarea name="reason" rows="3" class="form-control rounded-3" placeholder="Reason for cancellation..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">Cancel Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

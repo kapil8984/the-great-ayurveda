@@ -1,0 +1,126 @@
+@model Ayurveda.Application.ViewModels.AdminUserListViewModel
+@{
+    ViewData["Title"] = "Patient & User Accounts Management";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-people text-success me-2"></i>Patient &amp; User Accounts</h2>
+        <p class="text-muted small mb-0">Oversee customer accounts, DPDP/GDPR records, and consultation histories.</p>
+    </div>
+    <div class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success-subtle rounded-pill">
+        Total Users: @Model.TotalUsers
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-9">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@Model.SearchQuery" class="form-control border-start-0" placeholder="Search by patient name, email, contact phone..." />
+            </div>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-success btn-sm rounded-pill w-100">Search</button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Users Table -->
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden bg-white">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th class="ps-4">User / Patient</th>
+                    <th>Email Address</th>
+                    <th>Contact Phone</th>
+                    <th>Role</th>
+                    <th>Registered</th>
+                    <th class="text-center">Account State</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Users.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-person-x display-4 d-block mb-2"></i>
+                            No user records found matching the query.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var user in Model.Users)
+                    {
+                        var role = Model.UserRoles.GetValueOrDefault(user.Id, "Customer");
+                        var isLocked = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow;
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-light text-dark fw-bold d-flex align-items-center justify-content-center border" style="width: 36px; height: 36px;">
+                                        @(user.FullName.Length > 0 ? user.FullName.Substring(0, 1).ToUpper() : "U")
+                                    </div>
+                                    <div>
+                                        <a asp-action="Details" asp-route-id="@user.Id" class="fw-bold text-dark text-decoration-none">
+                                            @user.FullName
+                                        </a>
+                                        <div class="text-muted" style="font-size: 0.725rem;">ID #@user.Id</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="small">@user.Email</td>
+                            <td class="small text-muted font-monospace">@(user.ContactNumber ?? "—")</td>
+                            <td>
+                                <span class="badge @(role == "SuperAdmin" ? "bg-danger" : role == "Doctor" ? "bg-success" : "bg-light text-dark border")">
+                                    @role
+                                </span>
+                            </td>
+                            <td class="small text-muted">@user.CreatedAt.ToString("dd MMM yyyy")</td>
+                            <td class="text-center">
+                                @if (isLocked)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                        <i class="bi bi-lock-fill me-1"></i>Suspended
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Active
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <a asp-action="Details" asp-route-id="@user.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1">
+                                    <i class="bi bi-folder2-open me-1"></i> Dossier
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-white border-0 py-3">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.SearchQuery">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

@@ -1,0 +1,128 @@
+@model Ayurveda.Domain.Entities.Order
+@{
+    Layout = null;
+    var addr = Model.ShippingAddress;
+    var gstRate = 0.12m; // 12% GST on Ayurvedic formulations
+    var taxableAmount = Math.Round(Model.TotalAmount / (1 + gstRate), 2);
+    var totalGst = Model.TotalAmount - taxableAmount;
+    var cgst = Math.Round(totalGst / 2, 2);
+    var sgst = totalGst - cgst;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Tax Invoice &amp; Packing Slip — #@Model.OrderNumber</title>
+    <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />
+    <style>
+        body { font-family: "Segoe UI", system-ui, sans-serif; color: #111; background: #fff; padding: 24px; }
+        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        @@media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+            .invoice-box { border: none; box-shadow: none; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print text-center mb-3">
+        <button class="btn btn-dark btn-sm rounded-pill px-4" onclick="window.print()">Print Packing Slip / Save PDF</button>
+    </div>
+
+    <div class="invoice-box">
+        <div class="row align-items-center border-bottom pb-3 mb-4">
+            <div class="col-6">
+                <img src="/images/logo-full.svg" alt="The Great Ayurveda" height="42" class="mb-2" />
+                <div class="small text-muted">
+                    <strong>The Great Ayurveda Apothecary Ltd.</strong><br />
+                    Central Herbarium Complex, New Delhi 110001<br />
+                    Demo invoice - sample data
+                </div>
+            </div>
+            <div class="col-6 text-end">
+                <h3 class="fw-bold text-success mb-1">TAX INVOICE</h3>
+                <div class="small">
+                    <strong>Invoice #:</strong> TGA-INV-@Model.OrderNumber<br />
+                    <strong>Order Date:</strong> @Model.OrderDate.ToString("dd MMM yyyy")<br />
+                    <strong>Payment:</strong> @Model.PaymentMethod (@Model.PaymentStatus)
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-6">
+                <div class="p-3 bg-light rounded small">
+                    <strong>Billed / Shipped To:</strong><br />
+                    @if (!string.IsNullOrWhiteSpace(Model.ShippingAddress))
+                    {
+                        @Model.ShippingAddress<br />
+                    }
+                    else
+                    {
+                        @(Model.User?.FullName ?? "Customer")<br />
+                        @(Model.User?.Email ?? "N/A")
+                    }
+                </div>
+            </div>
+            <div class="col-6 text-end">
+                <div class="p-3 bg-light rounded small">
+                    <strong>Dispatch Logistics:</strong><br />
+                    Courier: Delhivery Express Tele-Logistics<br />
+                    AWB Tracking: @(string.IsNullOrEmpty(Model.TrackingNumber) ? "Generated on Dispatch" : Model.TrackingNumber)<br />
+                    Status: @Model.Status
+                </div>
+            </div>
+        </div>
+
+        <table class="table table-bordered align-middle small mb-4">
+            <thead class="table-light">
+                <tr>
+                    <th>Item Description</th>
+                    <th>HSN / SKU</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Unit Price</th>
+                    <th class="text-end">Total (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.OrderItems)
+                {
+                    <tr>
+                        <td>
+                            <strong>@(item.Product?.Title ?? "Ayurvedic Formulation")</strong><br />
+                            <span class="text-muted" style="font-size: 0.75rem;">100% Classical Shastriya Formulation</span>
+                        </td>
+                        <td class="font-monospace">@(item.Product?.Sku ?? "30049011")</td>
+                        <td class="text-center">@item.Quantity</td>
+                        <td class="text-end">₹@item.UnitPrice.ToString("N2")</td>
+                        <td class="text-end fw-bold">₹@((item.UnitPrice * item.Quantity).ToString("N2"))</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-end">Taxable Value:</td>
+                    <td class="text-end">₹@taxableAmount.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-end">CGST (6%):</td>
+                    <td class="text-end">₹@cgst.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-end">SGST (6%):</td>
+                    <td class="text-end">₹@sgst.ToString("N2")</td>
+                </tr>
+                <tr class="table-light fw-bold fs-6">
+                    <td colspan="4" class="text-end">Total Invoice Amount:</td>
+                    <td class="text-end text-success">₹@Model.TotalAmount.ToString("N2")</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="border-top pt-3 text-muted small text-center">
+            This is a computer-generated tax invoice and packing slip issued pursuant to Section 31 of the CGST Act 2017.<br />
+            Demo invoice - sample data • Sealed Dispensation
+        </div>
+    </div>
+</body>
+</html>
