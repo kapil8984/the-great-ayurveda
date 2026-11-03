@@ -127,6 +127,7 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ICatalogImportService, CatalogImportService>();
+builder.Services.AddSingleton<ITimezoneService, TimezoneService>();
 builder.Services.AddScoped<IPaymentProvider, PaymentProvider>();
 builder.Services.AddScoped<ICallProvider, CallProvider>();
 builder.Services.AddScoped<ITelephonyProvider, TelephonyProvider>();
@@ -157,7 +158,6 @@ builder.Services.AddSignalR();
 
 builder.Services.AddHostedService<Ayurveda.Web.Services.WorkingSetTrimmerService>();
 
-#if DEBUG
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -168,7 +168,6 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Development JSON API documentation for The Great Ayurveda endpoints."
     });
 });
-#endif
 
 var app = builder.Build();
 
@@ -275,7 +274,6 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-#if DEBUG
 else
 {
     app.UseSwagger();
@@ -285,7 +283,6 @@ else
         c.RoutePrefix = "swagger";
     });
 }
-#endif
 
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {

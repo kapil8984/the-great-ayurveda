@@ -350,7 +350,7 @@ public class AuthController : Controller
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
 
         // Exclude DemoViewer and demo guests
-        if (user != null && !user.IsDemo && !user.Email.StartsWith("guest_") && !await _userManager.IsInRoleAsync(user, "DemoViewer"))
+        if (user != null && !user.IsDemo && !(user.Email?.StartsWith("guest_") ?? false) && !await _userManager.IsInRoleAsync(user, "DemoViewer"))
         {
             var roles = await _userManager.GetRolesAsync(user);
             var adminRoles = new[] { "SuperAdmin", "CatalogManager", "SupportAgent", "FinanceManager", "Admin" };
@@ -383,7 +383,7 @@ public class AuthController : Controller
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
-        if (user == null || user.IsDemo || user.Email.StartsWith("guest_") || await _userManager.IsInRoleAsync(user, "DemoViewer"))
+        if (user == null || user.IsDemo || (user.Email?.StartsWith("guest_") ?? false) || await _userManager.IsInRoleAsync(user, "DemoViewer"))
         {
             ModelState.AddModelError(string.Empty, "Password reset failed. Please verify the code or request a new one.");
             return View(model);

@@ -586,7 +586,7 @@ public class AccountController : Controller
         if (!await IsProtectedAccountAsync(normalizedEmail))
         {
             var user = await _userManager.FindByEmailAsync(normalizedEmail);
-            if (user != null && !user.Email.StartsWith("guest_") && !await _userManager.IsInRoleAsync(user, "DemoViewer"))
+            if (user != null && !(user.Email?.StartsWith("guest_") ?? false) && !await _userManager.IsInRoleAsync(user, "DemoViewer"))
             {
                 await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "ResetPassword", clientIp, user.FullName);
             }
@@ -619,7 +619,7 @@ public class AccountController : Controller
         }
 
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
-        if (user == null || user.Email.StartsWith("guest_") || await _userManager.IsInRoleAsync(user, "DemoViewer"))
+        if (user == null || (user.Email?.StartsWith("guest_") ?? false) || await _userManager.IsInRoleAsync(user, "DemoViewer"))
         {
             ModelState.AddModelError(string.Empty, "Password reset failed. Please check the code or request a new one.");
             return View(model);

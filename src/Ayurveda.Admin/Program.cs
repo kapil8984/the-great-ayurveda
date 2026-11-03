@@ -88,6 +88,7 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ICatalogImportService, CatalogImportService>();
+builder.Services.AddSingleton<ITimezoneService, TimezoneService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddMemoryCache();

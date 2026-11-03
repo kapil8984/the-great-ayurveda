@@ -120,7 +120,7 @@ public class ProductsController : Controller
         var category = await _context.Categories.FindAsync(model.CategoryId);
         string categoryName = category?.Name ?? "Ayurvedic Medicine";
 
-        string imageUrl = model.ImageUrl;
+        string imageUrl = model.ImageUrl ?? string.Empty;
         if (imageFile != null && imageFile.Length > 0)
         {
             using var stream = imageFile.OpenReadStream();

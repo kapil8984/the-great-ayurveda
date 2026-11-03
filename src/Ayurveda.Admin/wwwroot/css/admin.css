@@ -133,6 +133,23 @@ main {
     box-shadow: var(--admin-shadow-lg) !important;
 }
 
+a.admin-kpi-card {
+    text-decoration: none !important;
+    color: inherit !important;
+    cursor: pointer;
+    display: block;
+}
+
+a.admin-kpi-card:hover small i {
+    transform: translateX(4px);
+    transition: transform 0.2s ease;
+}
+
+a.admin-kpi-card:focus-visible {
+    outline: 2px solid var(--admin-primary);
+    outline-offset: 2px;
+}
+
 .admin-kpi-icon {
     width: 48px;
     height: 48px;

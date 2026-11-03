@@ -31,123 +31,123 @@
 <!-- 8 Strategic KPI Cards with Animated Count-Ups -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #10B981 !important;">
+        <a asp-controller="Finance" asp-action="Index" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #10B981 !important;" title="View Financial Breakdown">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Gross Revenue</span>
                     <h3 class="fw-bold text-success mb-0 mt-1 admin-kpi-number" data-target="@Model.TotalRevenue" data-prefix="₹" data-decimals="0">₹@Model.TotalRevenue.ToString("N0")</h3>
-                    <small class="text-muted">Total marketplace volume</small>
+                    <small class="text-muted">Total marketplace volume <i class="bi bi-arrow-right ms-1 text-success"></i></small>
                 </div>
                 <div class="rounded-4 bg-success-subtle text-success p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-currency-rupee"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #3B82F6 !important;">
+        <a asp-controller="Orders" asp-action="Index" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #3B82F6 !important;" title="Manage Orders">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Orders Placed</span>
                     <h3 class="fw-bold text-dark mb-0 mt-1 admin-kpi-number" data-target="@Model.TotalOrders">@Model.TotalOrders</h3>
-                    <small class="text-muted">Avg: ₹@Model.AverageOrderValue.ToString("N0") AOV</small>
+                    <small class="text-muted">Avg: ₹@Model.AverageOrderValue.ToString("N0") AOV <i class="bi bi-arrow-right ms-1 text-primary"></i></small>
                 </div>
                 <div class="rounded-4 bg-primary-subtle text-primary p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-cart-check"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #06B6D4 !important;">
+        <a asp-controller="Users" asp-action="Index" asp-route-role="Customer" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #06B6D4 !important;" title="View Registered Patients">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Active Patients</span>
                     <h3 class="fw-bold text-dark mb-0 mt-1 admin-kpi-number" data-target="@Model.TotalCustomers">@Model.TotalCustomers</h3>
-                    <small class="text-muted">Registered accounts</small>
+                    <small class="text-muted">Registered accounts <i class="bi bi-arrow-right ms-1 text-info"></i></small>
                 </div>
                 <div class="rounded-4 bg-info-subtle text-info p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-people"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #059669 !important;">
+        <a asp-controller="Doctors" asp-action="Index" asp-route-status="Approved" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #059669 !important;" title="View Verified Doctors">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Active Vaidyas</span>
                     <h3 class="fw-bold text-dark mb-0 mt-1 admin-kpi-number" data-target="@Model.ActiveDoctorsCount">@Model.ActiveDoctorsCount</h3>
-                    <small class="text-muted">Verified &amp; practicing</small>
+                    <small class="text-muted">Verified &amp; practicing <i class="bi bi-arrow-right ms-1 text-success"></i></small>
                 </div>
                 <div class="rounded-4 bg-success-subtle text-success p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-hospital"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #6366F1 !important;">
+        <a asp-controller="Appointments" asp-action="Index" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #6366F1 !important;" title="View Today's Tele-Consultations">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Consultations Today</span>
                     <h3 class="fw-bold text-primary mb-0 mt-1 admin-kpi-number" data-target="@Model.ConsultationsTodayCount">@Model.ConsultationsTodayCount</h3>
-                    <small class="text-muted">Scheduled for today</small>
+                    <small class="text-muted">Scheduled for today <i class="bi bi-arrow-right ms-1 text-primary"></i></small>
                 </div>
                 <div class="rounded-4 bg-primary-subtle text-primary p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-calendar2-heart"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #EF4444 !important;">
+        <a asp-controller="Products" asp-action="Index" asp-route-lowStock="true" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #EF4444 !important;" title="Audit Low-Stock Inventory">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Low-Stock SKUs</span>
                     <h3 class="fw-bold text-danger mb-0 mt-1 admin-kpi-number" data-target="@Model.LowStockProductsCount">@Model.LowStockProductsCount</h3>
-                    <small class="text-muted">&lt; 10 units in warehouse</small>
+                    <small class="text-muted">&lt; 10 units in warehouse <i class="bi bi-arrow-right ms-1 text-danger"></i></small>
                 </div>
                 <div class="rounded-4 bg-danger-subtle text-danger p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-exclamation-octagon"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #F59E0B !important;">
+        <a asp-controller="Doctors" asp-action="Pending" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #F59E0B !important;" title="Review Pending Doctor Approvals">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Doctor Approvals</span>
                     <h3 class="fw-bold text-warning mb-0 mt-1 admin-kpi-number" data-target="@Model.PendingDoctorApprovals">@Model.PendingDoctorApprovals</h3>
-                    <small class="text-muted">Credentials awaiting audit</small>
+                    <small class="text-muted">Credentials awaiting audit <i class="bi bi-arrow-right ms-1 text-warning"></i></small>
                 </div>
                 <div class="rounded-4 bg-warning-subtle text-warning p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-person-exclamation"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card" style="border-top: 3px solid #14B8A6 !important;">
+        <a asp-controller="Finance" asp-action="Index" class="card p-3 border-0 shadow-sm rounded-4 bg-white h-100 admin-kpi-card text-decoration-none d-block" style="border-top: 3px solid #14B8A6 !important;" title="View Average Order Value Analytics">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Average Order Value</span>
                     <h3 class="fw-bold text-success mb-0 mt-1 admin-kpi-number" data-target="@Model.AverageOrderValue" data-prefix="₹" data-decimals="0">₹@Model.AverageOrderValue.ToString("N0")</h3>
-                    <small class="text-muted">Basket size telemetry</small>
+                    <small class="text-muted">Basket size telemetry <i class="bi bi-arrow-right ms-1 text-success"></i></small>
                 </div>
                 <div class="rounded-4 bg-success-subtle text-success p-3 fs-4 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                     <i class="bi bi-graph-up"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 

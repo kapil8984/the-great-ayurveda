@@ -32,6 +32,16 @@ public class UsersController : Controller
         int pageSize = 15;
         var q = _context.Users.AsQueryable();
 
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleEntity = await _context.Roles.FirstOrDefaultAsync(r => r.Name == role);
+            if (roleEntity != null)
+            {
+                var userIdsInRole = _context.UserRoles.Where(ur => ur.RoleId == roleEntity.Id).Select(ur => ur.UserId);
+                q = q.Where(u => userIdsInRole.Contains(u.Id));
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             search = search.Trim();
