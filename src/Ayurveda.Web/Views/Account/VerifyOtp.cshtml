@@ -2,68 +2,62 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     ViewData["Title"] = "Verify Email Address";
-    var smtpHost = Configuration["Smtp:Host"];
-    var isSmtpConfigured = !string.IsNullOrWhiteSpace(smtpHost) && smtpHost != "smtp.example.com" && !Configuration.GetValue<bool>("DemoMode", false);
-    var skipOtp = Configuration.GetValue<bool>("DemoMode:SkipOtp", false);
+    var otpMode = Configuration["Auth:OtpMode"] ?? Configuration["Auth__OtpMode"] ?? "Demo";
+    var isDemoOtp = !string.Equals(otpMode, "Email", StringComparison.OrdinalIgnoreCase) && !string.Equals(otpMode, "Live", StringComparison.OrdinalIgnoreCase);
 }
 
-<div class="container py-5 my-auto">
+<div class="container py-4 my-auto">
     <div class="row justify-content-center">
-        <div class="col-md-7 col-lg-5">
-            <div class="card p-4 p-md-5 shadow-xl border-0 rounded-4 text-center bg-white">
+        <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+            <div class="card p-3 p-sm-4 p-md-5 shadow-xl border-0 rounded-4 text-center bg-white">
                 <div class="mb-3">
                     <div class="d-inline-flex p-3 rounded-circle bg-success-subtle text-success fs-2 mb-2">
                         <i class="bi bi-shield-check"></i>
                     </div>
-                    <h2 class="fw-bold font-serif text-dark mb-1">Verify Your Email</h2>
-                    <p class="text-muted small mb-2">
+                    <h2 class="fw-bold font-serif text-dark mb-1 fs-3">Verify Your Email</h2>
+                    <p class="text-muted small mb-2 text-break">
                         We sent a 6-digit verification code to<br />
                         <strong class="text-dark">@Model.Email</strong>
                     </p>
-                    @if (!isSmtpConfigured && !skipOtp)
-                    {
-                        <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-3 text-start" role="alert">
-                            <i class="bi bi-info-circle me-1"></i> <strong>Email is disabled in this demo.</strong>
-                        </div>
-                    }
-                    else if (skipOtp)
+                    @if (isDemoOtp)
                     {
                         <div class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill small mb-3">
-                            <i class="bi bi-info-circle me-1"></i> Demo: enter any code
+                            <i class="bi bi-info-circle me-1"></i> Demo: enter any 6 digits
                         </div>
                     }
                 </div>
 
                 @if (!ViewData.ModelState.IsValid)
                 {
-                    <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3 text-start" role="alert">
+                    <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3 text-start" role="alert" id="otpValidationAlert">
                         <div asp-validation-summary="All"></div>
                     </div>
                 }
+                <div id="clientOtpError" class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3 text-start d-none" role="alert"></div>
 
-                <form asp-action="VerifyOtp" method="post" id="otpForm">
+                <form asp-action="VerifyOtp" method="post" id="otpForm" novalidate class="@(!ViewData.ModelState.IsValid ? "form-shake-error" : "")">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="Email" />
                     <input type="hidden" asp-for="ReturnUrl" />
                     <input type="hidden" asp-for="Otp" id="hiddenOtpInput" />
 
-                    <!-- 6 Separate Auto-Advancing Input Boxes -->
-                    <div class="d-flex justify-content-center gap-2 mb-4" id="otpBoxesContainer">
+                    <!-- 6 Separate Auto-Advancing Input Boxes Responsive to 320px -->
+                    <div class="d-flex justify-content-center mb-3 stagger-field stagger-1" id="otpBoxesContainer" style="gap: clamp(3px, 1.2vw, 8px); max-width: 100%;">
                         @for (int i = 0; i < 6; i++)
                         {
                             <input type="text" 
                                    maxlength="1" 
                                    class="form-control text-center fw-bold fs-4 otp-box rounded-3" 
-                                   style="width: 48px; height: 56px; border: 2px solid #E5DED2;" 
+                                   style="width: clamp(32px, 10vw, 46px); height: clamp(42px, 13vw, 56px); padding: 0; border: 2px solid #E5DED2;" 
                                    data-index="@i" 
                                    inputmode="numeric" 
                                    pattern="[0-9]*" 
-                                   autocomplete="one-time-code" 
-                                   required />
+                                   autocomplete="one-time-code" />
                         }
                     </div>
+                    <span asp-validation-for="Otp" class="text-danger small d-block mb-3"></span>
 
-                    <button type="submit" class="btn btn-tga-gold text-dark fw-bold w-100 py-2 rounded-pill mb-3" id="verifyOtpSubmitBtn">
+                    <button type="submit" class="btn btn-tga-gold text-dark fw-bold w-100 py-2 rounded-pill mb-3 stagger-field stagger-2" id="verifyOtpSubmitBtn" data-loading-btn="true">
                         <i class="bi bi-check-circle me-1"></i> Verify &amp; Continue
                     </button>
                 </form>
@@ -71,7 +65,7 @@
                 <!-- Resend Timer Section -->
                 <div class="pt-3 border-top text-center">
                     <div class="small text-muted mb-2" id="resendCountdownContainer">
-                        Didn't receive the code? Resend in <span class="fw-bold text-dark" id="countdownTimer">30</span>s
+                        Didn't receive the code? Resend in <span class="fw-bold text-dark" id="countdownTimer">60</span>s
                     </div>
                     <button type="button" class="btn btn-link text-success text-decoration-none fw-semibold small p-0 d-none" id="resendOtpBtn">
                         <i class="bi bi-arrow-repeat me-1"></i> Resend Verification Code
@@ -123,24 +117,46 @@
     function updateHiddenOtp() {
         let code = "";
         otpBoxes.forEach(b => code += b.value);
-        if (hiddenOtp) hiddenOtp.value = code;
+        const hiddenEl = document.getElementById("hiddenOtpInput") || document.getElementById("Otp");
+        if (hiddenEl) hiddenEl.value = code;
+        return code;
+    }
+
+    function validateAndShowError(e) {
+        const code = updateHiddenOtp();
+        const clientErr = document.getElementById("clientOtpError");
+        if (code.length < 6) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            if (clientErr) {
+                clientErr.textContent = "Please enter all 6 digits of your verification code.";
+                clientErr.classList.remove("d-none");
+            }
+            const firstEmpty = Array.from(otpBoxes).find(b => !b.value);
+            if (firstEmpty) firstEmpty.focus();
+            return false;
+        } else {
+            if (clientErr) clientErr.classList.add("d-none");
+            return true;
+        }
+    }
+
+    const submitBtn = document.getElementById("verifyOtpSubmitBtn");
+    if (submitBtn) {
+        submitBtn.addEventListener("click", validateAndShowError);
     }
 
     if (form) {
-        form.addEventListener("submit", (e) => {
-            updateHiddenOtp();
-            if (hiddenOtp.value.length < 6) {
-                e.preventDefault();
-                alert("Please enter all 6 digits of your verification code.");
-            }
-        });
+        form.addEventListener("submit", validateAndShowError);
     }
 
     // Auto-focus first box
     if (otpBoxes.length > 0) otpBoxes[0].focus();
 
-    // 30-Second Resend Countdown Timer
-    let countdown = 30;
+    // 60-Second Resend Countdown Timer
+    let countdown = 60;
     const timerEl = document.getElementById("countdownTimer");
     const containerEl = document.getElementById("resendCountdownContainer");
     const resendBtn = document.getElementById("resendOtpBtn");
@@ -171,7 +187,7 @@
                 resendBtn.disabled = false;
                 resendBtn.classList.add("d-none");
                 containerEl.classList.remove("d-none");
-                countdown = 30;
+                countdown = 60;
                 if (timerEl) timerEl.innerText = countdown;
                 alert(data.message || "A new 6-digit verification code has been dispatched.");
             })

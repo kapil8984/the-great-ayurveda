@@ -1,16 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
   <defs>
-    <linearGradient id="catGrad0" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="hsl(160, 60%, 45%)" />
-      <stop offset="100%" stop-color="hsl(185, 65%, 28%)" />
+    <radialGradient id="immAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FEF3C7" stop-opacity="0.9" />
+      <stop offset="70%" stop-color="#FDE68A" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#FEF3C7" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="immGoldUrn" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="45%" stop-color="#D97706" />
+      <stop offset="85%" stop-color="#92400E" />
+      <stop offset="100%" stop-color="#78350F" />
     </linearGradient>
+    <linearGradient id="immAmlaGrad" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stop-color="#86EFAC" />
+      <stop offset="60%" stop-color="#22C55E" />
+      <stop offset="100%" stop-color="#15803D" />
+    </linearGradient>
+    <linearGradient id="immLeafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80" />
+      <stop offset="100%" stop-color="#166534" />
+    </linearGradient>
+    <filter id="immShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#78350F" flood-opacity="0.25"/>
+    </filter>
   </defs>
-  <circle cx="50" cy="50" r="46" fill="url(#catGrad0)" />
-  <circle cx="50" cy="50" r="43" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.3" />
-  <!-- Botanical Emblem -->
-  <path d="M50 22 C62 34 68 52 50 78 C32 52 38 34 50 22 Z" fill="#FFFFFF" fill-opacity="0.9" />
-  <path d="M50 32 L50 68" stroke="hsl(160, 70%, 25%)" stroke-width="2" stroke-linecap="round" />
-  <path d="M50 44 Q60 40 62 48" stroke="hsl(160, 70%, 25%)" stroke-width="1.5" stroke-linecap="round" fill="none" />
-  <path d="M50 52 Q40 48 38 56" stroke="hsl(160, 70%, 25%)" stroke-width="1.5" stroke-linecap="round" fill="none" />
-  <circle cx="50" cy="22" r="3" fill="#E3A72F" />
+
+  <!-- Circular Radiant Aura Backdrop -->
+  <circle cx="80" cy="80" r="72" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5" />
+  <circle cx="80" cy="80" r="62" fill="url(#immAura)" />
+
+  <!-- Sacred Decorative Mandala Halo -->
+  <g opacity="0.4" stroke="#D97706" stroke-width="1" fill="none">
+    <circle cx="80" cy="80" r="54" stroke-dasharray="3 3"/>
+    <circle cx="80" cy="80" r="48" />
+  </g>
+
+  <!-- Golden Chyawanprash Rasayana Urn (Kalash) -->
+  <g filter="url(#immShadow)">
+    <!-- Urn Base Stand -->
+    <ellipse cx="80" cy="126" rx="28" ry="6" fill="#78350F" />
+    <path d="M62 124 L98 124 L94 130 L66 130 Z" fill="#92400E" />
+
+    <!-- Urn Main Body -->
+    <path d="M54 94 C50 114 62 124 80 124 C98 124 110 114 106 94 C104 84 96 78 80 78 C64 78 56 84 54 94 Z" fill="url(#immGoldUrn)" />
+    <!-- Urn Highlight Curve -->
+    <path d="M58 96 C56 110 65 119 80 119 C84 119 75 110 74 96 C74 86 78 82 80 81 C66 82 59 87 58 96 Z" fill="#FDE68A" opacity="0.45" />
+
+    <!-- Urn Neck & Rim -->
+    <rect x="66" y="72" width="28" height="7" rx="3" fill="#FBBF24" stroke="#92400E" stroke-width="1" />
+    <ellipse cx="80" cy="72" rx="16" ry="4" fill="#FDE68A" />
+
+    <!-- Urn Ornate Lid -->
+    <path d="M68 70 C70 60 76 56 80 50 C84 56 90 60 92 70 Z" fill="url(#immGoldUrn)" />
+    <!-- Finial (Golden Droplet on top) -->
+    <circle cx="80" cy="48" r="4" fill="#FDE68A" stroke="#B45309" stroke-width="1" />
+    <path d="M80 43 L80 46" stroke="#FEF3C7" stroke-width="1.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Fresh Ripe Amla (Indian Gooseberry) Fruit -->
+  <g filter="url(#immShadow)">
+    <circle cx="108" cy="114" r="14" fill="url(#immAmlaGrad)" />
+    <!-- Amla Segments Detailing -->
+    <path d="M108 100 C104 105 104 123 108 128" stroke="#166534" stroke-width="1" fill="none" opacity="0.6" />
+    <path d="M108 100 C112 105 112 123 108 128" stroke="#166534" stroke-width="1" fill="none" opacity="0.6" />
+    <circle cx="105" cy="108" r="3" fill="#DCFCE7" opacity="0.7" />
+    <!-- Amla Calyx Tip -->
+    <circle cx="108" cy="100.5" r="1.5" fill="#14532D" />
+  </g>
+
+  <!-- Fresh Botanical Tulsi & Neem Sprig -->
+  <g>
+    <!-- Left Leaf -->
+    <path d="M52 112 C40 106 38 90 48 84 C56 92 56 104 52 112 Z" fill="url(#immLeafGrad)" filter="url(#immShadow)" />
+    <path d="M48 85 C51 94 51 102 52 112" stroke="#DCFCE7" stroke-width="1" fill="none" opacity="0.7" />
+
+    <!-- Small Leaf Accent -->
+    <path d="M118 102 C126 96 130 84 122 80 C116 86 116 94 118 102 Z" fill="url(#immLeafGrad)" />
+  </g>
+
+  <!-- Sparkling Golden Ojas Vitality Stars -->
+  <path d="M44 56 L46 61 L51 63 L46 65 L44 70 L42 65 L37 63 L42 61 Z" fill="#F59E0B" opacity="0.85" />
+  <path d="M118 52 L119.5 55.5 L123 57 L119.5 58.5 L118 62 L116.5 58.5 L113 57 L116.5 55.5 Z" fill="#FBBF24" opacity="0.9" />
+  <circle cx="80" cy="36" r="2.5" fill="#FDE68A" />
 </svg>

@@ -1,32 +1,100 @@
 @model List<Ayurveda.Application.ViewModels.YogaCardViewModel>
 @{
-    ViewData["Title"] = "Yoga & Holistic Asanas";
+    ViewData["Title"] = "12 Classical Yoga Asanas & Pranayama | The Great Ayurveda";
 }
 
-<div class="container py-4">
-    <div class="text-center mb-5">
-        <span class="text-success fw-bold text-uppercase small">Mind & Body Union</span>
-        <h1 class="display-6 fw-bold" style="font-family: Georgia, serif;">Classical Yoga Asanas & Pranayama</h1>
-        <p class="text-muted">Align your breath, vital force (Prana), and muscular balance with traditional postures.</p>
+<div class="tga-yoga-page container py-4 py-lg-5">
+    <div class="text-center mx-auto mb-5" style="max-width: 780px;">
+        <span class="badge bg-success-subtle text-success border border-success-subtle text-uppercase fw-semibold px-3 py-1 rounded-pill mb-2">
+            <i class="bi bi-flower1 me-1"></i> Classical Hatha &amp; Ayush Lineage
+        </span>
+        <h1 class="display-6 fw-bold text-dark mb-2" style="font-family: Georgia, serif;">12 Classical Yoga Asanas</h1>
+        <p class="text-muted lead fs-6 mb-0">
+            Harmonize breath, nervous vitality (<span class="fst-italic">Prana</span>), and musculoskeletal equilibrium with centuries-old classical postures preserved by traditional wellness bodies.
+        </p>
     </div>
 
     @if (Model != null && Model.Any())
     {
-        <div class="row g-4">
-            @foreach (var yoga in Model)
+        <div class="row g-4 justify-content-center" id="yogaCardsGrid">
+            @for (int i = 0; i < Model.Count; i++)
             {
-                <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 tga-card border-0 shadow-sm overflow-hidden">
-                        <img src="@(string.IsNullOrEmpty(yoga.ImageUrl) ? "/images/yoga/surya-namaskar.svg" : yoga.ImageUrl)" 
-                             class="card-img-top p-3" alt="@yoga.YogaName" style="height: 220px; object-fit: contain; background: #EAF4EE;" />
+                var yoga = Model[i];
+                var isExtra = i >= 4;
+                var delay = (i - 4) * 60;
+                <div class="col-12 col-md-6 col-lg-4 d-flex justify-content-center @(isExtra ? "tga-yoga-extra d-none" : "")" 
+                     data-index="@i" style="--stagger-delay: @(delay)ms;">
+                    <div class="card h-100 tga-yoga-card border-0 shadow-sm rounded-4 overflow-hidden w-100 bg-white d-flex flex-column">
+                        <div class="tga-yoga-media-wrap position-relative">
+                            <img src="@(string.IsNullOrEmpty(yoga.ImageUrl) ? "/images/yoga/surya-namaskar.webp" : yoga.ImageUrl)" 
+                                 class="card-img-top tga-yoga-img" 
+                                 alt="@yoga.YogaName" 
+                                 loading="lazy" 
+                                 width="600" 
+                                 height="450" />
+                            <div class="tga-yoga-badges position-absolute top-0 start-0 p-3 d-flex flex-wrap gap-2">
+                                <span class="badge bg-white text-dark shadow-xs border fw-medium px-2 py-1 rounded-pill">
+                                    <i class="bi bi-activity text-success me-1"></i>@yoga.Difficulty
+                                </span>
+                                <span class="badge bg-white text-secondary shadow-xs border fw-medium px-2 py-1 rounded-pill">
+                                    <i class="bi bi-clock me-1"></i>@yoga.Duration
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(yoga.VideoId))
+                            {
+                                <div class="position-absolute bottom-0 end-0 p-3">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-dark bg-opacity-75 rounded-pill shadow-sm px-2 py-1 tga-facade-trigger" 
+                                            data-video-id="@yoga.VideoId" 
+                                            data-title="@yoga.SanskritName"
+                                            title="Watch Demonstration">
+                                        <i class="bi bi-play-circle-fill text-danger me-1"></i> Demonstration
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
                         <div class="card-body p-4 d-flex flex-column">
-                            <span class="badge bg-success-subtle text-success w-auto align-self-start mb-2">@yoga.CategoryName</span>
-                            <h5 class="fw-bold mb-2 text-dark">@yoga.YogaName</h5>
-                            <p class="small text-muted mb-3">@yoga.Description</p>
-                            
-                            <div class="mt-auto">
-                                <a asp-action="Details" asp-route-id="@yoga.Id" class="btn btn-tga-outline w-100 btn-sm rounded-pill">
-                                    View Step-by-Step Guide
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-baseline">
+                                    <h5 class="fw-bold text-dark mb-0 font-serif">@yoga.SanskritName</h5>
+                                    <span class="badge bg-success-subtle text-success small rounded-pill">@(yoga.Steps?.Count ?? 5) Steps</span>
+                                </div>
+                                <div class="text-muted small fw-medium">@yoga.EnglishName</div>
+                            </div>
+
+                            <p class="text-secondary small mb-3 line-clamp-2" style="min-height: 2.6rem;">@yoga.Description</p>
+
+                            <div class="mb-3">
+                                <span class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                                    Traditionally Practiced For:
+                                </span>
+                                <ul class="list-unstyled mb-0 mt-1 small text-dark d-flex flex-column gap-1">
+                                    @foreach (var benefit in yoga.Benefits.Take(3))
+                                    {
+                                        <li class="d-flex align-items-start">
+                                            <i class="bi bi-check-circle-fill text-success me-2 mt-1 flex-shrink-0" style="font-size: 0.8rem;"></i>
+                                            <span class="line-clamp-1">@benefit</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(yoga.Cautions))
+                            {
+                                <div class="p-2 px-3 rounded-3 bg-light border border-light-subtle mb-3">
+                                    <span class="text-danger fw-semibold d-block" style="font-size: 0.75rem;">
+                                        <i class="bi bi-shield-exclamation me-1"></i> Caution:
+                                    </span>
+                                    <span class="text-muted small line-clamp-2" style="font-size: 0.8rem;">
+                                        @yoga.Cautions
+                                    </span>
+                                </div>
+                            }
+
+                            <div class="mt-auto pt-2 d-flex gap-2">
+                                <a asp-action="Details" asp-route-id="@yoga.Id" class="btn btn-outline-success w-100 btn-sm rounded-pill py-2 fw-semibold">
+                                    View Full Step-by-Step Guide <i class="bi bi-arrow-right ms-1"></i>
                                 </a>
                             </div>
                         </div>
@@ -34,5 +102,155 @@
                 </div>
             }
         </div>
+
+        @if (Model.Count > 4)
+        {
+            <div class="text-center mt-5" id="yogaToggleContainer">
+                <button type="button" 
+                        id="yogaToggleMoreBtn" 
+                        class="btn btn-outline-success btn-lg rounded-pill px-4 py-2 fw-semibold shadow-xs" 
+                        onclick="toggleYogaCards()">
+                    <span id="yogaToggleText">Show @(Model.Count - 4) more classical asanas</span>
+                    <i id="yogaToggleIcon" class="bi bi-chevron-down ms-1"></i>
+                </button>
+            </div>
+        }
     }
 </div>
+
+<!-- Modal for YouTube nocookie facade playback -->
+<div class="modal fade" id="yogaVideoModal" tabindex="-1" aria-labelledby="yogaVideoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 overflow-hidden bg-black text-white shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-semibold text-white" id="yogaVideoModalLabel">Classical Demonstration</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="ratio ratio-16x9 rounded-3 overflow-hidden bg-dark" id="yogaVideoContainer">
+                    <!-- Loaded dynamically on modal open -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tga-yoga-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    }
+    .tga-yoga-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+    }
+    .tga-yoga-media-wrap {
+        height: 230px;
+        background: #f7f9f6;
+        overflow: hidden;
+    }
+    .tga-yoga-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.35s ease;
+    }
+    .tga-yoga-card:hover .tga-yoga-img {
+        transform: scale(1.03);
+    }
+    .font-serif {
+        font-family: Georgia, 'Times New Roman', serif;
+    }
+    .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .tga-yoga-extra.tga-anim-enter {
+        animation: tgaFadeUp 0.4s ease forwards;
+        animation-delay: var(--stagger-delay, 0ms);
+    }
+    @@keyframes tgaFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    let yogaExtraExpanded = false;
+
+    function toggleYogaCards() {
+        const extraCards = document.querySelectorAll('.tga-yoga-extra');
+        const btn = document.getElementById('yogaToggleMoreBtn');
+        const text = document.getElementById('yogaToggleText');
+        const icon = document.getElementById('yogaToggleIcon');
+
+        yogaExtraExpanded = !yogaExtraExpanded;
+
+        if (yogaExtraExpanded) {
+            extraCards.forEach(card => {
+                card.classList.remove('d-none');
+                card.classList.add('tga-anim-enter');
+            });
+            text.textContent = 'Show less';
+            icon.className = 'bi bi-chevron-up ms-1';
+        } else {
+            extraCards.forEach(card => {
+                card.classList.add('d-none');
+                card.classList.remove('tga-anim-enter');
+            });
+            const totalCount = @(Model?.Count ?? 12);
+            text.textContent = `Show ${totalCount - 4} more classical asanas`;
+            icon.className = 'bi bi-chevron-down ms-1';
+            
+            // Smooth scroll back to grid top if scrolled down
+            document.getElementById('yogaCardsGrid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const triggers = document.querySelectorAll('.tga-facade-trigger');
+        const container = document.getElementById('yogaVideoContainer');
+        const modalEl = document.getElementById('yogaVideoModal');
+        const labelEl = document.getElementById('yogaVideoModalLabel');
+
+        if (!modalEl || !container) return;
+
+        triggers.forEach(trigger => {
+            trigger.addEventListener('click', function (e) {
+                e.preventDefault();
+                const videoId = this.getAttribute('data-video-id');
+                const title = this.getAttribute('data-title') || 'Classical Demonstration';
+                
+                labelEl.textContent = `${title} — Official Demonstration`;
+                // YouTube nocookie embed injected only when clicked
+                container.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0" 
+                                              title="${title}" 
+                                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                              allowfullscreen 
+                                              style="width: 100%; height: 100%; border: 0;"></iframe>`;
+                
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+            });
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            // Unload iframe when closed so audio/video stops
+            container.innerHTML = '';
+        });
+    });
+</script>

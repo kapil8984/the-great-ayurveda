@@ -5,6 +5,21 @@ public interface IEmailSender
     Task SendEmailAsync(string toEmail, string subject, string bodyHtml);
 }
 
+public interface IOtpService
+{
+    Task<(bool Success, string Message, string? OtpCode)> GenerateAndSendOtpAsync(string email, string purpose, string ipAddress, string? userFullName = null);
+    Task<(bool Success, string Message)> VerifyOtpAsync(string email, string purpose, string inputOtp);
+    Task<(bool Success, string Message)> ValidateOtpAsync(string email, string purpose, string inputOtp) => VerifyOtpAsync(email, purpose, inputOtp);
+    Task<int> GetResendCooldownSecondsAsync(string email, string purpose);
+}
+
+public interface ILoginThrottleService
+{
+    (bool IsBlocked, int RemainingSeconds, string Message) CheckLoginAllowed(string ipAddress, string email);
+    Task<(bool IsBlocked, int RemainingSeconds, string Message)> RecordFailedLoginAsync(string ipAddress, string email, object? user = null);
+    void RecordSuccessfulLogin(string ipAddress, string email);
+}
+
 public interface IFileStorageService
 {
     Task<string> SaveFileAsync(Stream stream, string originalFileName, string contentType);
@@ -86,6 +101,7 @@ public class PaymentInitiateResultDto
     public string Currency { get; set; } = "INR";
     public string? KeyId { get; set; }
     public string? ErrorMessage { get; set; }
+    public bool IsLiveRazorpay { get; set; }
 }
 
 public class CallRoomDto

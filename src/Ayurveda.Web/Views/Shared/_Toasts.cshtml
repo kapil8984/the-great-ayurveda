@@ -1,3 +1,10 @@
+<style>
+    @@media (max-width: 767.98px) {
+        #tgaToastContainer {
+            bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+        }
+    }
+</style>
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="tgaToastContainer" style="z-index: 1080;">
     @if (TempData["SuccessMessage"] != null)
     {

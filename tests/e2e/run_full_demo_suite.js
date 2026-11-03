@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { getDevAdminPassword } = require('./getTestPassword');
+const { getDevAdminPassword, getCustomerPassword } = require('./getTestPassword');
 
 const WEB_URL = 'http://localhost:5000';
 const ADMIN_URL = 'http://localhost:7200';
@@ -140,7 +140,7 @@ async function run() {
         console.log('\n--- STEP 3: Doctor Appointment Booking & Payment Popup ---');
         await page.goto(`${WEB_URL}/Account/Login`, { waitUntil: 'networkidle' });
         await page.fill('#Email', 'customer@ayurveda.com');
-        await page.fill('input[name="Password"]', 'Customer@123');
+        await page.fill('input[name="Password"]', getCustomerPassword());
         await page.click('#loginForm button[type="submit"]');
         await page.waitForTimeout(1500);
 

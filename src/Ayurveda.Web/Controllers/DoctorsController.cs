@@ -20,6 +20,7 @@ public class DoctorsController : Controller
     private readonly IFileStorageService _fileStorage;
     private readonly IMemoryCache _cache;
     private readonly ILogger<DoctorsController> _logger;
+    private readonly IPaymentProvider _paymentProvider;
 
     public DoctorsController(
         AyurvedaDbContext context,
@@ -27,7 +28,8 @@ public class DoctorsController : Controller
         ICallProvider callProvider,
         IFileStorageService fileStorage,
         IMemoryCache cache,
-        ILogger<DoctorsController> logger)
+        ILogger<DoctorsController> logger,
+        IPaymentProvider paymentProvider)
     {
         _context = context;
         _userManager = userManager;
@@ -35,6 +37,7 @@ public class DoctorsController : Controller
         _fileStorage = fileStorage;
         _cache = cache;
         _logger = logger;
+        _paymentProvider = paymentProvider;
     }
 
     // -------------------------------------------------------------------------
@@ -246,7 +249,7 @@ public class DoctorsController : Controller
                 .ThenInclude(dd => dd!.Specialization)
             .Include(d => d.Reviews)
                 .ThenInclude(r => r.User)
-            .FirstOrDefaultAsync(d => d.Id == id && d.DoctorDetail != null && d.DoctorDetail.Status == 1);
+            .FirstOrDefaultAsync(d => d.Id == id && d.DoctorDetail != null && d.DoctorDetail.Status == 1 && (d.ApplicationUser == null || !d.ApplicationUser.IsDemo));
 
         if (doc == null || doc.DoctorDetail == null)
             return NotFound();
@@ -290,7 +293,7 @@ public class DoctorsController : Controller
         var doc = await _context.Doctors
             .Include(d => d.DoctorDetail)
                 .ThenInclude(dd => dd!.Specialization)
-            .FirstOrDefaultAsync(d => d.Id == id && d.DoctorDetail != null && d.DoctorDetail.Status == 1);
+            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.DoctorDetail != null && d.DoctorDetail.Status == 1);
 
         if (doc == null || doc.DoctorDetail == null)
             return NotFound();
@@ -325,6 +328,10 @@ public class DoctorsController : Controller
             return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Book", "Doctors", new { id, mode }) });
         }
 
+        var paymentInit = await _paymentProvider.InitiateOrderPaymentAsync(
+            $"DOC-{doc.Id}-{DateTime.UtcNow.Ticks % 1000000}",
+            Math.Round(fee, 0));
+
         var model = new BookAppointmentViewModel
         {
             DoctorId = doc.Id,
@@ -336,7 +343,10 @@ public class DoctorsController : Controller
             SelectedTimeSlot = allSlots.FirstOrDefault() ?? "10:00 AM",
             AvailableSlots = allSlots,
             PatientName = user.FullName ?? "",
-            PatientContact = user.ContactNumber ?? ""
+            PatientContact = user.ContactNumber ?? "",
+            RazorpayKeyId = paymentInit.KeyId ?? "demo_key",
+            RazorpayOrderId = paymentInit.ProviderOrderId,
+            IsLiveRazorpay = paymentInit.IsLiveRazorpay
         };
 
         return View(model);
@@ -363,6 +373,20 @@ public class DoctorsController : Controller
             return RedirectToAction(nameof(Book), new { id = model.DoctorId });
         }
 
+        if (model.IsLiveRazorpay)
+        {
+            var isSignatureValid = await _paymentProvider.VerifyPaymentSignatureAsync(
+                model.RazorpayOrderId ?? "",
+                model.RazorpayPaymentId ?? "",
+                model.RazorpaySignature ?? "");
+
+            if (!isSignatureValid)
+            {
+                TempData["ErrorMessage"] = "Consultation fee authorization failed: Razorpay signature could not be verified. Please retry.";
+                return RedirectToAction(nameof(Book), new { id = model.DoctorId });
+            }
+        }
+
         var doc = await _context.Doctors
             .Include(d => d.DoctorDetail)
             .FirstOrDefaultAsync(d => d.Id == model.DoctorId && d.DoctorDetail != null && d.DoctorDetail.Status == 1);
@@ -385,7 +409,7 @@ public class DoctorsController : Controller
 
         if (isSlotBooked)
         {
-            TempData["ErrorMessage"] = $"Dr. {doc.DoctorName} is already booked for {model.SelectedTimeSlot} on {model.SelectedDate:dd MMM yyyy}. Please select an alternate slot.";
+            TempData["ErrorMessage"] = $"{DoctorNameFormatter.Format(doc.DoctorName)} is already booked for {model.SelectedTimeSlot} on {model.SelectedDate:dd MMM yyyy}. Please select an alternate slot.";
             return RedirectToAction(nameof(Book), new { id = model.DoctorId });
         }
 
@@ -428,50 +452,112 @@ public class DoctorsController : Controller
     }
 
     // -------------------------------------------------------------------------
-    // 4. IN-BROWSER SECURE VIDEO/AUDIO CALL ROOM (JITSI / LIVEKIT ABSTRACTION)
+    // 4. REAL TWO-WAY WEBRTC CONSULTATION ROOM
     // -------------------------------------------------------------------------
-    public async Task<IActionResult> Room(int id)
+    [HttpGet("doctors/room/{id:int?}")]
+    public async Task<IActionResult> Room(int? id)
     {
-        var appt = await _context.Appointments
-            .Include(a => a.Doctor)
-                .ThenInclude(d => d.DoctorDetail)
-            .Include(a => a.User)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        var config = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var demoOpenAccess = config.GetValue<bool>("Demo:OpenAccess", true);
+
+        Appointment? appt = null;
+        if (id.HasValue && id.Value > 0)
+        {
+            appt = await _context.Appointments
+                .Include(a => a.Doctor)
+                    .ThenInclude(d => d.DoctorDetail)
+                        .ThenInclude(dd => dd!.Specialization)
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.Id == id.Value);
+        }
 
         if (appt == null)
-            return NotFound("Consultation appointment not found.");
+        {
+            appt = await _context.Appointments
+                .Include(a => a.Doctor)
+                    .ThenInclude(d => d.DoctorDetail)
+                        .ThenInclude(dd => dd!.Specialization)
+                .Include(a => a.User)
+                .FirstOrDefaultAsync();
+
+            if (appt == null)
+            {
+                var firstDoc = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync();
+                appt = new Appointment
+                {
+                    Id = id ?? 1,
+                    PatientName = "Consultation Guest",
+                    DoctorId = firstDoc?.Id ?? 1,
+                    Doctor = firstDoc ?? new Doctor { DoctorName = "Dr. Anand Sharma" },
+                    StartUtc = DateTime.UtcNow,
+                    Status = "Confirmed"
+                };
+            }
+        }
 
         var currentUser = await _userManager.GetUserAsync(User);
+        bool isDoctor = false;
+        bool isPatient = false;
 
-        // Security Check: Only the patient or doctor can access the room
-        bool isPatient = currentUser != null && currentUser.Id == appt.UserId;
-        bool isDoctor = currentUser != null && appt.Doctor.ApplicationUserId == currentUser.Id;
-
-        // Allow demo review if not logged in
-        if (!isPatient && !isDoctor && currentUser == null)
+        if (currentUser != null)
         {
-            isPatient = true; // allow guest demonstration
+            isPatient = (appt.UserId == currentUser.Id);
+            isDoctor = (appt.Doctor.ApplicationUserId == currentUser.Id || 
+                        string.Equals(appt.Doctor.Email, currentUser.Email, StringComparison.OrdinalIgnoreCase) ||
+                        await _userManager.IsInRoleAsync(currentUser, "Doctor") ||
+                        await _userManager.IsInRoleAsync(currentUser, "Admin"));
         }
 
-        // Check slot time window: Room unlocks 15 mins prior to slot until completion
-        var nowUtc = DateTime.UtcNow;
-        var unlockWindowStart = appt.StartUtc.AddMinutes(-15);
-        var unlockWindowEnd = appt.StartUtc.AddHours(2);
-        bool isWindowOpen = nowUtc >= unlockWindowStart && nowUtc <= unlockWindowEnd;
-
-        // Track join telemetry
-        if (!appt.JoinedAtUtc.HasValue)
+        if (demoOpenAccess)
         {
-            appt.JoinedAtUtc = nowUtc;
-            await _context.SaveChangesAsync();
+            if (currentUser == null)
+            {
+                isPatient = true;
+            }
+            else if (isDoctor || currentUser.Email == "demo.doctor@thegreatayurveda.com")
+            {
+                isDoctor = true;
+            }
+            else
+            {
+                isPatient = true;
+            }
+        }
+        else
+        {
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = $"/doctors/room/{appt.Id}" });
+            }
+            if (!isDoctor && !isPatient)
+            {
+                return Forbid();
+            }
         }
 
-        ViewBag.IsDoctor = isDoctor;
-        ViewBag.IsPatient = isPatient;
-        ViewBag.IsWindowOpen = true; // Always unlocked for simulated demo consultation
-        ViewBag.RoomUrl = appt.MeetingRoomId ?? $"https://meet.jit.si/TheGreatAyurveda_Appt_{appt.Id}";
+        var rawStun = config["Calls:StunUrls"] ?? config["Calls__StunUrls"] ?? "stun:stun.l.google.com:19302";
+        var stunUrls = rawStun.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        return View(appt);
+        var turnUrl = config["Calls:TurnUrl"] ?? config["Calls__TurnUrl"];
+        var turnUser = config["Calls:TurnUser"] ?? config["Calls__TurnUser"];
+        var turnCredential = config["Calls:TurnCredential"] ?? config["Calls__TurnCredential"];
+
+        var vm = new CallRoomViewModel
+        {
+            AppointmentId = appt.Id,
+            PatientName = appt.PatientName ?? "Patient",
+            DoctorName = appt.Doctor?.DoctorName ?? "Dr. Anand Sharma",
+            DoctorSpecialization = appt.Doctor?.DoctorDetail?.Specialization?.Name ?? "General Ayurveda",
+            Role = isDoctor ? "doctor" : "patient",
+            UserId = currentUser?.Id.ToString() ?? (isDoctor ? "doc_demo" : "pat_demo"),
+            StunUrls = stunUrls,
+            TurnUrl = turnUrl,
+            TurnUser = turnUser,
+            TurnCredential = turnCredential,
+            IsDemoMode = demoOpenAccess
+        };
+
+        return View(vm);
     }
 
     // -------------------------------------------------------------------------

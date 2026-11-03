@@ -1,4 +1,6 @@
 @model Ayurveda.Application.ViewModels.OrderDetailViewModel
+@inject Ayurveda.Infrastructure.Data.AyurvedaDbContext DbContext
+@using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "Payment Successful — Order Confirmed";
     var expectedDelivery = DateTime.UtcNow.AddDays(4).ToString("dddd, dd MMMM yyyy");
@@ -6,8 +8,8 @@
 
 <div class="container py-5 text-center">
     <div class="card p-4 p-md-5 shadow-lg border-0 rounded-4 mx-auto bg-white position-relative overflow-hidden" style="max-width: 650px;">
-        <!-- Demo Mode Ribbon / Badge -->
-        <div class="position-absolute top-0 end-0 m-3">
+        <!-- Demo Mode Ribbon / Badge in normal flow -->
+        <div class="mb-3">
             <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 small fw-semibold">
                 <i class="bi bi-shield-check me-1"></i> Demo mode - no real payment
             </span>
@@ -27,29 +29,28 @@
         <p class="text-muted small">Your Ayurvedic formulation order has been confirmed and placed with our dispensary.</p>
         
         <div class="bg-light p-4 rounded-4 text-start my-4 border">
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted small">Order Reference:</span>
-                <span class="fw-bold font-monospace text-dark">@Model.OrderNumber</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted small">Total Paid:</span>
-                <span class="fw-bold fs-5 text-success">₹@Model.TotalAmount.ToString("N0")</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted small">Payment Mode:</span>
-                <span class="badge bg-success-subtle text-success border border-success-subtle">
-                    <i class="bi bi-check-circle me-1"></i> @Model.PaymentMethod (@Model.PaymentStatus)
-                </span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted small">Estimated Delivery:</span>
-                <span class="fw-bold text-dark"><i class="bi bi-truck text-success me-1"></i> @expectedDelivery</span>
-            </div>
-            <hr class="my-2" />
-            <div class="d-flex justify-content-between">
-                <span class="text-muted small">Shipping To:</span>
-                <span class="text-end small text-dark fw-medium" style="max-width: 280px;">@Model.ShippingAddress</span>
-            </div>
+            <dl class="row mb-0 gy-2" style="overflow-wrap: anywhere; word-break: break-word;">
+                <dt class="col-5 col-sm-4 text-muted small fw-normal">Order Reference:</dt>
+                <dd class="col-7 col-sm-8 text-end fw-bold font-monospace text-dark mb-0">@Model.OrderNumber</dd>
+
+                <dt class="col-5 col-sm-4 text-muted small fw-normal">Total Paid:</dt>
+                <dd class="col-7 col-sm-8 text-end fw-bold fs-5 text-success mb-0">₹@Model.TotalAmount.ToString("N0")</dd>
+
+                <dt class="col-5 col-sm-4 text-muted small fw-normal">Payment Mode:</dt>
+                <dd class="col-7 col-sm-8 text-end mb-0">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-check-circle me-1"></i> @Model.PaymentMethod (@Model.PaymentStatus)
+                    </span>
+                </dd>
+
+                <dt class="col-5 col-sm-4 text-muted small fw-normal">Estimated Delivery:</dt>
+                <dd class="col-7 col-sm-8 text-end fw-bold text-dark mb-0"><i class="bi bi-truck text-success me-1"></i> @expectedDelivery</dd>
+
+                <div class="col-12"><hr class="my-2" /></div>
+
+                <dt class="col-12 col-sm-4 text-muted small fw-normal">Shipping To:</dt>
+                <dd class="col-12 col-sm-8 text-sm-end small text-dark fw-medium mb-0">@Model.ShippingAddress</dd>
+            </dl>
         </div>
 
         <div class="d-flex flex-wrap justify-content-center gap-3">

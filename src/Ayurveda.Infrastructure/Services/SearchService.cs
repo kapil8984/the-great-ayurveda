@@ -176,7 +176,7 @@ public class SearchService : ISearchService
                 .Select(d => new SearchItemDto
                 {
                     Id = d.Id.ToString(),
-                    Title = $"Dr. {d.DoctorName}",
+                    Title = d.DoctorName.StartsWith("Dr.") ? d.DoctorName : "Dr. " + d.DoctorName,
                     Subtitle = d.Email,
                     ImageUrl = d.ProfileImage,
                     Url = $"/Admin/Doctors/Details/{d.Id}",
@@ -295,7 +295,7 @@ public class SearchService : ISearchService
             .Select(d => new SearchItemDto
             {
                 Id = d.Id.ToString(),
-                Title = $"Dr. {d.DoctorName}",
+                Title = d.DoctorName.StartsWith("Dr.") ? d.DoctorName : "Dr. " + d.DoctorName,
                 Subtitle = d.DoctorDetail != null && d.DoctorDetail.Specialization != null ? $"{d.DoctorDetail.Specialization.Name} • {d.DoctorDetail.Experience} yrs exp" : "Ayurvedic Doctor",
                 ImageUrl = d.ProfileImage,
                 Url = $"/Doctors/Profile/{d.Id}",

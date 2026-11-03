@@ -171,7 +171,7 @@ async function runGroup3Verification() {
         await page.goto(`${WEB_URL}/Shop`, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await page.waitForTimeout(2000);
         const shopHtml = await page.content();
-        assert(shopHtml.includes('AI-generated sample images'), 'Storefront footer displays "AI-generated sample images" notice');
+        assert(shopHtml.includes('About this project') && shopHtml.includes('/about-project'), 'Storefront footer displays "About this project" link');
 
         // Check broken images on Shop page
         const brokenShopImgs = await page.evaluate(() => {

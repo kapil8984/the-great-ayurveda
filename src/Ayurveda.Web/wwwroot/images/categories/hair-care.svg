@@ -1,16 +1,84 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
   <defs>
-    <linearGradient id="catGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="hsl(200, 60%, 45%)" />
-      <stop offset="100%" stop-color="hsl(225, 65%, 28%)" />
+    <radialGradient id="hairAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#DCFCE7" stop-opacity="0.95" />
+      <stop offset="70%" stop-color="#BBF7D0" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#DCFCE7" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hairLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22C55E" />
+      <stop offset="60%" stop-color="#15803D" />
+      <stop offset="100%" stop-color="#064E3B" />
     </linearGradient>
+    <linearGradient id="hairOil" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="60%" stop-color="#EAB308" />
+      <stop offset="100%" stop-color="#CA8A04" />
+    </linearGradient>
+    <filter id="hairShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#064E3B" flood-opacity="0.25"/>
+    </filter>
   </defs>
-  <circle cx="50" cy="50" r="46" fill="url(#catGrad4)" />
-  <circle cx="50" cy="50" r="43" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.3" />
-  <!-- Botanical Emblem -->
-  <path d="M50 22 C62 34 68 52 50 78 C32 52 38 34 50 22 Z" fill="#FFFFFF" fill-opacity="0.9" />
-  <path d="M50 32 L50 68" stroke="hsl(200, 70%, 25%)" stroke-width="2" stroke-linecap="round" />
-  <path d="M50 44 Q60 40 62 48" stroke="hsl(200, 70%, 25%)" stroke-width="1.5" stroke-linecap="round" fill="none" />
-  <path d="M50 52 Q40 48 38 56" stroke="hsl(200, 70%, 25%)" stroke-width="1.5" stroke-linecap="round" fill="none" />
-  <circle cx="50" cy="22" r="3" fill="#E3A72F" />
+
+  <!-- Circular Backdrop -->
+  <circle cx="80" cy="80" r="72" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5" />
+  <circle cx="80" cy="80" r="62" fill="url(#hairAura)" />
+
+  <g opacity="0.35" stroke="#16A34A" stroke-width="1" fill="none">
+    <circle cx="80" cy="80" r="54" stroke-dasharray="3 3" />
+  </g>
+
+  <!-- Bhringraj (Eclipta Alba) Botanical Foliage -->
+  <g filter="url(#hairShadow)">
+    <!-- Central Stem -->
+    <path d="M80 134 C80 110 78 88 84 62" stroke="#14532D" stroke-width="2.5" stroke-linecap="round" fill="none" />
+
+    <!-- Left Large Bhringraj Leaf -->
+    <path d="M78 106 C60 102 44 86 42 70 C56 74 72 88 78 106 Z" fill="url(#hairLeaf)" />
+    <path d="M42 70 C54 78 66 90 78 106" stroke="#86EFAC" stroke-width="1" fill="none" opacity="0.7" />
+
+    <!-- Right Large Bhringraj Leaf -->
+    <path d="M80 94 C98 90 114 76 118 60 C104 64 88 78 80 94 Z" fill="url(#hairLeaf)" />
+    <path d="M118 60 C106 68 94 80 80 94" stroke="#86EFAC" stroke-width="1" fill="none" opacity="0.7" />
+
+    <!-- Lower Accent Leaf -->
+    <path d="M79 122 C92 120 106 112 110 102 C98 104 86 112 79 122 Z" fill="url(#hairLeaf)" />
+  </g>
+
+  <!-- Sacred Bhringraj White Blossom (Starry Head) -->
+  <g filter="url(#hairShadow)">
+    <!-- White Ray Petals -->
+    <g fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.8">
+      <ellipse cx="84" cy="50" rx="3" ry="7" />
+      <ellipse cx="84" cy="50" rx="3" ry="7" transform="rotate(30 84 50)" />
+      <ellipse cx="84" cy="50" rx="3" ry="7" transform="rotate(60 84 50)" />
+      <ellipse cx="84" cy="50" rx="3" ry="7" transform="rotate(90 84 50)" />
+      <ellipse cx="84" cy="50" rx="3" ry="7" transform="rotate(120 84 50)" />
+      <ellipse cx="84" cy="50" rx="3" ry="7" transform="rotate(150 84 50)" />
+    </g>
+    <!-- Yellow Central Disc Floret -->
+    <circle cx="84" cy="50" r="5" fill="#EAB308" stroke="#CA8A04" stroke-width="0.8" />
+    <circle cx="83" cy="49" r="1.5" fill="#FEF08A" />
+  </g>
+
+  <!-- Lustrous Hair Vitality Oil Drop (Pure Kesh Taila) -->
+  <g filter="url(#hairShadow)">
+    <path d="M54 104 C48 112 45 118 45 124 C45 130 49 135 54 135 C59 135 63 130 63 124 C63 118 60 112 54 104 Z" fill="url(#hairOil)" />
+    <ellipse cx="51" cy="122" rx="2" ry="4" fill="#FFFFFF" opacity="0.8" />
+  </g>
+
+  <!-- Ripe Amla Cross-Section Slice (C-vitamin Scalp Tonic) -->
+  <g filter="url(#hairShadow)">
+    <circle cx="116" cy="118" r="13" fill="#86EFAC" stroke="#16A34A" stroke-width="1.5" />
+    <!-- Segment lines -->
+    <circle cx="116" cy="118" r="4" fill="#15803D" />
+    <path d="M116 105 L116 131" stroke="#166534" stroke-width="1" opacity="0.5" />
+    <path d="M103 118 L129 118" stroke="#166534" stroke-width="1" opacity="0.5" />
+    <path d="M107 109 L125 127" stroke="#166534" stroke-width="1" opacity="0.5" />
+  </g>
+
+  <!-- Scalp Nourishment Sparks -->
+  <circle cx="84" cy="34" r="2" fill="#22C55E" />
+  <circle cx="36" cy="74" r="2.5" fill="#EAB308" />
+  <circle cx="128" cy="54" r="2" fill="#EAB308" />
 </svg>

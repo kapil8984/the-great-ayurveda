@@ -46,7 +46,7 @@
                     </div>
                 </div>
                 <div class="col-sm-5 text-sm-end mt-3 mt-sm-0">
-                    <h5 class="fw-bold mb-1 text-success font-serif">Dr. @Model.DoctorName</h5>
+                    <h5 class="fw-bold mb-1 text-success font-serif">@Model.FormattedDoctorName</h5>
                     <div class="small fw-semibold text-dark">@Model.Qualification</div>
                     <div class="small text-muted">@Model.Specialization</div>
                     <div class="text-xs text-muted mt-1">
@@ -137,7 +137,7 @@
                     <!-- Direct Add-All Button -->
                     <div class="p-3 bg-success-subtle border border-success-subtle rounded-3 mt-3 d-flex flex-wrap justify-content-between align-items-center gap-2 print-hide">
                         <div class="small text-success">
-                            <i class="bi bi-bag-check me-1"></i> Authenticated formulations can be dispatched directly to your doorstep.
+                            <i class="bi bi-bag-check me-1"></i> Prescribed formulations can be dispatched directly to your doorstep.
                         </div>
                         <form asp-action="AddPrescriptionToCart" method="post" class="m-0">
                             @Html.AntiForgeryToken()
@@ -193,7 +193,7 @@
                 </div>
                 <div class="col-4 text-end">
                     <div class="font-serif fw-bold text-success" style="font-size: 1.1rem; border-bottom: 1px dashed #2C7E50; display: inline-block; padding-bottom: 2px;">
-                        Dr. @Model.DoctorName
+                        @Model.FormattedDoctorName
                     </div>
                     <div class="text-xs text-muted mt-1">Digital Demonstration Record</div>
                     <span class="badge bg-warning bg-opacity-25 text-dark border border-warning text-xs mt-1">Sample prescription - demonstration only</span>

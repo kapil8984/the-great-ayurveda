@@ -31,8 +31,8 @@
                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative bg-white">
                         <div class="p-3 text-center position-relative" style="background: #FDFBF7;">
                             <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId">
-                                <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" 
-                                     alt="@item.Title" class="img-fluid" style="height: 160px; object-fit: contain;" />
+                                <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/placeholder.svg" : item.ImageUrl)" 
+                                     alt="@item.Title" class="img-fluid" style="height: 160px; object-fit: contain;" onerror="this.onerror=null;this.src='/images/placeholder.svg';" />
                             </a>
                             @if (item.DiscountPercent > 0)
                             {

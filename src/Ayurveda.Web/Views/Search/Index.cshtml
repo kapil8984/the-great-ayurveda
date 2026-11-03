@@ -1,24 +1,36 @@
 @model Ayurveda.Application.ViewModels.SearchResultsViewModel
+@inject Ayurveda.Infrastructure.Data.AyurvedaDbContext DbContext
+@using Microsoft.EntityFrameworkCore
 @{
-    ViewData["Title"] = string.IsNullOrWhiteSpace(Model.Query) ? "Search Medicines & Formulations" : $"Search Results for \"{Model.Query}\"";
+    ViewData["Title"] = string.IsNullOrWhiteSpace(Model.Query) ? "Apothecary Search & Formulations" : $"Search Results for \"{Model.Query}\"";
+    var catalog = Model.Catalog;
+    var currentUrl = Context.Request.Path + Context.Request.QueryString;
+    var searchTopAd = await DbContext.Banners.FirstOrDefaultAsync(b => b.IsActive && b.Placement == "ad_search_top");
 }
 
 <div class="container py-4">
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb small">
+        <ol class="breadcrumb small mb-0">
             <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">Home</a></li>
             <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" class="text-decoration-none text-muted">Apothecary</a></li>
             <li class="breadcrumb-item active text-success fw-semibold" aria-current="page">
-                @(string.IsNullOrWhiteSpace(Model.Query) ? "Search" : $"\"{Model.Query}\"")
+                @(string.IsNullOrWhiteSpace(Model.Query) ? "Explore" : $"\"{Model.Query}\"")
             </li>
         </ol>
     </nav>
 
+    @if (searchTopAd != null)
+    {
+        <div class="mb-3">
+            <partial name="_AdBanner" model="searchTopAd" />
+        </div>
+    }
+
     <!-- Typo Tolerance "Did you mean ...?" Banner -->
     @if (!string.IsNullOrWhiteSpace(Model.DidYouMean))
     {
-        <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center justify-content-between p-3">
+        <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-3 d-flex align-items-center justify-content-between p-3">
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-lightbulb-fill text-warning fs-4"></i>
                 <div>
@@ -26,11 +38,11 @@
                     <a asp-action="Index" asp-route-q="@Model.DidYouMean" class="fw-bold text-success text-decoration-underline ms-1">
                         @Model.DidYouMean
                     </a>?
-                    <span class="text-muted small ms-2 d-none d-md-inline">(Showing matching results for your query)</span>
+                    <span class="text-muted small ms-2 d-none d-md-inline">(Showing matching formulations)</span>
                 </div>
             </div>
             <a asp-action="Index" asp-route-q="@Model.DidYouMean" class="btn btn-sm btn-outline-success rounded-pill px-3">
-                Search "@Model.DidYouMean" instead
+                Search "@Model.DidYouMean"
             </a>
         </div>
     }
@@ -38,22 +50,22 @@
     <!-- Hindi / Hinglish Transliteration Synonym Banner -->
     @if (!string.IsNullOrWhiteSpace(Model.SynonymApplied))
     {
-        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center gap-3 p-3">
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-3 d-flex align-items-center gap-3 p-3">
             <i class="bi bi-translate text-success fs-4"></i>
             <div>
-                <span class="fw-semibold">Ayurvedic Transliteration Applied:</span>
-                <span class="ms-1">Translated "<strong>@Model.Query</strong>" to traditional therapeutic category <strong>@Model.SynonymApplied</strong>.</span>
+                <span class="fw-semibold">Ayurvedic Transliteration:</span>
+                <span class="ms-1">Mapped "<strong>@Model.Query</strong>" to traditional therapeutic concern <strong>@Model.SynonymApplied</strong>.</span>
             </div>
         </div>
     }
 
-    <!-- Header & Latency Indicator -->
-    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4 border-bottom pb-3">
+    <!-- Header, Total Count & Sort Controls -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 border-bottom pb-3">
         <div>
-            <h1 class="h3 fw-bold font-serif text-success mb-1">
+            <h1 class="h4 fw-bold font-serif text-success mb-1">
                 @if (string.IsNullOrWhiteSpace(Model.Query))
                 {
-                    <span>Explore Classical Apothecary</span>
+                    <span>Explore Classical Formulations</span>
                 }
                 else
                 {
@@ -61,220 +73,130 @@
                 }
             </h1>
             <p class="text-muted small mb-0">
-                Found <strong>@Model.Catalog.TotalCount</strong> authentic Ayurvedic formulation@(Model.Catalog.TotalCount == 1 ? "" : "s")
+                Found <strong>@catalog.TotalCount</strong> authentic Ayurvedic item@(catalog.TotalCount == 1 ? "" : "s")
                 <span class="badge bg-light text-muted border ms-2">⚡ p95 @Model.LatencyMs ms</span>
             </p>
         </div>
 
-        <!-- Sort Control -->
-        <form method="get" class="d-flex align-items-center gap-2">
-            <input type="hidden" name="q" value="@Model.Query" />
-            @if (Model.Catalog.SelectedCategoryId.HasValue)
-            {
-                <input type="hidden" name="categoryId" value="@Model.Catalog.SelectedCategoryId.Value" />
-            }
-            @if (!string.IsNullOrWhiteSpace(Model.Catalog.SelectedBrand))
-            {
-                <input type="hidden" name="brand" value="@Model.Catalog.SelectedBrand" />
-            }
-            @if (Model.Catalog.MinPrice.HasValue)
-            {
-                <input type="hidden" name="minPrice" value="@Model.Catalog.MinPrice.Value" />
-            }
-            @if (Model.Catalog.MaxPrice.HasValue)
-            {
-                <input type="hidden" name="maxPrice" value="@Model.Catalog.MaxPrice.Value" />
-            }
-            @if (Model.Catalog.MinRating.HasValue)
-            {
-                <input type="hidden" name="minRating" value="@Model.Catalog.MinRating.Value" />
-            }
+        <div class="d-flex align-items-center gap-2">
+            <!-- Mobile Filter Trigger Button -->
+            <button class="btn btn-outline-success btn-sm rounded-pill d-lg-none d-inline-flex align-items-center gap-1 px-3" 
+                    type="button" 
+                    data-bs-toggle="offcanvas" 
+                    data-bs-target="#mobileFilterDrawer" 
+                    aria-controls="mobileFilterDrawer"
+                    style="min-height: 38px;">
+                <i class="bi bi-funnel"></i>
+                <span>Filters</span>
+                @if (catalog.ActiveChips.Any())
+                {
+                    <span class="badge bg-success rounded-pill ms-1">@catalog.ActiveChips.Count</span>
+                }
+            </button>
 
-            <label for="sortSelect" class="small text-muted text-nowrap">Sort by:</label>
-            <select name="sort" id="sortSelect" class="form-select form-select-sm rounded-pill border-secondary-subtle" onchange="this.form.submit()">
-                <option value="relevance" selected="@(Model.Catalog.SelectedSort == "relevance")">Relevance</option>
-                <option value="price_asc" selected="@(Model.Catalog.SelectedSort == "price_asc")">Price: Low to High</option>
-                <option value="price_desc" selected="@(Model.Catalog.SelectedSort == "price_desc")">Price: High to Low</option>
-                <option value="rating" selected="@(Model.Catalog.SelectedSort == "rating")">Highest Rated</option>
-                <option value="newest" selected="@(Model.Catalog.SelectedSort == "newest")">Newest Arrivals</option>
-            </select>
-        </form>
+            <!-- Sort Control -->
+            <form method="get" id="sortForm" class="d-flex align-items-center gap-1 m-0">
+                <input type="hidden" name="q" value="@Model.Query" />
+                @if (catalog.SelectedCategoryId.HasValue) { <input type="hidden" name="categoryId" value="@catalog.SelectedCategoryId.Value" /> }
+                @if (catalog.SelectedSubcategoryId.HasValue) { <input type="hidden" name="subcategoryId" value="@catalog.SelectedSubcategoryId.Value" /> }
+                @if (!string.IsNullOrWhiteSpace(catalog.SelectedBrand)) { <input type="hidden" name="brand" value="@catalog.SelectedBrand" /> }
+                @if (!string.IsNullOrWhiteSpace(catalog.Concern)) { <input type="hidden" name="concern" value="@catalog.Concern" /> }
+                @if (catalog.MinPrice.HasValue) { <input type="hidden" name="minPrice" value="@catalog.MinPrice.Value" /> }
+                @if (catalog.MaxPrice.HasValue) { <input type="hidden" name="maxPrice" value="@catalog.MaxPrice.Value" /> }
+                @if (catalog.MinRating.HasValue) { <input type="hidden" name="minRating" value="@catalog.MinRating.Value" /> }
+                @if (catalog.MinDiscount.HasValue) { <input type="hidden" name="minDiscount" value="@catalog.MinDiscount.Value" /> }
+                @if (catalog.InStockOnly) { <input type="hidden" name="inStockOnly" value="true" /> }
+
+                <label for="sortSelect" class="small text-muted text-nowrap d-none d-sm-inline">Sort by:</label>
+                <select name="sort" id="sortSelect" class="form-select form-select-sm rounded-pill border-secondary-subtle" onchange="this.form.submit()" style="min-width: 140px; min-height: 38px;">
+                    <option value="relevance" selected="@(catalog.SelectedSort == "relevance")">Relevance</option>
+                    <option value="price_asc" selected="@(catalog.SelectedSort == "price_asc")">Price: Low to High</option>
+                    <option value="price_desc" selected="@(catalog.SelectedSort == "price_desc")">Price: High to Low</option>
+                    <option value="rating" selected="@(catalog.SelectedSort == "rating")">Highest Rated (4★+)</option>
+                    <option value="discount" selected="@(catalog.SelectedSort == "discount")">Special Discount</option>
+                    <option value="newest" selected="@(catalog.SelectedSort == "newest")">Newest Arrivals</option>
+                </select>
+            </form>
+        </div>
     </div>
 
-    <!-- Classical Herb Spotlight (if matched) -->
-    @if (Model.MatchingHerbs != null && Model.MatchingHerbs.Any())
-    {
-        <div class="card bg-success-subtle border-0 rounded-4 p-3 mb-4 shadow-sm">
-            <div class="d-flex align-items-center gap-2 mb-2 text-success fw-bold small text-uppercase">
-                <i class="bi bi-flower1"></i> Classical Ayurvedic Herb Spotlight
-            </div>
-            <div class="row g-2">
-                @foreach (var herb in Model.MatchingHerbs)
-                {
-                    <div class="col-md-4">
-                        <div class="p-3 bg-white rounded-3 border h-100 shadow-xs">
-                            <h6 class="fw-bold text-success mb-1">@herb.Title</h6>
-                            <p class="small text-muted mb-2">@herb.Subtitle</p>
-                            <a href="@herb.Url" class="small fw-semibold text-success text-decoration-none">
-                                Browse @herb.Title medicines &rarr;
-                            </a>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    }
-
-    <!-- Doctor Spotlight (Sample doctor profile (fictional)) -->
-    @if (Model.MatchingDoctors != null && Model.MatchingDoctors.Any())
-    {
-        <div class="card bg-light border rounded-4 p-3 mb-4 shadow-sm">
-            <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-bold small text-uppercase">
-                <i class="bi bi-person-badge"></i> Ayurvedic Vaidyas — Sample doctor profile (fictional)
-            </div>
-            <div class="row g-2">
-                @foreach (var doc in Model.MatchingDoctors)
-                {
-                    <div class="col-md-6 col-lg-4">
-                        <div class="p-2 bg-white rounded-3 border d-flex align-items-center gap-3">
-                            <i class="bi bi-person-circle fs-2 text-success"></i>
-                            <div class="flex-grow-1 overflow-hidden">
-                                <div class="fw-bold small text-truncate">@doc.Title</div>
-                                <div class="text-muted text-xs text-truncate">@doc.Subtitle</div>
-                            </div>
-                            <a href="@doc.Url" class="btn btn-sm btn-outline-success rounded-pill px-3">
-                                Consult
-                            </a>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    }
-
     <!-- Active Filter Chips -->
-    @if (Model.Catalog.ActiveChips.Any())
+    @if (catalog.ActiveChips.Any())
     {
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
-            <span class="small text-muted me-1">Active Filters:</span>
-            @foreach (var chip in Model.Catalog.ActiveChips)
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 bg-light rounded-3">
+            <span class="small fw-semibold text-muted me-1"><i class="bi bi-funnel-fill me-1"></i> Active Filters:</span>
+            @foreach (var chip in catalog.ActiveChips)
             {
-                <a href="@chip.RemoveUrl" class="badge rounded-pill bg-white text-dark border p-2 px-3 text-decoration-none shadow-xs d-inline-flex align-items-center gap-2">
+                <a href="@chip.RemoveUrl" class="badge rounded-pill bg-white text-dark border p-2 px-3 text-decoration-none shadow-xs d-inline-flex align-items-center gap-1 hover-shadow">
                     <span>@chip.Label</span>
-                    <i class="bi bi-x-circle-fill text-muted"></i>
+                    <i class="bi bi-x text-danger fw-bold fs-6"></i>
                 </a>
             }
-            <a asp-action="Index" asp-route-q="@Model.Query" class="small text-danger text-decoration-none ms-2">
-                Clear all filters
+            <a asp-action="Index" asp-route-q="@Model.Query" class="btn btn-link text-danger text-decoration-none small p-0 ms-2 fw-semibold">
+                Clear all
             </a>
         </div>
     }
 
     <!-- Main Results Row -->
     <div class="row g-4">
-        <!-- Sidebar Filters -->
-        <div class="col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 sticky-top" style="top: 100px;">
-                <h5 class="fw-bold text-success mb-3 pb-2 border-bottom">Refine Formulations</h5>
-
-                <!-- Search within results -->
-                <form method="get" class="mb-4">
-                    <label class="form-label small fw-semibold text-muted">Search Query</label>
-                    <div class="input-group input-group-sm">
-                        <input type="text" name="q" value="@Model.Query" class="form-control rounded-start-pill" placeholder="Change search..." />
-                        <button type="submit" class="btn btn-tga-gold rounded-end-pill px-3">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Categories Facet -->
-                <div class="mb-4">
-                    <h6 class="fw-bold small text-uppercase text-muted mb-2">Category</h6>
-                    <div class="d-flex flex-column gap-1 max-h-200 overflow-y-auto">
-                        @foreach (var cat in Model.Catalog.Categories.Take(10))
-                        {
-                            <a href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&categoryId=@cat.Id" 
-                               class="d-flex justify-content-between align-items-center py-1 px-2 rounded text-decoration-none small @(cat.IsSelected ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
-                                <span>@cat.Name</span>
-                                <span class="badge bg-light text-muted border">@cat.ProductCount</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-
-                <!-- Brands Facet -->
-                <div class="mb-4">
-                    <h6 class="fw-bold small text-uppercase text-muted mb-2">Brand / Pharmacy</h6>
-                    <div class="d-flex flex-column gap-1 max-h-200 overflow-y-auto">
-                        @foreach (var b in Model.Catalog.Brands.Take(8))
-                        {
-                            <a href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&brand=@Uri.EscapeDataString(b.Name)" 
-                               class="d-flex justify-content-between align-items-center py-1 px-2 rounded text-decoration-none small @(b.IsSelected ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
-                                <span>@b.Name</span>
-                                <span class="badge bg-light text-muted border">@b.ProductCount</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-
-                <!-- Price Range Filter Form -->
-                <form method="get" class="mb-3">
-                    <input type="hidden" name="q" value="@Model.Query" />
-                    @if (Model.Catalog.SelectedCategoryId.HasValue)
+        <!-- Desktop Left Filter Sidebar -->
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="card border-0 shadow-sm rounded-4 p-3 sticky-top" style="top: 90px; max-height: calc(100vh - 110px); overflow-y: auto;">
+                <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
+                    <h5 class="fw-bold text-success mb-0 fs-6"><i class="bi bi-sliders me-1"></i> Refine Formulations</h5>
+                    @if (catalog.ActiveChips.Any())
                     {
-                        <input type="hidden" name="categoryId" value="@Model.Catalog.SelectedCategoryId.Value" />
+                        <a asp-action="Index" asp-route-q="@Model.Query" class="small text-danger text-decoration-none fw-semibold">Clear All</a>
                     }
-                    @if (!string.IsNullOrWhiteSpace(Model.Catalog.SelectedBrand))
-                    {
-                        <input type="hidden" name="brand" value="@Model.Catalog.SelectedBrand" />
-                    }
-                    <h6 class="fw-bold small text-uppercase text-muted mb-2">Price Range (₹)</h6>
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <input type="number" name="minPrice" value="@Model.Catalog.MinPrice" class="form-control form-control-sm" placeholder="Min" />
-                        <span class="text-muted">-</span>
-                        <input type="number" name="maxPrice" value="@Model.Catalog.MaxPrice" class="form-control form-control-sm" placeholder="Max" />
-                    </div>
-                    <button type="submit" class="btn btn-outline-success btn-sm w-100 rounded-pill">Apply Price</button>
-                </form>
-
-                <!-- Rating Filter -->
-                <div>
-                    <h6 class="fw-bold small text-uppercase text-muted mb-2">Minimum Rating</h6>
-                    <div class="d-flex flex-column gap-1">
-                        <a href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&minRating=4.5" class="small text-decoration-none text-muted py-1 px-2 rounded hover-bg-light">
-                            <span class="text-warning">★★★★★</span> 4.5 &amp; above
-                        </a>
-                        <a href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&minRating=4.0" class="small text-decoration-none text-muted py-1 px-2 rounded hover-bg-light">
-                            <span class="text-warning">★★★★☆</span> 4.0 &amp; above
-                        </a>
-                    </div>
                 </div>
+
+                @await Html.PartialAsync("_SearchFilterContent", Model)
+
+                @if (ViewBag.AdShopSide != null)
+                {
+                    <div class="pt-3 border-top mt-3">
+                        <partial name="_AdBanner" model="ViewBag.AdShopSide" />
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Mobile Offcanvas Filter Drawer -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileFilterDrawer" aria-labelledby="mobileFilterDrawerLabel">
+            <div class="offcanvas-header border-bottom py-3">
+                <h5 class="offcanvas-title fw-bold text-success" id="mobileFilterDrawerLabel">
+                    <i class="bi bi-sliders me-1"></i> Filter Formulations
+                </h5>
+                <button type="button" class="btn-close tga-touch-target" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body p-3">
+                @await Html.PartialAsync("_SearchFilterContent", Model)
             </div>
         </div>
 
         <!-- Products Grid / Empty State -->
         <div class="col-lg-9">
-            @if (Model.Catalog.TotalCount == 0)
+            @if (catalog.TotalCount == 0)
             {
                 <!-- Zero Results State -->
-                <div class="card border-0 shadow-sm rounded-4 text-center p-5">
+                <div class="card border-0 shadow-sm rounded-4 text-center p-4 p-md-5">
                     <div class="mb-3">
                         <span class="badge bg-warning-subtle text-warning p-3 rounded-circle fs-2">
                             <i class="bi bi-search"></i>
                         </span>
                     </div>
-                    <h4 class="fw-bold text-dark mb-2">No Ayurvedic formulations matched your search</h4>
-                    <p class="text-muted mb-4 mx-auto" style="max-width: 500px;">
-                        We couldn't find any items matching "<strong>@Model.Query</strong>". Please try alternative terms, classical botanical names, or explore our popular health concerns.
+                    <h3 class="fw-bold text-dark mb-2 font-serif">No Ayurvedic formulations matched your search</h3>
+                    <p class="text-muted mb-4 mx-auto" style="max-width: 520px;">
+                        We couldn't find any products matching "<strong>@Model.Query</strong>". Try checking the spelling, resetting active filters, or exploring classical botanicals.
                     </p>
 
-                    <div class="card bg-light border-0 rounded-4 p-4 mb-4 mx-auto text-start" style="max-width: 600px;">
+                    <div class="card bg-light border-0 rounded-4 p-3 p-md-4 mb-4 mx-auto text-start" style="max-width: 600px;">
                         <h6 class="fw-bold text-success mb-2"><i class="bi bi-compass me-1"></i> Search Suggestions:</h6>
                         <ul class="small text-muted mb-0 ps-3">
-                            <li class="mb-1">Check spelling or try Sanskrit/Hindi transliterations (e.g., <em>bukhar</em>, <em>neend</em>, <em>gas</em>).</li>
-                            <li class="mb-1">Search for the primary herbal ingredient directly (e.g., <em>Ashwagandha</em>, <em>Triphala</em>, <em>Brahmi</em>, <em>Kumkumadi</em>).</li>
-                            <li>Explore remedies by concern: <a asp-controller="Shop" asp-action="Index" asp-route-concern="Digestion" class="text-success fw-semibold">Digestion</a>, <a asp-controller="Shop" asp-action="Index" asp-route-concern="Stress" class="text-success fw-semibold">Stress &amp; Sleep</a>, <a asp-controller="Shop" asp-action="Index" asp-route-concern="Immunity" class="text-success fw-semibold">Immunity</a>.</li>
+                            <li class="mb-1">Use broader keywords (e.g. <em>oil</em>, <em>churna</em>, <em>ghee</em>, <em>tea</em>).</li>
+                            <li class="mb-1">Try traditional transliterations (e.g. <em>bukhar</em>, <em>neend</em>, <em>kabz</em>).</li>
+                            <li>Explore by health concern: <a asp-controller="Shop" asp-action="Index" asp-route-concern="Digestion" class="text-success fw-semibold">Digestion</a>, <a asp-controller="Shop" asp-action="Index" asp-route-concern="Stress" class="text-success fw-semibold">Stress</a>, <a asp-controller="Shop" asp-action="Index" asp-route-concern="Immunity" class="text-success fw-semibold">Immunity</a>.</li>
                         </ul>
                     </div>
 
@@ -283,7 +205,7 @@
                         <div class="d-flex flex-wrap justify-content-center gap-2">
                             @foreach (var trend in Model.TrendingSearches)
                             {
-                                <a asp-action="Index" asp-route-q="@trend" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                <a asp-action="Index" asp-route-q="@trend" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1">
                                     <i class="bi bi-fire text-warning me-1"></i> @trend
                                 </a>
                             }
@@ -295,22 +217,25 @@
             {
                 <!-- Products Grid -->
                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3 mb-4">
-                    @foreach (var product in Model.Catalog.Products)
+                    @for (int idx = 0; idx < catalog.Products.Count; idx++)
                     {
+                        var product = catalog.Products[idx];
                         <div class="col">
-                            <div class="card h-100 border product-card shadow-xs rounded-4 overflow-hidden position-relative">
+                            <div class="card h-100 border product-card shadow-xs rounded-4 overflow-hidden position-relative hover-shadow transition-all">
                                 @if (!string.IsNullOrEmpty(product.Badge))
                                 {
-                                    <span class="position-absolute top-0 start-0 m-2 badge bg-success text-white shadow-xs">
+                                    <span class="position-absolute top-0 start-0 m-2 badge bg-success text-white shadow-xs z-1">
                                         @product.Badge
                                     </span>
                                 }
 
                                 <a asp-controller="Shop" asp-action="Details" asp-route-id="@product.Id" class="text-decoration-none">
                                     <div class="p-3 text-center bg-light" style="height: 180px;">
-                                        <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/images/products/chyawanprash.svg" : product.ImageUrl)" 
+                                        <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/images/placeholder.svg" : product.ImageUrl)" 
                                              alt="@product.Title" 
-                                             class="img-fluid h-100 object-fit-contain" />
+                                             class="img-fluid h-100 object-fit-contain" 
+                                             onerror="this.onerror=null;this.src='/images/placeholder.svg';" 
+                                             loading="lazy" />
                                     </div>
                                 </a>
 
@@ -318,7 +243,7 @@
                                     <div class="text-muted text-xs text-uppercase fw-semibold mb-1">
                                         @product.Brand • @product.CategoryName
                                     </div>
-                                    <h6 class="card-title fw-bold mb-1 text-truncate-2" style="font-size: 0.95rem;">
+                                    <h6 class="card-title fw-bold mb-1 text-truncate-2" style="font-size: 0.95rem; min-height: 2.6rem;">
                                         <a asp-controller="Shop" asp-action="Details" asp-route-id="@product.Id" class="text-dark text-decoration-none">
                                             @product.Title
                                         </a>
@@ -343,8 +268,9 @@
                                         </div>
 
                                         <button type="button" 
-                                                class="btn btn-tga-gold btn-sm rounded-pill px-3 btn-add-to-cart-ajax" 
+                                                class="btn btn-tga-gold btn-sm rounded-pill px-3 btn-add-to-cart-ajax tga-touch-target" 
                                                 data-product-id="@product.Id"
+                                                style="min-height: 38px;"
                                                 title="Add to Basket">
                                             <i class="bi bi-bag-plus"></i> Add
                                         </button>
@@ -352,32 +278,40 @@
                                 </div>
                             </div>
                         </div>
+
+                        @if ((idx + 1) % 8 == 0 && ViewBag.AdShopInline is List<Ayurveda.Domain.Entities.Banner> inlineAds && inlineAds.Count > 0)
+                        {
+                            var ad = inlineAds[((idx + 1) / 8 - 1) % inlineAds.Count];
+                            <div class="col">
+                                <partial name="_AdBanner" model="ad" />
+                            </div>
+                        }
                     }
                 </div>
 
                 <!-- Pagination -->
-                @if (Model.Catalog.TotalPages > 1)
+                @if (catalog.TotalPages > 1)
                 {
                     <nav aria-label="Search navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            @if (Model.Catalog.PageIndex > 1)
+                        <ul class="pagination justify-content-center flex-wrap gap-1">
+                            @if (catalog.PageIndex > 1)
                             {
                                 <li class="page-item">
-                                    <a class="page-link rounded-pill me-1" href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&page=@(Model.Catalog.PageIndex - 1)">Previous</a>
+                                    <a class="page-link rounded-pill px-3" href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&page=@(catalog.PageIndex - 1)">Previous</a>
                                 </li>
                             }
 
-                            @for (var p = 1; p <= Model.Catalog.TotalPages; p++)
+                            @for (var p = 1; p <= catalog.TotalPages; p++)
                             {
-                                <li class="page-item @(p == Model.Catalog.PageIndex ? "active" : "")">
-                                    <a class="page-link rounded-circle mx-1" href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&page=@p">@p</a>
+                                <li class="page-item @(p == catalog.PageIndex ? "active" : "")">
+                                    <a class="page-link rounded-circle text-center" style="width: 38px; height: 38px; line-height: 24px;" href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&page=@p">@p</a>
                                 </li>
                             }
 
-                            @if (Model.Catalog.PageIndex < Model.Catalog.TotalPages)
+                            @if (catalog.PageIndex < catalog.TotalPages)
                             {
                                 <li class="page-item">
-                                    <a class="page-link rounded-pill ms-1" href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&page=@(Model.Catalog.PageIndex + 1)">Next</a>
+                                    <a class="page-link rounded-pill px-3" href="/search?q=@Uri.EscapeDataString(Model.Query ?? "")&page=@(catalog.PageIndex + 1)">Next</a>
                                 </li>
                             }
                         </ul>

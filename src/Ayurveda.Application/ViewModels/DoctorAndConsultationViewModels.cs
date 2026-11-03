@@ -2,10 +2,25 @@ using Ayurveda.Domain.Enums;
 
 namespace Ayurveda.Application.ViewModels;
 
+public static class DoctorNameFormatter
+{
+    public static string Format(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Ayurvedic Doctor";
+        var trimmed = name.Trim();
+        while (trimmed.StartsWith("Dr. ", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed.Substring(4).Trim();
+        while (trimmed.StartsWith("Dr.", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed.Substring(3).Trim();
+        return "Dr. " + trimmed;
+    }
+}
+
 public class DoctorCardViewModel
 {
     public int Id { get; set; }
     public string DoctorName { get; set; } = string.Empty;
+    public string FormattedDoctorName => DoctorNameFormatter.Format(DoctorName);
     public string SpecializationName { get; set; } = string.Empty;
     public int ExperienceYears { get; set; }
     public string? Qualification { get; set; }
@@ -22,6 +37,7 @@ public class DoctorDetailsViewModel
 {
     public int Id { get; set; }
     public string DoctorName { get; set; } = string.Empty;
+    public string FormattedDoctorName => DoctorNameFormatter.Format(DoctorName);
     public string SpecializationName { get; set; } = string.Empty;
     public int ExperienceYears { get; set; }
     public string? Qualification { get; set; }
@@ -44,6 +60,7 @@ public class BookAppointmentViewModel
 {
     public int DoctorId { get; set; }
     public string DoctorName { get; set; } = string.Empty;
+    public string FormattedDoctorName => DoctorNameFormatter.Format(DoctorName);
     public string SpecializationName { get; set; } = string.Empty;
     public decimal ConsultationFee { get; set; }
     public DateTime SelectedDate { get; set; } = DateTime.Today.AddDays(1);
@@ -55,6 +72,11 @@ public class BookAppointmentViewModel
     public string? PatientGender { get; set; }
     public string? HealthConcern { get; set; }
     public bool SimulateFailure { get; set; } = false;
+    public string? RazorpayKeyId { get; set; }
+    public string? RazorpayOrderId { get; set; }
+    public bool IsLiveRazorpay { get; set; }
+    public string? RazorpayPaymentId { get; set; }
+    public string? RazorpaySignature { get; set; }
     public List<string> AvailableSlots { get; set; } = new();
 }
 
@@ -63,6 +85,7 @@ public class AppointmentDetailsViewModel
     public int Id { get; set; }
     public int DoctorId { get; set; }
     public string DoctorName { get; set; } = string.Empty;
+    public string FormattedDoctorName => DoctorNameFormatter.Format(DoctorName);
     public string SpecializationName { get; set; } = string.Empty;
     public DateTime StartUtc { get; set; }
     public string TimeSlot { get; set; } = string.Empty;
@@ -115,6 +138,7 @@ public class PrescriptionViewModel
     public int AppointmentId { get; set; }
     public int DoctorId { get; set; }
     public string DoctorName { get; set; } = string.Empty;
+    public string FormattedDoctorName => DoctorNameFormatter.Format(DoctorName);
     public string Specialization { get; set; } = string.Empty;
     public string Qualification { get; set; } = string.Empty;
     public string? RegistrationNumber { get; set; }
@@ -157,6 +181,7 @@ public class DoctorPortalDashboardViewModel
 {
     public int DoctorId { get; set; }
     public string DoctorName { get; set; } = string.Empty;
+    public string FormattedDoctorName => DoctorNameFormatter.Format(DoctorName);
     public string SpecializationName { get; set; } = string.Empty;
     public bool IsOnline { get; set; }
     public double Rating { get; set; }
@@ -198,5 +223,21 @@ public class DoctorPatientHistoryItemViewModel
     public DateTime LastConsultationDate { get; set; }
     public string? LastHealthConcern { get; set; }
     public List<AppointmentDetailsViewModel> Consultations { get; set; } = new();
+}
+
+public class CallRoomViewModel
+{
+    public int AppointmentId { get; set; }
+    public string PatientName { get; set; } = "Patient";
+    public string DoctorName { get; set; } = "Ayurvedic Doctor";
+    public string FormattedDoctorName => DoctorNameFormatter.Format(DoctorName);
+    public string DoctorSpecialization { get; set; } = "Ayurveda";
+    public string Role { get; set; } = "patient"; // "patient" or "doctor"
+    public string UserId { get; set; } = string.Empty;
+    public string[] StunUrls { get; set; } = Array.Empty<string>();
+    public string? TurnUrl { get; set; }
+    public string? TurnUser { get; set; }
+    public string? TurnCredential { get; set; }
+    public bool IsDemoMode { get; set; } = true;
 }
 

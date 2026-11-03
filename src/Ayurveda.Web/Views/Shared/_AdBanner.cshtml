@@ -1,0 +1,86 @@
+@model Ayurveda.Domain.Entities.Banner
+@inject Ayurveda.Infrastructure.Data.AyurvedaDbContext DbContext
+@using Microsoft.EntityFrameworkCore
+@{
+    if (Model == null || !Model.IsActive)
+    {
+        return;
+    }
+
+    var placement = Model.Placement ?? "ad_default";
+    var slotId = $"tga_ad_{placement}_{Model.Id}";
+
+    var (ratio, maxStyle) = placement switch {
+        "ad_top_strip" => ("21/4", "max-height: 90px; width: 100%;"),
+        "ad_side_300x600" => ("1/2", "width: 100%; max-width: 300px; min-height: 500px; max-height: 600px; position: sticky; top: 120px;"),
+        "ad_side_300x250" or "ad_shop_side" => ("300/250", "width: 100%; max-width: 300px; height: 250px;"),
+        "ad_shop_inline" or "ad_infeed_product" => ("4/3", "width: 100%; aspect-ratio: 4/3;"),
+        "ad_mobile_320x100" => ("320/100", "width: 100%; max-width: 320px; aspect-ratio: 320/100;"),
+        "ad_sticky_bottom" => ("21/3", "max-height: 70px; width: 100%;"),
+        "ad_search_top" => ("21/4", "max-height: 90px; width: 100%;"),
+        "ad_confirmation" => ("16/9", "width: 100%; max-height: 200px;"),
+        _ => ("16/9", "width: 100%; aspect-ratio: 16/9; max-height: 220px;")
+    };
+
+    // Retrieve pool of ads for this placement to enable rotation
+    var pool = await DbContext.Banners
+        .AsNoTracking()
+        .Where(b => b.IsActive && b.Placement == placement)
+        .OrderBy(b => b.DisplayOrder)
+        .Select(b => new { 
+            b.Id, 
+            b.Title, 
+            b.Subtitle, 
+            b.ImageUrl, 
+            DesktopUrl = b.ImageUrl.StartsWith("/images/banners/") && b.ImageUrl.EndsWith(".webp") && !b.ImageUrl.Contains("-1600x400") ? b.ImageUrl.Replace(".webp", "-1600x400.webp") : b.ImageUrl,
+            MobileUrl = b.ImageUrl.StartsWith("/images/banners/") && b.ImageUrl.EndsWith(".webp") && !b.ImageUrl.Contains("-800x400") ? b.ImageUrl.Replace(".webp", "-800x400.webp") : b.ImageUrl,
+            b.LinkUrl 
+        })
+        .ToListAsync();
+
+    var poolJson = System.Text.Json.JsonSerializer.Serialize(pool);
+
+    var initialDesktop = Model.ImageUrl.StartsWith("/images/banners/") && Model.ImageUrl.EndsWith(".webp") && !Model.ImageUrl.Contains("-1600x400") 
+        ? Model.ImageUrl.Replace(".webp", "-1600x400.webp") 
+        : Model.ImageUrl;
+    var initialMobile = Model.ImageUrl.StartsWith("/images/banners/") && Model.ImageUrl.EndsWith(".webp") && !Model.ImageUrl.Contains("-800x400") 
+        ? Model.ImageUrl.Replace(".webp", "-800x400.webp") 
+        : Model.ImageUrl;
+}
+
+<div class="tga-demo-ad-wrapper my-3 position-relative" id="@slotId" data-ad-slot="@placement" data-ad-id="@Model.Id" data-ad-pool='@poolJson' style="transition: max-height 0.35s ease, opacity 0.35s ease, margin 0.35s ease; overflow: hidden;">
+    <div class="tga-demo-ad-card position-relative overflow-hidden rounded-3 border bg-dark shadow-xs text-start" style="aspect-ratio: @ratio; @maxStyle margin: 0 auto;">
+        <!-- Blurred ambient background of same image -->
+        <div class="tga-ad-backdrop-blur position-absolute top-0 start-0 w-100 h-100 overflow-hidden" aria-hidden="true" style="z-index: 1; pointer-events: none;">
+            <img src="@initialDesktop" class="w-100 h-100 tga-ad-bg-blur" alt="" style="object-fit: cover; filter: blur(14px) brightness(0.65); transform: scale(1.15); transition: opacity 0.4s ease-in-out;" />
+        </div>
+
+        <!-- Ad / Sponsored Demo Label with Info Tooltip -->
+        <div class="position-absolute top-0 start-0 m-2 d-flex align-items-center gap-1 bg-dark bg-opacity-75 text-white px-2 py-0.5 rounded-pill text-xs fw-semibold" style="z-index: 4; font-size: 0.68rem; letter-spacing: 0.04em; pointer-events: auto;">
+            <span>Ad</span>
+            <span class="opacity-75">&bull;</span>
+            <span>Sponsored Demo</span>
+            <span class="opacity-75 cursor-help" title="Sponsored demonstration advertisement in sandboxed demo mode" data-bs-toggle="tooltip"><i class="bi bi-info-circle"></i></span>
+        </div>
+
+        <!-- 44px Hit Area Dismiss Button with 22px Visible Circle -->
+        <button type="button" class="btn btn-link p-0 position-absolute top-0 end-0 m-0 tga-ad-dismiss-btn" aria-label="Hide advertisement for this session" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; z-index: 5; text-decoration: none; border: none; background: transparent;">
+            <span class="d-inline-flex align-items-center justify-content-center bg-dark bg-opacity-75 text-white rounded-circle shadow-xs" style="width: 22px; height: 22px; font-size: 13px; line-height: 1;">
+                &times;
+            </span>
+        </button>
+
+        <!-- Clickable Ad Link & Responsive Picture with Contain Fit and 400ms Crossfade -->
+        <a href="@(string.IsNullOrEmpty(Model.LinkUrl) ? "/Shop" : Model.LinkUrl)" class="tga-ad-link d-block w-100 h-100 text-decoration-none position-relative" style="z-index: 2; transition: opacity 0.4s ease-in-out;">
+            <picture class="tga-ad-picture d-block w-100 h-100">
+                <source media="(max-width: 767.98px)" srcset="@initialMobile" class="tga-ad-source-mob" />
+                <img src="@initialDesktop" 
+                     alt="@Model.Title" 
+                     loading="lazy" 
+                     class="tga-ad-img w-100 h-100 d-block" 
+                     style="object-fit: contain; width: 100%; height: 100%;" 
+                     data-fallback="/images/placeholder.svg" />
+            </picture>
+        </a>
+    </div>
+</div>

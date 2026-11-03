@@ -13,6 +13,8 @@ This guide provides the complete, exact production deployment procedure for **Th
 ---
 
 ## 3. Publish Command
+
+
 From the root of the repository, execute:
 
 ```powershell
@@ -44,17 +46,28 @@ Configure the following environment variables in the MonsterASP Control Panel (u
 | `ConnectionStrings__DefaultConnection` | `Server=mssqlXX.monsterasp.net;Database=<db_name>;User Id=<db_user>;Password=<db_password>;TrustServerCertificate=True;MultipleActiveResultSets=true;` | Connection string to the MonsterASP MS SQL database |
 | `Site__BaseUrl` | `https://<your-subdomain>.monsterasp.net` | Canonical base URL used for sitemap, robots, and metadata tags |
 | `Demo__OpenAccess` | `true` *(for public live demo)* / `false` *(for standard live)* | When `true`, enables demo accounts, sandbox login, demo doctor portal, demo chips on admin login, and simulated payments |
+| `Demo__AnyCredentialLogin` | `false` | When false (default), implicit "any email/password creates account" is disabled. Only verified users or explicit "Continue as Demo Guest" can enter |
+| `Demo__WarehouseLat` | `22.7196` | Indore centralized warehouse dispatch origin latitude for Leaflet routing |
+| `Demo__WarehouseLng` | `75.8577` | Indore centralized warehouse dispatch origin longitude for Leaflet routing |
 | `SeedData__Enabled` | `true` *(first run only)* / `false` *(after initial seeding)* | Controls database auto-seeding on application startup |
 | `Admin__InitialPassword` | `<your-strong-initial-admin-credential>` | Initial password for `admin@thegreatayurveda.com` on first seed |
 | `RateLimit__TrustForwardedFor` | `true` *(if behind proxy/load balancer)* / `false` | When true, uses first client IP from `X-Forwarded-For` header for IP rate limiting |
-| `Auth__RequireEmailVerification` | `false` | Allows immediate access upon customer/doctor signup without blocking on email verification |
-| `Smtp__Host` | *(Optional, e.g. `smtp-relay.brevo.com`)* | SMTP host for email dispatch |
-| `Smtp__Port` | `587` | SMTP port |
-| `Smtp__Username` | *(Optional SMTP username)* | SMTP username |
-| `Smtp__Password` | *(Optional SMTP credentials)* | SMTP outbound credential |
-| `Smtp__FromEmail` | `care@thegreatayurveda.com` | Outbound sender email address |
+| `Auth__RequireEmailVerification` | `true` *(production)* / `false` | When true, new accounts stay unconfirmed until OTP is entered; unconfirmed accounts cannot log in |
+| `Auth__OtpMode` | `Demo` *(testing/portfolio)* / `Email` *(production)* | When `Demo`, accepts ANY 6 digits for instant verification without outbound email; when `Email`, generates cryptographic 6-digit OTP and dispatches via configured email provider |
+| `Demo__AutoApproveDoctors` | `false` *(production)* / `true` *(demo/testing)* | When `true`, newly registered doctor accounts are automatically verified and approved upon registration without requiring manual admin verification |
+| `Ads__RotateSeconds` | `3` *(default)* | Number of seconds between rotating sponsored demo ad banners on storefront layouts (clamped 1-10s) |
+| `Email__Mode` | `Smtp` *(production)* / `File` *(testing)* | Outbound email mode: `Smtp` sends over TLS; `File` writes .eml files to `App_Data/outbox` |
+| `Email__Host` | `smtp.gmail.com` *(or relay host)* | Outbound SMTP server hostname |
+| `Email__Port` | `587` | Outbound SMTP port (587 STARTTLS / 465 SSL) |
+| `Email__User` | `<smtp_username_or_email>` | Outbound SMTP username |
+| `Email__Password` | `<smtp_app_password_or_token>` | Outbound SMTP password or app secret |
+| `Email__FromName` | `The Great Ayurveda Care` | Sender display name in customer email notifications |
+| `Email__EnableSsl` | `true` | Enforces SSL/TLS on SMTP transport |
+| `Email__DailyLimit` | `300` | Global daily throttle cap for outbound OTP verification emails |
+| `Razorpay__KeyId` | `rzp_test_<id>` *(or live `rzp_live_<id>`)* | Razorpay Standard Checkout public client key |
+| `Razorpay__KeySecret` | `<razorpay_secret_key>` | Razorpay merchant secret for server-side HMAC-SHA256 signature verification |
 
-> **Credential Notice**: Never store plain-text credentials in source control. Always substitute `<placeholder>` values with your actual configuration directly in the host control panel.
+> **Credential Notice**: Never store plain-text credentials in source control. Always substitute `<placeholder>` values with your actual configuration directly in the host control panel. Never log `Email__Password` or `Razorpay__KeySecret`.
 
 ---
 

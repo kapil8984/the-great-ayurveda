@@ -12,6 +12,7 @@ namespace Ayurveda.Web.Controllers;
 
 public class CartController : Controller
 {
+    public const string GuestCartCookieName = ".Ayurveda.GuestCart";
     private const string GuestCartSessionKey = "GuestCart_Items";
     private readonly AyurvedaDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -44,12 +45,20 @@ public class CartController : Controller
         var json = HttpContext.Session.GetString(GuestCartSessionKey);
         if (string.IsNullOrWhiteSpace(json))
         {
+            json = Request.Cookies[GuestCartCookieName];
+        }
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
             return new List<GuestCartItemDto>();
         }
 
         try
         {
-            return JsonSerializer.Deserialize<List<GuestCartItemDto>>(json) ?? new List<GuestCartItemDto>();
+            var list = JsonSerializer.Deserialize<List<GuestCartItemDto>>(json) ?? new List<GuestCartItemDto>();
+            // Keep session cache primed
+            HttpContext.Session.SetString(GuestCartSessionKey, json);
+            return list;
         }
         catch
         {
@@ -59,8 +68,27 @@ public class CartController : Controller
 
     private void SaveGuestCart(List<GuestCartItemDto> items)
     {
+        if (items == null || items.Count == 0)
+        {
+            HttpContext.Session.Remove(GuestCartSessionKey);
+            Response.Cookies.Delete(GuestCartCookieName, new CookieOptions { Path = "/" });
+            return;
+        }
+
         var json = JsonSerializer.Serialize(items);
         HttpContext.Session.SetString(GuestCartSessionKey, json);
+
+        var cookieOptions = new CookieOptions
+        {
+            Path = "/",
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            IsEssential = true,
+            Secure = Request.IsHttps,
+            Expires = DateTimeOffset.UtcNow.AddDays(30),
+            MaxAge = TimeSpan.FromDays(30)
+        };
+        Response.Cookies.Append(GuestCartCookieName, json, cookieOptions);
     }
 
     private async Task<Cart?> GetOrCreateUserCartAsync(int userId)
@@ -222,11 +250,25 @@ public class CartController : Controller
                 .ToListAsync();
         });
 
+        ViewBag.AdCart = await _context.Banners
+            .AsNoTracking()
+            .Where(b => b.IsActive && b.Placement == "ad_cart")
+            .OrderBy(b => b.DisplayOrder)
+            .FirstOrDefaultAsync();
+
         return View(model);
     }
 
+    [HttpGet]
+    public IActionResult AddToCart() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult BuyNow() => RedirectToAction("Index", "Shop");
+
     [HttpPost]
-    [ValidateAntiForgeryToken]
+    [Route("cart/add")]
+    [Route("cart/addtocart")]
+    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> AddToCart(int productId, int quantity = 1)
     {
         var product = await _context.Products.FindAsync(productId);

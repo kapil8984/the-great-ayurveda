@@ -32,8 +32,8 @@
                         @foreach (var p in Model.Products)
                         {
                             <th style="width: @(80 / Model.Products.Count)%;" class="text-center">
-                                <img src="@(string.IsNullOrEmpty(p.ImageUrl) ? "/images/products/chyawanprash.svg" : p.ImageUrl)" 
-                                     alt="@p.Title" class="img-fluid mb-2" style="max-height: 120px; object-fit: contain;" />
+                                <img src="@(string.IsNullOrEmpty(p.ImageUrl) ? "/images/placeholder.svg" : p.ImageUrl)" 
+                                     alt="@p.Title" class="img-fluid mb-2" style="max-height: 120px; object-fit: contain;" onerror="this.onerror=null;this.src='/images/placeholder.svg';" />
                                 <div class="fw-bold text-dark">@p.Title</div>
                                 <div class="small text-muted mb-2">@p.Brand</div>
                                 <div class="fs-5 fw-bold text-success">₹@p.Price.ToString("N0")</div>

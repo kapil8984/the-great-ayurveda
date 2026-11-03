@@ -166,7 +166,7 @@ public class AdminProductEditViewModel
     public string Description { get; set; } = string.Empty;
     public string? KeyIngredients { get; set; }
     public string? HowToUse { get; set; }
-    public string ImageUrl { get; set; } = "/images/products/placeholder.svg";
+    public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsBestseller { get; set; }
     public bool IsFeatured { get; set; }

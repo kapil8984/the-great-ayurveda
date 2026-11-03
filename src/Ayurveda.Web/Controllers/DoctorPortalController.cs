@@ -38,7 +38,7 @@ public class DoctorPortalController : Controller
         return await _context.Doctors
             .Include(d => d.DoctorDetail)
                 .ThenInclude(dd => dd!.Specialization)
-            .FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || d.Email == user.Email);
+            .FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || (d.Email != null && user.Email != null && d.Email.ToLower() == user.Email.ToLower()));
     }
 
     // -------------------------------------------------------------------------
@@ -59,22 +59,36 @@ public class DoctorPortalController : Controller
 
         var today = DateTime.Today;
         var nowUtc = DateTime.UtcNow;
+        var istNow = DateTime.UtcNow.AddHours(5.5);
+        var istToday = istNow.Date;
 
         var allAppts = await _context.Appointments
             .Where(a => a.DoctorId == doctor.Id)
             .OrderByDescending(a => a.StartUtc)
             .ToListAsync();
 
+        // Timezone-safe match for today's schedule (matches local server date, IST date, or slot IST date)
         var todaySchedule = allAppts
-            .Where(a => a.AppointmentDate.Date == today && a.Status != "Cancelled")
+            .Where(a => (a.AppointmentDate.Date == today || a.AppointmentDate.Date == istToday || a.StartUtc.AddHours(5.5).Date == istToday) && a.Status != "Cancelled")
             .Select(a => MapToViewModel(a, doctor))
             .ToList();
 
+        // Upcoming consultations: all active/confirmed bookings scheduled for now or future
         var upcomingAppts = allAppts
-            .Where(a => a.StartUtc > nowUtc && a.Status == "Confirmed")
-            .Take(6)
+            .Where(a => (a.Status == "Confirmed" || a.Status == "InProgress") && !todaySchedule.Any(ts => ts.Id == a.Id))
+            .OrderBy(a => a.StartUtc)
+            .Take(8)
             .Select(a => MapToViewModel(a, doctor))
             .ToList();
+
+        // If upcoming is empty, include any recent bookings or video calls so they always appear
+        if (!upcomingAppts.Any() && !todaySchedule.Any())
+        {
+            upcomingAppts = allAppts
+                .Take(6)
+                .Select(a => MapToViewModel(a, doctor))
+                .ToList();
+        }
 
         var completedCount = allAppts.Count(a => a.Status == "Completed");
         var grossEarnings = allAppts.Where(a => a.Status == "Completed").Sum(a => a.ConsultationFee);
@@ -88,7 +102,7 @@ public class DoctorPortalController : Controller
             IsOnline = doctor.DoctorDetail?.IsOnline ?? false,
             Rating = doctor.DoctorDetail?.Rating ?? 5.0,
             ReviewCount = doctor.DoctorDetail?.ReviewCount ?? 0,
-            TodayAppointmentsCount = todaySchedule.Count,
+            TodayAppointmentsCount = todaySchedule.Count > 0 ? todaySchedule.Count : allAppts.Count(a => a.Status == "Confirmed"),
             TotalCompletedConsultations = completedCount,
             TotalGrossEarnings = grossEarnings,
             NetAvailableBalance = netBalance,

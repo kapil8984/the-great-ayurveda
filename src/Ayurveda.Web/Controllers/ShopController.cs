@@ -398,6 +398,18 @@ public class ShopController : Controller
                 .ToListAsync();
         });
 
+        ViewBag.AdShopInline = await _context.Banners
+            .AsNoTracking()
+            .Where(b => b.IsActive && b.Placement == "ad_shop_inline")
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
+        ViewBag.AdShopSide = await _context.Banners
+            .AsNoTracking()
+            .Where(b => b.IsActive && b.Placement == "ad_shop_side")
+            .OrderBy(b => b.DisplayOrder)
+            .FirstOrDefaultAsync();
+
         return View(model);
     }
 
@@ -611,6 +623,12 @@ public class ShopController : Controller
             FrequentlyBoughtTogether = baseModel.FrequentlyBoughtTogether,
             RecentlyViewed = recentlyViewedProducts
         };
+
+        ViewBag.AdProductBelow = await _context.Banners
+            .AsNoTracking()
+            .Where(b => b.IsActive && b.Placement == "ad_product_below")
+            .OrderBy(b => b.DisplayOrder)
+            .FirstOrDefaultAsync();
 
         return View(model);
     }

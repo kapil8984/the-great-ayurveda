@@ -43,6 +43,9 @@ public class AdminUsersController : Controller
         return View(adminStaff);
     }
 
+    [HttpGet]
+    public IActionResult Create() => RedirectToAction(nameof(Index));
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(string email, string fullName, string role, string password)

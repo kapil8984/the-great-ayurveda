@@ -10,7 +10,7 @@
     <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-                <h1 class="h3 fw-bold mb-1 text-dark font-serif">Welcome, Dr. @Model.DoctorName</h1>
+                <h1 class="h3 fw-bold mb-1 text-dark font-serif">Welcome, @Model.FormattedDoctorName</h1>
                 <div class="text-muted small">Specialisation: <strong>@Model.SpecializationName</strong> • State AYUSH Council Registered</div>
             </div>
 
@@ -117,7 +117,7 @@
 
     <!-- Upcoming Consultations Preview -->
     <div class="card p-4 shadow-sm border-0 rounded-4 bg-white">
-        <h5 class="fw-bold mb-3 pb-2 border-bottom text-dark font-serif"><i class="bi bi-calendar3 text-success me-2"></i> Upcoming Bookings</h5>
+        <h5 class="fw-bold mb-3 pb-2 border-bottom text-dark font-serif"><i class="bi bi-camera-video text-success me-2"></i> Scheduled Consultations &amp; Video Calls</h5>
 
         @if (Model.UpcomingAppointments.Any())
         {
@@ -132,8 +132,8 @@
                             </div>
                             <div class="text-xs text-muted mb-2">@up.StartUtc.AddHours(5.5).ToString("dd MMM yyyy") • @up.ConsultationType</div>
                             <p class="text-xs text-secondary mb-3 text-truncate flex-grow-1">@(up.HealthConcern ?? "General consultation")</p>
-                            <a asp-controller="Doctors" asp-action="Room" asp-route-id="@up.Id" class="btn btn-outline-success btn-sm rounded-pill w-100">
-                                Open Room
+                            <a asp-controller="Doctors" asp-action="Room" asp-route-id="@up.Id" class="btn btn-outline-success btn-sm rounded-pill w-100 d-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-camera-video"></i> Open Video Room
                             </a>
                         </div>
                     </div>

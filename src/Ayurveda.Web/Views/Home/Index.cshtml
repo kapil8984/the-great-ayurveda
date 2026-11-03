@@ -34,6 +34,18 @@
 {
     <!-- Storefront Responsive Ken Burns Hero Carousel (Autoplay 4.5s) -->
     <div class="hero-carousel-container position-relative overflow-hidden mb-4">
+        <!-- Floating Herb SVG Particles (Desktop only, paused off-screen) -->
+        <div class="hero-particles-layer" id="heroParticlesLayer" aria-hidden="true">
+            <svg class="hero-particle p-1" width="28" height="28" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#D4AF37" opacity="0.6"/></svg>
+            <svg class="hero-particle p-2" width="22" height="22" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#10B981" opacity="0.5"/></svg>
+            <svg class="hero-particle p-3" width="32" height="32" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#D4AF37" opacity="0.5"/></svg>
+            <svg class="hero-particle p-4" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#E5DED2" opacity="0.55"/></svg>
+            <svg class="hero-particle p-5" width="26" height="26" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#D4AF37" opacity="0.45"/></svg>
+            <svg class="hero-particle p-6" width="20" height="20" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#10B981" opacity="0.6"/></svg>
+            <svg class="hero-particle p-7" width="30" height="30" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#D4AF37" opacity="0.4"/></svg>
+            <svg class="hero-particle p-8" width="22" height="22" viewBox="0 0 24 24"><path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#FFFFFF" opacity="0.5"/></svg>
+        </div>
+
         <div id="homeHeroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="4500" data-bs-pause="hover">
             <!-- Indicators with Dynamic Progress Bar -->
             <div class="carousel-indicators tga-carousel-indicators mb-3">
@@ -57,14 +69,18 @@
                                 <picture class="hero-banner-picture w-100 h-100">
                                     @if (!string.IsNullOrEmpty(mobUrl))
                                     {
-                                        <source media="(max-width: 576px)" srcset="@mobUrl" />
+                                        <source media="(max-width: 576px)" srcset="@mobUrl" width="768" height="600" />
                                     }
                                     <img src="@b.ImageUrl" 
                                          class="d-block w-100 banner-img hero-kenburns-img" 
                                          alt="@b.Title" 
                                          data-fallback="/images/placeholder.svg" 
+                                         width="1920" 
+                                         height="640" 
+                                         style="aspect-ratio: var(--tga-hero-ratio);" 
                                          decoding="async" 
-                                         fetchpriority="@(i == 0 ? "high" : "auto")" />
+                                         loading="@(i == 0 ? "eager" : "lazy")" 
+                                         fetchpriority="@(i == 0 ? "high" : "low")" />
                                 </picture>
                             </div>
                             <div class="hero-overlay-gradient"></div>
@@ -89,11 +105,11 @@
                 }
             </div>
 
-            <!-- Stylish Navigation Arrows (Hidden on mobile phones, swipe + dots active) -->
-            <button class="carousel-control-prev tga-carousel-nav-btn start-0 ms-3 d-none d-md-flex" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="prev" aria-label="Previous Slide">
+            <!-- Navigation Arrow Buttons: 44px circles at 8px edges on >=576px, hidden on phones (<576px) -->
+            <button class="carousel-control-prev tga-carousel-nav-btn start-0 d-none d-sm-flex" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="prev" aria-label="Previous Slide">
                 <span class="carousel-nav-icon shadow-sm"><i class="bi bi-chevron-left"></i></span>
             </button>
-            <button class="carousel-control-next tga-carousel-nav-btn end-0 me-3 d-none d-md-flex" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="next" aria-label="Next Slide">
+            <button class="carousel-control-next tga-carousel-nav-btn end-0 d-none d-sm-flex" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="next" aria-label="Next Slide">
                 <span class="carousel-nav-icon shadow-sm"><i class="bi bi-chevron-right"></i></span>
             </button>
         </div>
@@ -390,44 +406,6 @@ else
         </div>
     </section>
 }
-
-@if (middleBanners.Any())
-{
-    <!-- Middle-of-Page Promotional Banners (4 Distinct Categories) -->
-    <section class="middle-banners-section py-4 my-3 reveal-on-scroll">
-        <div class="container">
-            <div class="row g-4">
-                @foreach (var mb in middleBanners)
-                {
-                    var mobUrl = GetMobileBannerUrl(mb.ImageUrl);
-                    <div class="col-6 col-lg-3">
-                        <div class="card middle-promo-banner-card h-100 border-0 shadow-sm">
-                            <div class="position-relative overflow-hidden middle-promo-img-wrap">
-                                <picture class="w-100 h-100 d-block">
-                                    @if (!string.IsNullOrEmpty(mobUrl))
-                                    {
-                                        <source media="(max-width: 576px)" srcset="@mobUrl" />
-                                    }
-                                    <img src="@mb.ImageUrl" alt="@mb.Title" class="middle-promo-banner-img w-100" loading="lazy" decoding="async" data-fallback="/images/placeholder.svg" />
-                                </picture>
-                                <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-gradient-dark-transparent">
-                                    <span class="badge bg-warning text-dark fw-bold text-uppercase small shadow-xs">Curated Ritual</span>
-                                </div>
-                            </div>
-                            <div class="card-body p-3 d-flex flex-column">
-                                <h5 class="fw-bold font-serif text-dark mb-1">@mb.Title</h5>
-                                <p class="text-muted small mb-3 flex-grow-1">@mb.Subtitle</p>
-                                <a href="@(mb.LinkUrl ?? "/Shop")" class="btn btn-tga-outline btn-sm rounded-pill fw-semibold w-100">
-                                    Explore Now <i class="bi bi-arrow-right ms-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </section>
-}
 else
 {
     <!-- Festive Strip Fallback -->
@@ -461,6 +439,13 @@ else
             </div>
         </div>
     </section>
+}
+
+@if (ViewBag.AdHomeStrip != null)
+{
+    <div class="container my-3">
+        <partial name="_AdBanner" model="ViewBag.AdHomeStrip" />
+    </div>
 }
 
 <!-- ========================================================================
@@ -553,13 +538,18 @@ else
             @foreach (var cat in Model.Categories.Take(8))
             {
                 <div class="col">
-                    <a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@cat.Id" class="category-luxury-card">
-                        <div class="category-img-box">
-                            <img src="@cat.ImageUrl" alt="@cat.Name" class="img-fluid" style="max-height: 90px;" />
+                    <a asp-controller="Shop" asp-action="Index" asp-route-categoryId="@cat.Id" class="category-luxury-card rounded-4 shadow-sm border text-decoration-none d-flex flex-column h-100 bg-white">
+                        <div class="category-img-box p-3 d-flex align-items-center justify-content-center position-relative overflow-hidden">
+                            <img src="@cat.ImageUrl" alt="@cat.Name" class="img-fluid category-artwork-img" loading="lazy" width="110" height="110" />
                         </div>
-                        <div class="p-3 text-center">
-                            <h6 class="fw-bold text-dark mb-1">@cat.Name</h6>
-                            <span class="badge bg-light text-muted border px-2 py-1 text-xs">@cat.ProductCount Formulations</span>
+                        <div class="p-3 text-center d-flex flex-column flex-grow-1 justify-content-between">
+                            <div>
+                                <h6 class="fw-bold text-dark mb-1 font-serif category-title">@cat.Name</h6>
+                                <span class="badge bg-light text-muted border px-2 py-1 text-xs rounded-pill">@cat.ProductCount Formulations</span>
+                            </div>
+                            <div class="mt-2 text-success small fw-semibold category-explore-link">
+                                Explore Formulations <i class="bi bi-arrow-right ms-1"></i>
+                            </div>
                         </div>
                     </a>
                 </div>
@@ -688,7 +678,7 @@ else
                                 <div class="product-card p-3 bg-white text-dark rounded-4 shadow-sm h-100 d-flex flex-column">
                                     <div class="position-relative bg-light rounded-3 p-3 text-center mb-3">
                                         <span class="position-absolute top-0 start-0 m-2 badge bg-danger">@deal.Badge</span>
-                                        <img src="@deal.ImageUrl" alt="@deal.Title" class="img-fluid" style="height: 110px; object-fit: contain;" />
+                                        <img src="@deal.ImageUrl" alt="@deal.Title" class="img-fluid" style="max-height: 110px; width: auto; object-fit: contain;" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/images/placeholder.svg';" />
                                     </div>
                                     <h6 class="fw-bold text-dark mb-1 text-truncate">@deal.Title</h6>
                                     <div class="text-xs text-muted mb-2">@deal.CategoryName</div>
@@ -1121,5 +1111,20 @@ else
                 </div>
             </div>
         </div>
-    </div>
 </section>
+
+<!-- Sticky Mobile CTA Bar (Phase 4) -->
+<div class="tga-sticky-mobile-cta d-md-none" aria-label="Quick consultation shortcut">
+    <div class="d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-heart-pulse-fill text-danger fs-5"></i>
+            <div>
+                <div class="fw-bold small text-dark" style="line-height: 1.2;">Consult a Vaidya</div>
+                <div class="text-xs text-muted">BAMS/MD Verified</div>
+            </div>
+        </div>
+        <a href="/doctors" class="btn btn-tga-gold text-dark btn-sm fw-bold px-3 py-2 rounded-pill shadow-xs">
+            Book ₹499 <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+</div>

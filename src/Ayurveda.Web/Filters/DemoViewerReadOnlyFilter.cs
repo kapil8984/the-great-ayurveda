@@ -22,32 +22,32 @@ public class DemoViewerReadOnlyFilter : IAsyncActionFilter
                     return;
                 }
 
+                // Allow search operations
+                if (path.Contains("/search", StringComparison.OrdinalIgnoreCase) ||
+                    (context.ActionDescriptor.RouteValues.TryGetValue("action", out var action) && string.Equals(action, "Search", StringComparison.OrdinalIgnoreCase)))
+                {
+                    await next();
+                    return;
+                }
+
                 var isAjax = string.Equals(context.HttpContext.Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
                     || context.HttpContext.Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
 
+                context.HttpContext.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden;
                 if (isAjax)
                 {
                     context.Result = new JsonResult(new
                     {
                         success = false,
                         message = "Read-only demo: modifications are disabled in demo mode."
-                    });
+                    }) { StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden };
                     return;
                 }
 
-                if (context.Controller is Controller controller)
+                context.Result = new ObjectResult("Forbidden: modifications are disabled in demo mode.")
                 {
-                    controller.TempData["ErrorMessage"] = "Read-only demo: modifications are disabled in demo mode.";
-                }
-
-                var referer = context.HttpContext.Request.Headers.Referer.ToString();
-                if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.RelativeOrAbsolute, out var uri))
-                {
-                    context.Result = new RedirectResult(referer);
-                    return;
-                }
-
-                context.Result = new RedirectToActionResult("Index", "Dashboard", new { area = "Admin" });
+                    StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden
+                };
                 return;
             }
         }

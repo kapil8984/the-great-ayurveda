@@ -34,6 +34,11 @@ public class ForgotPasswordViewModel
     public string Email { get; set; } = string.Empty;
 }
 
+public class ResendOtpRequest
+{
+    public string Email { get; set; } = string.Empty;
+}
+
 public class ResetPasswordOtpViewModel
 {
     public string Email { get; set; } = string.Empty;

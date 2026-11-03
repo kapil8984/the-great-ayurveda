@@ -40,6 +40,12 @@ public class HomeController : Controller
             .OrderBy(b => b.DisplayOrder)
             .ToListAsync();
 
+        ViewBag.AdHomeStrip = await _context.Banners
+            .AsNoTracking()
+            .Where(b => b.IsActive && b.Placement == "ad_home_strip")
+            .OrderBy(b => b.DisplayOrder)
+            .FirstOrDefaultAsync();
+
         // 1. Categories
         model.Categories = await _context.Categories
             .Where(c => c.IsActive)
@@ -165,6 +171,35 @@ public class HomeController : Controller
     [ApiExplorerSettings(IgnoreApi = true)]
     public IActionResult Shipping()
     {
+        return View();
+    }
+
+    [HttpGet("about-project")]
+    [HttpGet("home/aboutproject")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public IActionResult AboutProject()
+    {
+        ViewData["Title"] = "About This Project & Architecture Demonstration";
+        ViewData["MetaDescription"] = "An in-depth portfolio and architecture showcase demonstrating modern enterprise ASP.NET Core MVC, WebRTC consultations, responsive design, and clean architecture.";
+        return View();
+    }
+
+    [HttpGet("credits")]
+    [HttpGet("home/credits")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public IActionResult Credits()
+    {
+        ViewData["Title"] = "Media Credits & Image Attributions";
+        ViewData["MetaDescription"] = "Attributions, licensing details, and provenance for photography, botanical imagery, and creative media utilized across The Great Ayurveda.";
+        
+        var creditsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "credits.json");
+        string creditsJson = "{}";
+        if (System.IO.File.Exists(creditsPath))
+        {
+            creditsJson = System.IO.File.ReadAllText(creditsPath);
+        }
+        ViewBag.CreditsJson = creditsJson;
+        
         return View();
     }
 

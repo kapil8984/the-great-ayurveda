@@ -238,11 +238,18 @@
                         <label class="form-check-label fw-semibold text-dark" for="stockSwitch">Exclude Out of Stock</label>
                     </div>
                 </div>
+
+                @if (ViewBag.AdShopSide != null)
+                {
+                    <div class="pt-3 border-top mt-3">
+                        <partial name="_AdBanner" model="ViewBag.AdShopSide" />
+                    </div>
+                }
             </div>
         </aside>
 
         <!-- Product Listing Grid / List -->
-        <main class="col-lg-9">
+        <main class="col-lg-9 pb-5 mb-5">
             @if (Model.Products != null && Model.Products.Any())
             {
                 if (Model.ViewMode == "list")
@@ -255,8 +262,9 @@
                                 <div class="row align-items-center g-3">
                                     <div class="col-sm-3 text-center position-relative" style="background: #FDFBF7;">
                                         <a asp-action="Details" asp-route-id="@product.Id">
-                                            <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/images/products/chyawanprash.svg" : product.ImageUrl)" 
-                                                 alt="@product.Title" class="img-fluid" style="max-height: 140px; object-fit: contain;" />
+                                            <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/images/placeholder.svg" : product.ImageUrl)" 
+                                                 alt="@product.Title" class="img-fluid" style="max-height: 140px; object-fit: contain;" 
+                                                 onerror="this.onerror=null;this.src='/images/placeholder.svg';" />
                                         </a>
                                         @if (product.DiscountPercent > 0)
                                         {
@@ -310,11 +318,20 @@
                 {
                     <!-- Grid View (Default) -->
                     <div class="row g-3">
-                        @foreach (var product in Model.Products)
+                        @for (int pIdx = 0; pIdx < Model.Products.Count; pIdx++)
                         {
+                            var product = Model.Products[pIdx];
                             <div class="col-6 col-md-4">
                                 <partial name="_ProductCard" model="product" />
                             </div>
+
+                            @if ((pIdx + 1) % 8 == 0 && ViewBag.AdShopInline is List<Ayurveda.Domain.Entities.Banner> inlineAds && inlineAds.Count > 0)
+                            {
+                                var ad = inlineAds[((pIdx + 1) / 8 - 1) % inlineAds.Count];
+                                <div class="col-6 col-md-4">
+                                    <partial name="_AdBanner" model="ad" />
+                                </div>
+                            }
                         }
                     </div>
                 }
@@ -387,7 +404,7 @@
         <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center gap-2" id="filtersOffcanvasLabel">
             <i class="bi bi-sliders text-success"></i> Filter &amp; Sort
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" style="min-width: 44px; min-height: 44px;"></button>
+        <button type="button" class="btn-close tga-touch-target" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body p-3">
         <!-- Sort By -->

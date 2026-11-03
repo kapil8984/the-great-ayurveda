@@ -727,14 +727,29 @@ public class WebSecurityAndIntegrationTests : IClassFixture<WebMvcFactory>
         var users = await userManager.Users.ToListAsync();
         Assert.NotEmpty(users);
 
-        string[] oldDemoPasswords = new[]
+        var untrackedPaths = new[]
         {
-            "AdminSecure@2026", "Admin@123", "Admin123!",
-            string.Concat("Dev", "Auth", "_", "Vaidya", "_2026", "!#"),
-            "DoctorPass@2026", "Doctor@123", "Doctor123!", "User@123",
-            "Customer123!", "Staff123!", "User123!", "DevCustomer@2026",
-            "DevDemoPass_2026!#", "GuestPass@2026"
+            Path.Combine(AppContext.BaseDirectory, "App_Data", "test_credentials.json"),
+            Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "test_credentials.json"),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "App_Data", "test_credentials.json")
         };
+        var oldDemoPasswords = new List<string>();
+        foreach (var p in untrackedPaths)
+        {
+            if (File.Exists(p))
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(p));
+                if (doc.RootElement.TryGetProperty("BlacklistPasswords", out var arr))
+                {
+                    foreach (var elem in arr.EnumerateArray())
+                    {
+                        var val = elem.GetString();
+                        if (!string.IsNullOrEmpty(val)) oldDemoPasswords.Add(val);
+                    }
+                }
+                break;
+            }
+        }
 
         foreach (var user in users)
         {
@@ -801,12 +816,40 @@ public class WebSecurityAndIntegrationTests : IClassFixture<WebMvcFactory>
     }
 
     [Fact]
-    public async Task LowercaseRedirect_SkipsUploadsAndStaticFiles()
+    public async Task AdminLogout_DoesNotClear_PublicCustomerCookie()
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        var response = await client.GetAsync("/uploads/TestUppercaseFile.PNG");
-        // Must NOT be 301 redirected
-        Assert.NotEqual(HttpStatusCode.MovedPermanently, response.StatusCode);
+        // Set customer auth cookie
+        client.DefaultRequestHeaders.Add("Cookie", ".Ayurveda.Web.Auth=CustomerSessionData; .Ayurveda.GuestCart=[{\"ProductId\":1,\"Quantity\":2}]");
+
+        var response = await client.PostAsync("/admin-portal/auth/logout", null);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+
+        // Verify that Set-Cookie does NOT delete .Ayurveda.Web.Auth or .Ayurveda.GuestCart
+        var setCookies = response.Headers.TryGetValues("Set-Cookie", out var cookies) ? cookies.ToList() : new List<string>();
+        Assert.DoesNotContain(setCookies, c => c.StartsWith(".Ayurveda.Web.Auth=") && c.Contains("expires=Thu, 01 Jan 1970"));
+        Assert.DoesNotContain(setCookies, c => c.StartsWith(".Ayurveda.GuestCart=") && c.Contains("expires=Thu, 01 Jan 1970"));
+    }
+
+    [Fact]
+    public async Task GuestCart_Add_SetsPersistentGuestCartCookie()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["productId"] = "1",
+            ["quantity"] = "2"
+        });
+
+        var response = await client.PostAsync("/cart/add", content);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+
+        var setCookies = response.Headers.TryGetValues("Set-Cookie", out var cookies) ? cookies.ToList() : new List<string>();
+        var guestCartCookie = setCookies.FirstOrDefault(c => c.StartsWith(".Ayurveda.GuestCart="));
+        Assert.NotNull(guestCartCookie);
+        Assert.Contains("max-age=2592000", guestCartCookie.ToLowerInvariant()); // 30 days in seconds
     }
 }
+

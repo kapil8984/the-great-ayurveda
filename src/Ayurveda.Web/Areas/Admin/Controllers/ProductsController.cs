@@ -238,7 +238,7 @@ public class ProductsController : Controller
                 product.ImageUrl = await _fileStorage.SaveFileAsync(stream, imageFile.FileName, imageFile.ContentType);
             }
         }
-        else if (!string.IsNullOrWhiteSpace(model.ImageUrl))
+        else if (!string.IsNullOrWhiteSpace(model.ImageUrl) && !model.ImageUrl.Contains("placeholder"))
         {
             product.ImageUrl = model.ImageUrl;
         }

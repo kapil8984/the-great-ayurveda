@@ -1,0 +1,235 @@
+@model Ayurveda.Application.ViewModels.SearchResultsViewModel
+@{
+    var catalog = Model.Catalog;
+    var query = Model.Query ?? "";
+}
+
+<div class="search-filters-content">
+    <!-- In-Stock Only Toggle -->
+    <div class="mb-3 p-2 bg-light rounded-3 d-flex align-items-center justify-content-between">
+        <label class="form-check-label small fw-semibold text-dark mb-0 cursor-pointer" for="inStockCheck">
+            <i class="bi bi-box-seam me-1 text-success"></i> In-Stock Only
+        </label>
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input cursor-pointer" type="checkbox" id="inStockCheck" 
+                   checked="@catalog.InStockOnly" 
+                   onchange="updateFilterParam('inStockOnly', this.checked ? 'true' : '')" />
+        </div>
+    </div>
+
+    <!-- Category Facet -->
+    <div class="mb-3 border-bottom pb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold small text-uppercase text-muted"><i class="bi bi-grid me-1"></i> Category</span>
+            @if (catalog.SelectedCategoryId.HasValue)
+            {
+                <a href="javascript:void(0)" onclick="updateFilterParam('categoryId', '')" class="text-xs text-danger text-decoration-none">Reset</a>
+            }
+        </div>
+        <div class="d-flex flex-column gap-1 max-h-200 overflow-y-auto pe-1">
+            @foreach (var cat in catalog.Categories)
+            {
+                <a href="javascript:void(0)" 
+                   onclick="updateFilterParam('categoryId', '@(cat.IsSelected ? "" : cat.Id.ToString())')"
+                   class="d-flex justify-content-between align-items-center py-1 px-2 rounded text-decoration-none small @(cat.IsSelected ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                    <span>@cat.Name</span>
+                    <span class="badge @(cat.IsSelected ? "bg-success text-white" : "bg-light text-muted border")">@cat.ProductCount</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Subcategory Facet (Shown if available) -->
+    @if (catalog.Subcategories.Any())
+    {
+        <div class="mb-3 border-bottom pb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-bold small text-uppercase text-muted"><i class="bi bi-diagram-3 me-1"></i> Subcategory</span>
+                @if (catalog.SelectedSubcategoryId.HasValue)
+                {
+                    <a href="javascript:void(0)" onclick="updateFilterParam('subcategoryId', '')" class="text-xs text-danger text-decoration-none">Reset</a>
+                }
+            </div>
+            <div class="d-flex flex-column gap-1 max-h-180 overflow-y-auto pe-1">
+                @foreach (var sub in catalog.Subcategories)
+                {
+                    <a href="javascript:void(0)" 
+                       onclick="updateFilterParam('subcategoryId', '@(sub.IsSelected ? "" : sub.Id.ToString())')"
+                       class="d-flex justify-content-between align-items-center py-1 px-2 rounded text-decoration-none small @(sub.IsSelected ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                        <span>@sub.Name</span>
+                        <span class="badge @(sub.IsSelected ? "bg-success text-white" : "bg-light text-muted border")">@sub.ProductCount</span>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Brand Facet with In-List Search -->
+    <div class="mb-3 border-bottom pb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold small text-uppercase text-muted"><i class="bi bi-patch-check me-1"></i> Brand / Pharmacy</span>
+            @if (!string.IsNullOrWhiteSpace(catalog.SelectedBrand))
+            {
+                <a href="javascript:void(0)" onclick="updateFilterParam('brand', '')" class="text-xs text-danger text-decoration-none">Reset</a>
+            }
+        </div>
+        <!-- In-list Brand Search Input -->
+        <div class="input-group input-group-sm mb-2">
+            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control border-start-0 brand-filter-search" placeholder="Search brand..." oninput="filterBrandList(this)" />
+        </div>
+        <div class="d-flex flex-column gap-1 max-h-180 overflow-y-auto pe-1 brand-filter-list">
+            @foreach (var b in catalog.Brands)
+            {
+                <a href="javascript:void(0)" 
+                   data-brand-name="@b.Name.ToLower()"
+                   onclick="updateFilterParam('brand', '@(b.IsSelected ? "" : Uri.EscapeDataString(b.Name))')"
+                   class="d-flex justify-content-between align-items-center py-1 px-2 rounded text-decoration-none small brand-filter-item @(b.IsSelected ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                    <span>@b.Name</span>
+                    <span class="badge @(b.IsSelected ? "bg-success text-white" : "bg-light text-muted border")">@b.ProductCount</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Health Concern Facet -->
+    <div class="mb-3 border-bottom pb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold small text-uppercase text-muted"><i class="bi bi-heart-pulse me-1"></i> Health Concern</span>
+            @if (!string.IsNullOrWhiteSpace(catalog.Concern))
+            {
+                <a href="javascript:void(0)" onclick="updateFilterParam('concern', '')" class="text-xs text-danger text-decoration-none">Reset</a>
+            }
+        </div>
+        <div class="d-flex flex-wrap gap-1">
+            @foreach (var concernName in catalog.AvailableConcerns)
+            {
+                var isSelected = string.Equals(catalog.Concern, concernName, StringComparison.OrdinalIgnoreCase);
+                <button type="button" 
+                        onclick="updateFilterParam('concern', '@(isSelected ? "" : concernName)')"
+                        class="btn btn-sm rounded-pill py-1 px-2 @(isSelected ? "btn-success" : "btn-outline-secondary") text-xs">
+                    @concernName
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Price Range with Slider & Min/Max Inputs -->
+    <div class="mb-3 border-bottom pb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold small text-uppercase text-muted"><i class="bi bi-cash me-1"></i> Price Range (₹)</span>
+            @if (catalog.MinPrice.HasValue || catalog.MaxPrice.HasValue)
+            {
+                <a href="javascript:void(0)" onclick="clearPriceFilter()" class="text-xs text-danger text-decoration-none">Reset</a>
+            }
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <input type="number" id="minPriceInput" value="@catalog.MinPrice" class="form-control form-control-sm" placeholder="Min (₹)" min="0" />
+            <span class="text-muted">–</span>
+            <input type="number" id="maxPriceInput" value="@catalog.MaxPrice" class="form-control form-control-sm" placeholder="Max (₹)" min="0" />
+        </div>
+        <input type="range" class="form-range mb-2" id="priceRangeSlider" min="100" max="5000" step="50" 
+               value="@(catalog.MaxPrice ?? 5000)" 
+               oninput="document.getElementById('maxPriceInput').value = this.value" />
+        <button type="button" class="btn btn-outline-success btn-sm w-100 rounded-pill" onclick="applyPriceInputs()">
+            Apply Price
+        </button>
+    </div>
+
+    <!-- Customer Rating Facet -->
+    <div class="mb-3 border-bottom pb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold small text-uppercase text-muted"><i class="bi bi-star me-1"></i> Customer Rating</span>
+            @if (catalog.MinRating.HasValue)
+            {
+                <a href="javascript:void(0)" onclick="updateFilterParam('minRating', '')" class="text-xs text-danger text-decoration-none">Reset</a>
+            }
+        </div>
+        <div class="d-flex flex-column gap-1">
+            <a href="javascript:void(0)" onclick="updateFilterParam('minRating', '4.5')" 
+               class="d-flex align-items-center gap-1 py-1 px-2 rounded text-decoration-none small @(catalog.MinRating == 4.5 ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                <span class="text-warning">★★★★★</span>
+                <span>4.5★ &amp; above</span>
+            </a>
+            <a href="javascript:void(0)" onclick="updateFilterParam('minRating', '4.0')" 
+               class="d-flex align-items-center gap-1 py-1 px-2 rounded text-decoration-none small @(catalog.MinRating == 4.0 ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                <span class="text-warning">★★★★☆</span>
+                <span>4.0★ &amp; above</span>
+            </a>
+            <a href="javascript:void(0)" onclick="updateFilterParam('minRating', '3.0')" 
+               class="d-flex align-items-center gap-1 py-1 px-2 rounded text-decoration-none small @(catalog.MinRating == 3.0 ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                <span class="text-warning">★★★☆☆</span>
+                <span>3.0★ &amp; above</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Discount Facet -->
+    <div class="mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold small text-uppercase text-muted"><i class="bi bi-percent me-1"></i> Discount</span>
+            @if (catalog.MinDiscount.HasValue)
+            {
+                <a href="javascript:void(0)" onclick="updateFilterParam('minDiscount', '')" class="text-xs text-danger text-decoration-none">Reset</a>
+            }
+        </div>
+        <div class="d-flex flex-column gap-1">
+            <a href="javascript:void(0)" onclick="updateFilterParam('minDiscount', '50')" 
+               class="py-1 px-2 rounded text-decoration-none small @(catalog.MinDiscount == 50 ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                50% or more
+            </a>
+            <a href="javascript:void(0)" onclick="updateFilterParam('minDiscount', '30')" 
+               class="py-1 px-2 rounded text-decoration-none small @(catalog.MinDiscount == 30 ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                30% or more
+            </a>
+            <a href="javascript:void(0)" onclick="updateFilterParam('minDiscount', '20')" 
+               class="py-1 px-2 rounded text-decoration-none small @(catalog.MinDiscount == 20 ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                20% or more
+            </a>
+            <a href="javascript:void(0)" onclick="updateFilterParam('minDiscount', '10')" 
+               class="py-1 px-2 rounded text-decoration-none small @(catalog.MinDiscount == 10 ? "bg-success-subtle text-success fw-bold" : "text-muted hover-bg-light")">
+                10% or more
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateFilterParam(param, value) {
+        const url = new URL(window.location.href);
+        if (value) {
+            url.searchParams.set(param, value);
+        } else {
+            url.searchParams.delete(param);
+        }
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }
+
+    function applyPriceInputs() {
+        const minVal = document.getElementById('minPriceInput').value;
+        const maxVal = document.getElementById('maxPriceInput').value;
+        const url = new URL(window.location.href);
+        if (minVal) url.searchParams.set('minPrice', minVal); else url.searchParams.delete('minPrice');
+        if (maxVal) url.searchParams.set('maxPrice', maxVal); else url.searchParams.delete('maxPrice');
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }
+
+    function clearPriceFilter() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('minPrice');
+        url.searchParams.delete('maxPrice');
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }
+
+    function filterBrandList(input) {
+        const term = input.value.trim().toLowerCase();
+        const items = document.querySelectorAll('.brand-filter-item');
+        items.forEach(item => {
+            const name = item.getAttribute('data-brand-name') || '';
+            item.style.display = name.includes(term) ? '' : 'none';
+        });
+    }
+</script>

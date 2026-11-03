@@ -30,53 +30,52 @@
     <!-- 2. Main Desktop / Mobile Navigation Bar (44px Row 1 + 34px Row 2 = <= 110px Total with Top Bar) -->
     <header class="tga-navbar" id="tgaMainHeader">
         <div class="container">
-            <!-- Row 1: Brand Logo, Wide Search, Consult Doctor Pill, Wishlist, Cart, Account -->
-            <div class="tga-header-row-1 d-flex align-items-center justify-content-between gap-2 gap-md-3">
-                <!-- Brand Logo -->
-                <div class="flex-shrink-0 d-flex align-items-center">
+            <!-- Row 1: [Back button] Brand Logo, Desktop Search, Cart with badge, Hamburger / Account -->
+            <div class="tga-header-row-1 d-flex align-items-center justify-content-between gap-2">
+                <!-- Left: Back Button & Brand Logo -->
+                <div class="d-flex align-items-center flex-shrink-0">
+                    <!-- B3: App-like Back Arrow (44px hit area, hidden on Home & root pages unless navigating back) -->
+                    <button type="button" class="btn btn-link p-0 text-dark d-none align-items-center justify-content-center me-1 tga-touch-target" id="headerBackBtn" aria-label="Back" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; text-decoration: none;">
+                        <i class="bi bi-arrow-left fs-4"></i>
+                    </button>
                     <a asp-controller="Home" asp-action="Index" class="tga-brand d-inline-flex align-items-center" aria-label="The Great Ayurveda Home">
                         <img src="/images/logo-full.svg" alt="The Great Ayurveda" height="38" class="img-fluid tga-header-logo" data-fallback="/images/logo.svg" />
                     </a>
                 </div>
 
-                <!-- Wide Search Bar with Suggestions (Desktop/Tablet) -->
-                <div class="flex-grow-1 d-none d-md-block tga-header-search-wrap">
+                <!-- Wide Search Bar with Suggestions (Desktop only >= 992px) -->
+                <div class="flex-grow-1 d-none d-lg-block tga-header-search-wrap px-3">
                     <partial name="_SearchBox" />
                 </div>
 
                 <!-- Right Actions -->
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                    <!-- Mobile Search Trigger Button (Only on phones) -->
-                    <button class="btn btn-light d-md-none border rounded-pill d-inline-flex align-items-center justify-content-center p-0 text-muted tga-touch-target" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSearchSheet" aria-controls="mobileSearchSheet" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;" aria-label="Open Search">
-                        <i class="bi bi-search" style="font-size: 1.1rem;"></i>
-                    </button>
-
-                    <!-- Compact Consult Doctor Pill (Desktop only) -->
+                    <!-- Compact Consult Doctor Pill (Desktop only >= 992px) -->
                     <a asp-controller="Doctors" asp-action="Index" class="btn btn-tga-primary btn-sm rounded-pill px-3 text-nowrap d-none d-lg-inline-flex align-items-center gap-1 shadow-xs fw-semibold tga-btn-consult" style="height: 38px; font-size: 0.85rem;">
                         <i class="bi bi-camera-video"></i>
                         <span>Consult Doctor</span>
                     </a>
 
-                    <!-- Wishlist Icon (Desktop/Tablet) -->
-                    <a asp-controller="Wishlist" asp-action="Index" class="btn btn-light position-relative border rounded-pill d-none d-sm-inline-flex align-items-center justify-content-center p-0 text-muted tga-icon-btn" style="width: 40px; height: 40px; min-width: 40px; min-height: 40px;" title="Saved Formulations" aria-label="Saved Formulations">
+                    <!-- Wishlist Icon (Desktop only >= 992px) -->
+                    <a asp-controller="Wishlist" asp-action="Index" class="btn btn-light position-relative border rounded-circle d-none d-lg-inline-flex align-items-center justify-content-center p-0 text-muted tga-icon-btn" style="width: 40px; height: 40px; min-width: 40px; min-height: 40px;" title="Saved Formulations" aria-label="Saved Formulations">
                         <i class="bi bi-heart text-danger" style="font-size: 1rem;"></i>
                     </a>
 
-                    <!-- Cart Button with Live Badge -->
-                    <a asp-controller="Cart" asp-action="Index" class="btn btn-light position-relative border rounded-pill d-inline-flex align-items-center justify-content-center p-0 tga-icon-btn tga-touch-target" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;" title="Shopping Cart" aria-label="Shopping Cart">
+                    <!-- Cart Button with Live Badge (All breakpoints) -->
+                    <a asp-controller="Cart" asp-action="Index" class="btn btn-light position-relative border rounded-circle d-inline-flex align-items-center justify-content-center p-0 tga-icon-btn tga-touch-target" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;" title="Shopping Cart" aria-label="Shopping Cart">
                         <i class="bi bi-bag text-success" style="font-size: 1.1rem;"></i>
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" id="cartCountBadge" style="font-size: 0.7rem; padding: 0.25em 0.5em;">
                             @(ViewBag.CartCount ?? 0)
                         </span>
                     </a>
 
-                    <!-- User Account / Dropdown (Desktop) -->
+                    <!-- User Account / Dropdown (Desktop >= 992px) -->
                     @if (SignInManager.IsSignedIn(User))
                     {
-                        <div class="dropdown d-none d-md-block">
+                        <div class="dropdown d-none d-lg-block">
                             <button class="btn btn-light border rounded-pill px-2 py-0 dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 40px; font-size: 0.85rem;">
                                 <i class="bi bi-person-circle fs-5 text-success"></i>
-                                <span class="small fw-semibold d-none d-lg-inline text-truncate" style="max-width: 100px;">@User.Identity?.Name?.Split('@')[0]</span>
+                                <span class="small fw-semibold d-none d-xl-inline text-truncate" style="max-width: 100px;">@User.Identity?.Name?.Split('@')[0]</span>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-4 mt-2">
                                 <li><h6 class="dropdown-header">Ayurvedic Patient Profile</h6></li>
@@ -99,35 +98,67 @@
                     }
                     else
                     {
-                        <div class="d-none d-md-flex align-items-center gap-1">
+                        <div class="d-none d-lg-flex align-items-center gap-1">
                             <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary btn-sm px-3 rounded-pill text-nowrap" style="height: 38px; line-height: 24px; font-size: 0.85rem;">
                                 Sign In
                             </a>
-                            <a asp-controller="Account" asp-action="Register" class="btn btn-tga-gold btn-sm px-3 rounded-pill text-dark fw-bold shadow-xs text-nowrap" style="height: 38px; line-height: 24px; font-size: 0.85rem;">
-                                Register
-                            </a>
+                            <div class="dropdown d-inline-block">
+                                <button class="btn btn-tga-gold btn-sm px-3 rounded-pill text-dark fw-bold shadow-xs text-nowrap dropdown-toggle" type="button" id="headerRegisterDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="height: 38px; line-height: 24px; font-size: 0.85rem;">
+                                    Register
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 mt-2" aria-labelledby="headerRegisterDropdown" style="min-width: 250px;">
+                                    <li>
+                                        <a class="dropdown-item p-2 rounded-3 d-flex align-items-center gap-2" asp-controller="Account" asp-action="Register">
+                                            <div class="rounded-circle bg-success bg-opacity-10 text-success p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; min-width: 36px;">
+                                                <i class="bi bi-person-heart fs-5"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark small">Register as a Customer</div>
+                                                <div class="text-muted text-xs">Explore herbs &amp; consultations</div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item p-2 rounded-3 d-flex align-items-center gap-2" href="/doctor/register">
+                                            <div class="rounded-circle bg-teal bg-opacity-10 p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; min-width: 36px; background-color: rgba(13, 148, 136, 0.12); color: #0d9488;">
+                                                <i class="bi bi-hospital fs-5"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark small">Register as a Doctor</div>
+                                                <div class="text-muted text-xs">Join verified Vaidya clinical desk</div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     }
 
-                    <!-- Mobile Hamburger Toggle -->
-                    <button class="btn btn-light d-lg-none border rounded-pill d-inline-flex align-items-center justify-content-center p-0 tga-touch-target" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenuDrawer" aria-controls="mobileMenuDrawer" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;" aria-label="Open menu">
-                        <i class="bi bi-list fs-4"></i>
+                    <!-- Mobile Hamburger Toggle (< 992px) -->
+                    <button class="btn btn-light d-lg-none border rounded-circle d-inline-flex align-items-center justify-content-center p-0 tga-touch-target" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenuDrawer" aria-controls="mobileMenuDrawer" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;" aria-label="Open menu">
+                        <i class="bi bi-list fs-4 text-dark"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Row 2: Thin Nav (34px) - Desktop -->
-            <nav class="d-none d-lg-flex align-items-center justify-content-between tga-header-nav-row" aria-label="Main Navigation">
-                <ul class="nav align-items-center mb-0 tga-nav-list">
+            <!-- Row 2 on Phones & Small Tablets (< 992px): ONE full-width search bar -->
+            <div class="d-lg-none pt-1 pb-2 tga-mobile-search-wrap">
+                <partial name="_SearchBox" />
+            </div>
+
+            <!-- Row 2: Nav Tabs (Home, Products...) - Desktop Only (>= 992px) -->
+            <nav class="d-none d-lg-flex align-items-center justify-content-between tga-header-nav-row text-nowrap" aria-label="Main Navigation">
+                <ul class="nav align-items-center mb-0 tga-nav-list flex-nowrap">
                     <li class="nav-item">
                         <a class="nav-link tga-nav-link @(currentCtrl == "Home" && currentAct == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
                             <i class="bi bi-house me-1"></i> Home
                         </a>
                     </li>
 
-                    <!-- Shop by Concern Dropdown -->
+                    <!-- Shop by Concern Dropdown with Popper Fixed Strategy (B2) -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link tga-nav-link dropdown-toggle @(currentCtrl == "Shop" && !string.IsNullOrEmpty(Context.Request.Query["concern"]) ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link tga-nav-link dropdown-toggle @(currentCtrl == "Shop" && !string.IsNullOrEmpty(Context.Request.Query["concern"]) ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
                             <i class="bi bi-heart-pulse me-1"></i> Shop by Concern
                         </a>
                         <ul class="dropdown-menu shadow border-0 rounded-4 mt-1">
@@ -170,9 +201,9 @@
                         </a>
                     </li>
 
-                    <!-- More Dropdown -->
+                    <!-- More Dropdown with Popper Fixed Strategy (B2) -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link tga-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link tga-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
                             <i class="bi bi-grid me-1"></i> More
                         </a>
                         <ul class="dropdown-menu shadow border-0 rounded-4 mt-1">
@@ -199,37 +230,13 @@
     </header>
 </div>
 
-<!-- 3. Full-Width Mobile Search Sheet (Offcanvas Top) -->
-<div class="offcanvas offcanvas-top shadow-lg border-bottom border-success border-opacity-25" tabindex="-1" id="mobileSearchSheet" aria-labelledby="mobileSearchSheetLabel" style="height: auto; max-height: 80vh;">
-    <div class="offcanvas-header bg-light py-2 border-bottom">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-search text-success"></i>
-            <h6 class="offcanvas-title fw-bold text-dark mb-0" id="mobileSearchSheetLabel">Search Formulations &amp; Doctors</h6>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" style="min-width: 44px; min-height: 44px;"></button>
-    </div>
-    <div class="offcanvas-body p-3">
-        <partial name="_SearchBox" />
-        <div class="mt-3">
-            <span class="text-xs text-muted fw-bold text-uppercase d-block mb-2">Trending Ayurvedic Searches:</span>
-            <div class="d-flex flex-wrap gap-1">
-                <a href="/search?q=Chyawanprash" class="badge bg-light text-dark border p-2 text-decoration-none rounded-pill">Chyawanprash</a>
-                <a href="/search?q=Ashwagandha" class="badge bg-light text-dark border p-2 text-decoration-none rounded-pill">Ashwagandha</a>
-                <a href="/search?q=Brahmi" class="badge bg-light text-dark border p-2 text-decoration-none rounded-pill">Brahmi Ghrita</a>
-                <a href="/search?q=Triphala" class="badge bg-light text-dark border p-2 text-decoration-none rounded-pill">Triphala Churna</a>
-                <a href="/search?q=Kumkumadi" class="badge bg-light text-dark border p-2 text-decoration-none rounded-pill">Kumkumadi Tailam</a>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- 4. Mobile Offcanvas Navigation Drawer with Accordions -->
 <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileMenuDrawer" aria-labelledby="mobileMenuDrawerLabel">
     <div class="offcanvas-header border-bottom py-2">
         <a asp-controller="Home" asp-action="Index" class="tga-brand d-inline-flex align-items-center">
             <img src="/images/logo-full.svg" alt="The Great Ayurveda" height="34" class="img-fluid" data-fallback="/images/logo.svg" />
         </a>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" style="min-width: 44px; min-height: 44px;"></button>
+        <button type="button" class="btn-close tga-touch-target" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body p-3">
         <!-- User Status on Mobile -->
@@ -248,9 +255,31 @@
             }
             else
             {
-                <div class="d-flex gap-2">
-                    <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary btn-sm rounded-pill flex-fill d-inline-flex align-items-center justify-content-center" style="min-height: 44px;">Sign In</a>
-                    <a asp-controller="Account" asp-action="Register" class="btn btn-tga-gold btn-sm rounded-pill text-dark fw-bold flex-fill d-inline-flex align-items-center justify-content-center" style="min-height: 44px;">Register</a>
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex gap-2">
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary btn-sm rounded-pill flex-fill d-inline-flex align-items-center justify-content-center" style="min-height: 44px;">Sign In</a>
+                        <button class="btn btn-tga-gold btn-sm rounded-pill text-dark fw-bold flex-fill d-inline-flex align-items-center justify-content-center dropdown-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#mobileRegisterChoice" aria-expanded="false" style="min-height: 44px;">
+                            Register
+                        </button>
+                    </div>
+                    <div class="collapse" id="mobileRegisterChoice">
+                        <div class="bg-white border rounded-3 p-2 d-flex flex-column gap-2 shadow-xs mt-1">
+                            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-success btn-sm rounded-pill w-100 text-start px-3 py-2 d-flex align-items-center gap-2">
+                                <i class="bi bi-person-heart text-success fs-5"></i>
+                                <div>
+                                    <div class="fw-bold text-dark">Register as a Customer</div>
+                                    <div class="text-xs text-muted">Shop herbal remedies &amp; book doctors</div>
+                                </div>
+                            </a>
+                            <a href="/doctor/register" class="btn btn-outline-secondary btn-sm rounded-pill w-100 text-start px-3 py-2 d-flex align-items-center gap-2" style="border-color: #0d9488;">
+                                <i class="bi bi-hospital fs-5" style="color: #0d9488;"></i>
+                                <div>
+                                    <div class="fw-bold text-dark">Register as a Doctor</div>
+                                    <div class="text-xs text-muted">Join certified Vaidya panel</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             }
         </div>

@@ -58,3 +58,11 @@ src/Ayurveda.Api/
 prod_sim_err.txt
 prod_sim_out.txt
 *.map
+
+# Test outputs & build logs
+tests/e2e/output/
+*.log
+**/App_Data/
+*admin_password.txt
+*dev_demo_password.txt
+*test_credentials.json

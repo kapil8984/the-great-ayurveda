@@ -19,6 +19,8 @@ public class AccountController : Controller
     private readonly IEmailSender _emailSender;
     private readonly IFileStorageService _fileStorage;
     private readonly IConfiguration _configuration;
+    private readonly IOtpService _otpService;
+    private readonly ILoginThrottleService _loginThrottle;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
@@ -26,7 +28,9 @@ public class AccountController : Controller
         AyurvedaDbContext context,
         IEmailSender emailSender,
         IFileStorageService fileStorage,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IOtpService otpService,
+        ILoginThrottleService loginThrottle)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -34,6 +38,8 @@ public class AccountController : Controller
         _emailSender = emailSender;
         _fileStorage = fileStorage;
         _configuration = configuration;
+        _otpService = otpService;
+        _loginThrottle = loginThrottle;
     }
 
     // --------------------------------------------------------------------------
@@ -43,6 +49,10 @@ public class AccountController : Controller
     [HttpGet]
     [Route("account/login")]
     [Route("doctor/login")]
+    [Route("doctor-login")]
+    [Route("doctors/login")]
+    [Route("doctorportal/login")]
+    [Route("doctor/signin")]
     public IActionResult Login(string? returnUrl = null, string? role = null)
     {
         if (User.Identity?.IsAuthenticated == true)
@@ -52,7 +62,10 @@ public class AccountController : Controller
 
         var isDoctor = Request.Path.Value?.Contains("doctor") == true || string.Equals(role, "Doctor", StringComparison.OrdinalIgnoreCase);
         ViewBag.GoogleSignInEnabled = !string.IsNullOrEmpty(_configuration["Authentication:Google:ClientId"]);
-        ViewBag.DemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
+        ViewBag.DemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false)
+            || _configuration.GetValue<bool>("Demo__OpenAccess", false)
+            || _configuration.GetValue<bool>("Demo:AnyCredentialLogin", false)
+            || _configuration.GetValue<bool>("Demo__AnyCredentialLogin", false);
         
         return View(new LoginViewModel
         {
@@ -64,118 +77,81 @@ public class AccountController : Controller
     [HttpPost]
     [Route("account/login")]
     [Route("doctor/login")]
+    [Route("doctor-login")]
+    [Route("doctors/login")]
+    [Route("doctorportal/login")]
+    [Route("doctor/signin")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         ViewBag.GoogleSignInEnabled = !string.IsNullOrEmpty(_configuration["Authentication:Google:ClientId"]);
-        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
-        ViewBag.DemoOpenAccess = isDemoOpenAccess;
+        var isAnyCredentialLogin = _configuration.GetValue<bool>("Demo:AnyCredentialLogin", false) 
+            || _configuration.GetValue<bool>("Demo__AnyCredentialLogin", false);
+        ViewBag.DemoOpenAccess = isAnyCredentialLogin;
 
         if (!ModelState.IsValid)
             return View(model);
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        if (isDemoOpenAccess)
+        // Check login throttle: 3 wrong attempts in 10 min, 15 failures in 1 hour
+        var (isBlocked, remainingSeconds, _) = _loginThrottle.CheckLoginAllowed(clientIp, normalizedEmail);
+        if (isBlocked)
         {
-            // B3 Doctor login: any credentials signs in as shared approved fictional Demo Doctor
-            if (model.IsDoctorLogin || Request.Path.Value?.Contains("doctor") == true)
-            {
-                var doc = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.DoctorDetail != null && d.DoctorDetail.Status == 1);
-                if (doc != null)
-                {
-                    var docUser = await _userManager.FindByIdAsync(doc.ApplicationUserId.ToString()) ?? await _userManager.FindByEmailAsync(doc.Email);
-                    if (docUser != null)
-                    {
-                        await _signInManager.SignInAsync(docUser, isPersistent: false);
-                        return RedirectToAction("Dashboard", "DoctorPortal");
-                    }
-                }
-            }
-
-            // B1 Customer login: protect real accounts
-            if (await IsProtectedAccountAsync(model.Email))
-            {
-                ModelState.AddModelError(string.Empty, "Invalid email address or password. Please verify your credentials.");
-                return View(model);
-            }
-
-            // Create or reuse sandbox user
-            var sandboxUser = await _userManager.FindByEmailAsync(normalizedEmail);
-            if (sandboxUser == null)
-            {
-                sandboxUser = new ApplicationUser
-                {
-                    UserName = normalizedEmail,
-                    Email = normalizedEmail,
-                    FullName = "Demo Customer",
-                    EmailConfirmed = true,
-                    IsActive = true,
-                    IsDemo = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                var createRes = await _userManager.CreateAsync(sandboxUser, "DemoPass@" + Guid.NewGuid().ToString("N")[..8] + "!");
-                if (createRes.Succeeded)
-                {
-                    await _userManager.AddToRoleAsync(sandboxUser, UserRole.Customer.ToString());
-                }
-            }
-            else if (!sandboxUser.IsDemo)
-            {
-                ModelState.AddModelError(string.Empty, "Invalid email address or password. Please verify your credentials.");
-                return View(model);
-            }
-
-            // B6 Lazy cleanup
-            await CleanupDemoUsersAsync();
-
-            await _signInManager.SignInAsync(sandboxUser, isPersistent: model.RememberMe);
-            await MergeGuestCartAsync(sandboxUser.Id);
-
-            if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-                return Redirect(model.ReturnUrl);
-
-            return RedirectToAction("Index", "Home");
+            ModelState.AddModelError(string.Empty, $"Too many failed login attempts. This account is locked out. Please try again in {remainingSeconds} seconds.");
+            return View(model);
         }
 
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
 
-        if (user == null || !user.IsActive || user.IsDeleted)
+        if (user != null && await _userManager.IsLockedOutAsync(user))
         {
-            ModelState.AddModelError(string.Empty, "Invalid email address or password or account deactivated.");
+            ModelState.AddModelError(string.Empty, "This account has been locked out due to multiple failed login attempts. Please try again later.");
             return View(model);
         }
 
-        // Lockout check with max 5 attempts
-        var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
-
-        if (result.Succeeded)
+        if (user != null && user.IsActive && !user.IsDeleted)
         {
-            await MergeGuestCartAsync(user.Id);
-
-            if (await _userManager.IsInRoleAsync(user, "Doctor"))
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (isPasswordValid)
             {
-                var doc = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || d.Email == user.Email);
-                if (doc?.DoctorDetail == null || doc.DoctorDetail.Status != 1)
+                await _userManager.ResetAccessFailedCountAsync(user);
+                _loginThrottle.RecordSuccessfulLogin(clientIp, normalizedEmail);
+                await _signInManager.SignInAsync(user, isPersistent: model.RememberMe);
+                await MergeGuestCartAsync(user.Id);
+
+                if (await _userManager.IsInRoleAsync(user, "Doctor"))
                 {
-                    return RedirectToAction("PendingApproval", "DoctorPortal");
+                    var doc = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || d.Email == user.Email);
+                    if (doc?.DoctorDetail == null || doc.DoctorDetail.Status != 1)
+                    {
+                        return RedirectToAction("PendingApproval", "DoctorPortal");
+                    }
+                    return RedirectToAction("Dashboard", "DoctorPortal");
                 }
-                return RedirectToAction("Dashboard", "DoctorPortal");
+
+                if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+                    return Redirect(model.ReturnUrl);
+
+                return RedirectToAction("Index", "Home");
             }
-
-            if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-                return Redirect(model.ReturnUrl);
-
-            return RedirectToAction("Index", "Home");
+            else
+            {
+                await _userManager.AccessFailedAsync(user);
+                if (await _userManager.IsLockedOutAsync(user))
+                {
+                    ModelState.AddModelError(string.Empty, "This account has been locked out due to multiple failed login attempts. Please try again later.");
+                    return View(model);
+                }
+            }
         }
 
-        if (result.IsLockedOut)
-        {
-            ModelState.AddModelError(string.Empty, "Security Alert: Account temporarily locked out for 15 minutes due to 5 consecutive failed login attempts. Please reset your password or try again later.");
-            return View(model);
-        }
-
-        ModelState.AddModelError(string.Empty, "Invalid email address or password. Please verify your credentials.");
+        // If user does not exist or password was invalid
+        var (blocked, waitSecs, _) = await _loginThrottle.RecordFailedLoginAsync(clientIp, normalizedEmail);
+        ModelState.AddModelError(string.Empty, blocked
+            ? $"Too many failed login attempts. This account is locked out. Please try again in {waitSecs} seconds."
+            : "Invalid email address or password. Please verify your credentials.");
         return View(model);
     }
 
@@ -185,13 +161,24 @@ public class AccountController : Controller
 
     [HttpGet]
     [Route("account/register")]
-    public IActionResult Register()
+    public async Task<IActionResult> Register()
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return RedirectToAction("Index", "Home");
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && await _userManager.IsInRoleAsync(user, "Doctor"))
+            {
+                // If currently signed in as a Doctor, sign out so the user can register separately as a customer
+                await _signInManager.SignOutAsync();
+            }
+            else
+            {
+                return RedirectToAction("Index", "Home");
+            }
         }
-        ViewBag.DemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
+        var isAnyCredentialLogin = _configuration.GetValue<bool>("Demo:AnyCredentialLogin", false) 
+            || _configuration.GetValue<bool>("Demo__AnyCredentialLogin", false);
+        ViewBag.DemoOpenAccess = isAnyCredentialLogin;
         return View(new RegisterViewModel());
     }
 
@@ -200,12 +187,6 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ContinueDemoGuest(string? returnUrl = null)
     {
-        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
-        if (!isDemoOpenAccess)
-        {
-            return RedirectToAction("Login");
-        }
-
         var randomId = Guid.NewGuid().ToString("N")[..6];
         var guestEmail = $"guest_{randomId}@demo.thegreatayurveda.com";
         var user = new ApplicationUser
@@ -226,7 +207,7 @@ public class AccountController : Controller
         }
 
         await CleanupDemoUsersAsync();
-        await _signInManager.SignInAsync(user, isPersistent: false);
+        await _signInManager.SignInAsync(user, isPersistent: true);
         await MergeGuestCartAsync(user.Id);
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -235,58 +216,72 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home");
     }
 
+    [HttpGet, HttpPost]
+    [Route("account/continue-demo-doctor")]
+    [Route("doctor/continue-demo")]
+    public async Task<IActionResult> ContinueDemoDoctor(string? returnUrl = null)
+    {
+        var openAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false)
+            || _configuration.GetValue<bool>("Demo__OpenAccess", false)
+            || _configuration.GetValue<bool>("Demo:AnyCredentialLogin", false)
+            || _configuration.GetValue<bool>("Demo__AnyCredentialLogin", false);
+
+        if (!openAccess)
+        {
+            return Forbid();
+        }
+
+        var demoDoctor = await _userManager.FindByEmailAsync("demo.doctor@thegreatayurveda.com");
+        if (demoDoctor == null)
+        {
+            demoDoctor = new ApplicationUser
+            {
+                UserName = "demo.doctor@thegreatayurveda.com",
+                Email = "demo.doctor@thegreatayurveda.com",
+                FullName = "Dr. Ananya Sharma (BAMS)",
+                EmailConfirmed = true,
+                IsActive = true,
+                IsDemo = true,
+                LockoutEnabled = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            var randomBytes = new byte[16];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(randomBytes);
+            var randomPwd = "Doc@" + Convert.ToHexString(randomBytes)[..12] + "!";
+            var createRes = await _userManager.CreateAsync(demoDoctor, randomPwd);
+            if (createRes.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(demoDoctor, UserRole.Doctor.ToString());
+            }
+        }
+
+        await _signInManager.SignInAsync(demoDoctor, isPersistent: true);
+
+        if (!string.IsNullOrEmpty(returnUrl) && (Url.IsLocalUrl(returnUrl) || returnUrl.StartsWith("/")))
+            return Redirect(returnUrl);
+
+        return Redirect("/doctors/myappointments");
+    }
+
     [HttpPost]
     [Route("account/register")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
-        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
-        ViewBag.DemoOpenAccess = isDemoOpenAccess;
+        var isAnyCredentialLogin = _configuration.GetValue<bool>("Demo:AnyCredentialLogin", false) 
+            || _configuration.GetValue<bool>("Demo__AnyCredentialLogin", false);
+        ViewBag.DemoOpenAccess = isAnyCredentialLogin;
 
         if (!ModelState.IsValid)
             return View(model);
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        if (isDemoOpenAccess)
+        if (!System.Text.RegularExpressions.Regex.IsMatch(normalizedEmail, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$") || normalizedEmail.EndsWith("@upi"))
         {
-            if (await IsProtectedAccountAsync(model.Email))
-            {
-                ModelState.AddModelError(string.Empty, "Invalid registration details. Please verify your information.");
-                return View(model);
-            }
-
-            var sandboxUser = await _userManager.FindByEmailAsync(normalizedEmail);
-            if (sandboxUser == null)
-            {
-                sandboxUser = new ApplicationUser
-                {
-                    UserName = normalizedEmail,
-                    Email = normalizedEmail,
-                    FullName = string.IsNullOrWhiteSpace(model.FullName) ? "Demo Customer" : model.FullName.Trim(),
-                    ContactNumber = string.IsNullOrWhiteSpace(model.ContactNumber) ? "+91 98765 11111" : model.ContactNumber.Trim(),
-                    EmailConfirmed = true,
-                    IsActive = true,
-                    IsDemo = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                var createRes = await _userManager.CreateAsync(sandboxUser, "DemoPass@" + Guid.NewGuid().ToString("N")[..8] + "!");
-                if (createRes.Succeeded)
-                {
-                    await _userManager.AddToRoleAsync(sandboxUser, UserRole.Customer.ToString());
-                }
-            }
-            else if (!sandboxUser.IsDemo)
-            {
-                ModelState.AddModelError(string.Empty, "Invalid registration details. Please verify your information.");
-                return View(model);
-            }
-
-            await CleanupDemoUsersAsync();
-            await _signInManager.SignInAsync(sandboxUser, isPersistent: false);
-            await MergeGuestCartAsync(sandboxUser.Id);
-
-            return RedirectToAction("Index", "Home");
+            ModelState.AddModelError("Email", "Please enter a valid email address with a domain (e.g. name@domain.com).");
+            return View(model);
         }
 
         var existing = await _userManager.FindByEmailAsync(normalizedEmail);
@@ -296,15 +291,14 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var requireEmailVerification = _configuration.GetValue<bool>("Auth:RequireEmailVerification", true);
-
         var user = new ApplicationUser
         {
             UserName = normalizedEmail,
             Email = normalizedEmail,
             FullName = model.FullName.Trim(),
             ContactNumber = model.ContactNumber.Trim(),
-            EmailConfirmed = !requireEmailVerification,
+            EmailConfirmed = false,
+            IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -313,31 +307,12 @@ public class AccountController : Controller
         {
             await _userManager.AddToRoleAsync(user, UserRole.Customer.ToString());
 
-            if (!requireEmailVerification)
+            // Generate and send 6-digit OTP for email verification
+            var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "VerifyEmail", clientIp, user.FullName);
+            if (!sent)
             {
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToAction("Index", "Home");
+                TempData["WarningMessage"] = message;
             }
-
-            // Generate 6-digit OTP for email verification
-            var otpCode = GenerateSecureOtp();
-            var otpHashed = BCrypt.Net.BCrypt.HashPassword(otpCode);
-
-            var otpEntity = new PasswordResetOtp
-            {
-                Email = normalizedEmail,
-                OtpHashed = otpHashed,
-                ExpiryUtc = DateTime.UtcNow.AddMinutes(15),
-                Attempts = 0,
-                IsUsed = false
-            };
-            _context.PasswordResetOtps.Add(otpEntity);
-            await _context.SaveChangesAsync();
-
-            await _emailSender.SendEmailAsync(
-                normalizedEmail,
-                "Welcome to The Great Ayurveda - Verify Your Email",
-                $"<p>Dear {user.FullName},</p><p>Thank you for creating an account with The Great Ayurveda. Your 6-digit verification code is: <strong>{otpCode}</strong></p><p>This code expires in 15 minutes.</p>");
 
             return RedirectToAction("VerifyOtp", new { email = normalizedEmail });
         }
@@ -356,16 +331,20 @@ public class AccountController : Controller
 
     [HttpGet]
     [Route("account/verify-otp")]
-    public IActionResult VerifyOtp(string email, string? returnUrl = null)
+    public async Task<IActionResult> VerifyOtp(string email, string? returnUrl = null)
     {
         if (string.IsNullOrEmpty(email))
             return RedirectToAction("Login");
 
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        ViewBag.IsDemoUser = user?.IsDemo == true;
+
         return View(new VerifyEmailOtpViewModel
         {
-            Email = email,
+            Email = normalizedEmail,
             ReturnUrl = returnUrl,
-            ResendCountdownSeconds = 30
+            ResendCountdownSeconds = 60
         });
     }
 
@@ -385,46 +364,40 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var otpRecord = await _context.PasswordResetOtps
-            .Where(o => o.Email == normalizedEmail && !o.IsUsed && o.ExpiryUtc > DateTime.UtcNow)
-            .OrderByDescending(o => o.CreatedAt)
-            .FirstOrDefaultAsync();
+        ViewBag.IsDemoUser = user.IsDemo;
 
-        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
-        bool allowOtpSkip = isDemoOpenAccess && user.IsDemo && !string.IsNullOrWhiteSpace(model.Otp) && model.Otp.Trim().Length == 6;
+        var isAnyCredentialLogin = _configuration.GetValue<bool>("Demo:AnyCredentialLogin", false) 
+            || _configuration.GetValue<bool>("Demo__AnyCredentialLogin", false);
+        bool allowOtpSkip = isAnyCredentialLogin && user.IsDemo && !string.IsNullOrWhiteSpace(model.Otp) && model.Otp.Trim().Length == 6;
 
         if (!allowOtpSkip)
         {
-            if (otpRecord == null || otpRecord.Attempts >= 5)
+            var (valid, errorMsg) = await _otpService.ValidateOtpAsync(normalizedEmail, "VerifyEmail", model.Otp);
+            if (!valid)
             {
-                ModelState.AddModelError(string.Empty, "Verification code has expired or exceeded maximum attempts. Please request a new code.");
-                return View(model);
-            }
-
-            otpRecord.Attempts++;
-
-            var isCorrect = BCrypt.Net.BCrypt.Verify(model.Otp.Trim(), otpRecord.OtpHashed);
-            if (!isCorrect)
-            {
-                await _context.SaveChangesAsync();
-                ModelState.AddModelError("Otp", "Invalid verification code. Please check and try again.");
+                ModelState.AddModelError("Otp", errorMsg ?? "Invalid verification code. Please check and try again.");
                 return View(model);
             }
         }
 
-        if (otpRecord != null)
-        {
-            otpRecord.IsUsed = true;
-        }
         user.EmailConfirmed = true;
         await _userManager.UpdateAsync(user);
-        await _context.SaveChangesAsync();
 
-        await _signInManager.SignInAsync(user, isPersistent: false);
+        await _signInManager.SignInAsync(user, isPersistent: true);
         TempData["SuccessMessage"] = "Email verified successfully! Welcome to The Great Ayurveda.";
 
         if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             return Redirect(model.ReturnUrl);
+
+        if (await _userManager.IsInRoleAsync(user, "Doctor"))
+        {
+            var doc = await _context.Doctors.Include(d => d.DoctorDetail).FirstOrDefaultAsync(d => d.ApplicationUserId == user.Id || d.Email == user.Email);
+            if (doc?.DoctorDetail == null || doc.DoctorDetail.Status != 1)
+            {
+                return RedirectToAction("PendingApproval", "DoctorPortal");
+            }
+            return RedirectToAction("Dashboard", "DoctorPortal");
+        }
 
         return RedirectToAction("Index", "Home");
     }
@@ -434,38 +407,17 @@ public class AccountController : Controller
     public async Task<IActionResult> ResendOtp([FromBody] ResendOtpRequest req)
     {
         if (string.IsNullOrEmpty(req?.Email))
-            return Json(new { success = false, message = "Email required." });
+            return Json(new { success = false, message = "Email is required." });
 
         var normalizedEmail = req.Email.Trim().ToLowerInvariant();
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
         if (user == null)
-            return Json(new { success = true, message = "Code resent if account exists." });
+            return Json(new { success = true, message = "A verification code has been dispatched if the account exists." });
 
-        var otpCode = GenerateSecureOtp();
-        var otpHashed = BCrypt.Net.BCrypt.HashPassword(otpCode);
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "VerifyEmail", clientIp, user.FullName);
 
-        var otpEntity = new PasswordResetOtp
-        {
-            Email = normalizedEmail,
-            OtpHashed = otpHashed,
-            ExpiryUtc = DateTime.UtcNow.AddMinutes(15),
-            Attempts = 0,
-            IsUsed = false
-        };
-        _context.PasswordResetOtps.Add(otpEntity);
-        await _context.SaveChangesAsync();
-
-        await _emailSender.SendEmailAsync(
-            normalizedEmail,
-            "The Great Ayurveda - Verification Code",
-            $"<p>Your new 6-digit verification code is: <strong>{otpCode}</strong></p><p>Valid for 15 minutes.</p>");
-
-        return Json(new { success = true, message = "A new verification code has been dispatched to your email." });
-    }
-
-    public class ResendOtpRequest
-    {
-        public string Email { get; set; } = string.Empty;
+        return Json(new { success = sent, message });
     }
 
     // --------------------------------------------------------------------------
@@ -474,14 +426,27 @@ public class AccountController : Controller
 
     [HttpGet]
     [Route("doctor/register")]
+    [Route("account/doctor-register")]
+    [Route("account/doctorregister")]
     public async Task<IActionResult> DoctorRegister()
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && await _userManager.IsInRoleAsync(user, "Doctor"))
+            {
+                return RedirectToAction("Dashboard", "DoctorPortal");
+            }
+            await _signInManager.SignOutAsync();
+        }
         ViewBag.Specializations = await _context.Categories.Where(c => c.IsActive).ToListAsync();
         return View(new DoctorRegisterViewModel());
     }
 
     [HttpPost]
     [Route("doctor/register")]
+    [Route("account/doctor-register")]
+    [Route("account/doctorregister")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DoctorRegister(DoctorRegisterViewModel model)
     {
@@ -491,6 +456,14 @@ public class AccountController : Controller
             return View(model);
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(normalizedEmail, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$") || normalizedEmail.EndsWith("@upi"))
+        {
+            ModelState.AddModelError("Email", "Please enter a valid email address with a domain (e.g. name@domain.com).");
+            return View(model);
+        }
+
         var existing = await _userManager.FindByEmailAsync(normalizedEmail);
         if (existing != null)
         {
@@ -505,13 +478,17 @@ public class AccountController : Controller
             return View(model);
         }
 
+        var autoApprove = _configuration.GetValue<bool>("Demo:AutoApproveDoctors", false)
+            || _configuration.GetValue<bool>("Demo__AutoApproveDoctors", false);
+
         var user = new ApplicationUser
         {
             UserName = normalizedEmail,
             Email = normalizedEmail,
             FullName = model.FullName.Trim(),
             ContactNumber = model.ContactNumber.Trim(),
-            EmailConfirmed = true,
+            EmailConfirmed = false,
+            IsDemo = autoApprove,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -527,7 +504,6 @@ public class AccountController : Controller
 
         await _userManager.AddToRoleAsync(user, UserRole.Doctor.ToString());
 
-        // Upload documents securely via IFileStorageService (optional)
         string? degreeDocUrl = null;
         if (model.DegreeCertificate != null && model.DegreeCertificate.Length > 0)
         {
@@ -538,7 +514,6 @@ public class AccountController : Controller
         var defaultCategory = await _context.Categories.FirstOrDefaultAsync();
         var specializationId = model.SpecializationId > 0 ? model.SpecializationId : (defaultCategory?.Id ?? 1);
 
-        // Generate unique initials avatar SVG (never shared doctor-1)
         var avatarUrl = await GenerateInitialsAvatarAsync(model.FullName);
 
         var doctor = new Doctor
@@ -563,7 +538,8 @@ public class AccountController : Controller
                 ConsultationFee = model.ConsultationFee > 0 ? model.ConsultationFee : 499.00m,
                 ClinicAddress = model.ClinicAddress ?? string.Empty,
                 Bio = model.Bio ?? string.Empty,
-                Status = 0, // Pending review
+                Status = autoApprove ? 1 : 0, // Auto-approved sandbox doctor if config is enabled
+                IsDemoData = autoApprove,
                 MorningTimesJson = "[\"09:00 AM\",\"10:00 AM\",\"11:00 AM\"]",
                 EveningTimesJson = "[\"04:00 PM\",\"05:00 PM\",\"06:00 PM\"]"
             }
@@ -572,8 +548,14 @@ public class AccountController : Controller
         _context.Doctors.Add(doctor);
         await _context.SaveChangesAsync();
 
-        await _signInManager.SignInAsync(user, isPersistent: false);
-        return RedirectToAction("PendingApproval", "DoctorPortal");
+        // Invalidate doctor catalog cache so newly registered doctor appears immediately
+        var cache = HttpContext.RequestServices.GetService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+        cache?.Remove("Doctors_Default_List");
+
+        // Send OTP verification to doctor
+        await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "VerifyEmail", clientIp, user.FullName);
+        var destUrl = autoApprove ? Url.Action("Dashboard", "DoctorPortal") : Url.Action("PendingApproval", "DoctorPortal");
+        return RedirectToAction("VerifyOtp", new { email = normalizedEmail, returnUrl = destUrl });
     }
 
     // --------------------------------------------------------------------------
@@ -596,37 +578,21 @@ public class AccountController : Controller
             return View(model);
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
-        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        if (user != null)
+        // Safety: real admin/staff/seeded/protected accounts can never be verified or reset through demo OTP
+        // (forgot password for them shows the same generic message and changes nothing).
+        // Self-registered customers and doctors may use any-code reset.
+        if (!await IsProtectedAccountAsync(normalizedEmail))
         {
-            var otpCode = GenerateSecureOtp();
-            var otpHashed = BCrypt.Net.BCrypt.HashPassword(otpCode);
-
-            var otpEntity = new PasswordResetOtp
+            var user = await _userManager.FindByEmailAsync(normalizedEmail);
+            if (user != null && !user.Email.StartsWith("guest_") && !await _userManager.IsInRoleAsync(user, "DemoViewer"))
             {
-                Email = normalizedEmail,
-                OtpHashed = otpHashed,
-                ExpiryUtc = DateTime.UtcNow.AddMinutes(15),
-                Attempts = 0,
-                IsUsed = false
-            };
-
-            _context.PasswordResetOtps.Add(otpEntity);
-            await _context.SaveChangesAsync();
-
-            await _emailSender.SendEmailAsync(
-                normalizedEmail,
-                "The Great Ayurveda - Password Reset Code",
-                $"<p>Your one-time password reset code is: <strong>{otpCode}</strong></p><p>This code expires in 15 minutes.</p>");
+                await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "ResetPassword", clientIp, user.FullName);
+            }
         }
 
-        var smtpHost = _configuration["Smtp:Host"];
-        var isSmtpConfigured = !string.IsNullOrWhiteSpace(smtpHost) && smtpHost != "smtp.example.com" && !_configuration.GetValue<bool>("DemoMode", false);
-        TempData["SuccessMessage"] = isSmtpConfigured
-            ? "If an account exists with this email, a 6-digit verification code has been dispatched."
-            : "Email is disabled in this demo. Password reset verification code cannot be delivered.";
-
+        TempData["SuccessMessage"] = "If an account exists with this email, a 6-digit verification code has been dispatched.";
         return RedirectToAction("ResetPassword", new { email = normalizedEmail });
     }
 
@@ -646,44 +612,24 @@ public class AccountController : Controller
             return View(model);
 
         var normalizedEmail = model.Email.Trim().ToLowerInvariant();
-        var user = await _userManager.FindByEmailAsync(normalizedEmail);
-        if (user == null)
+        if (await IsProtectedAccountAsync(normalizedEmail))
         {
             ModelState.AddModelError(string.Empty, "Password reset failed. Please check the code or request a new one.");
             return View(model);
         }
 
-        var otpRecord = await _context.PasswordResetOtps
-            .Where(o => o.Email == normalizedEmail && !o.IsUsed && o.ExpiryUtc > DateTime.UtcNow)
-            .OrderByDescending(o => o.CreatedAt)
-            .FirstOrDefaultAsync();
-
-        var isDemoOpenAccess = _configuration.GetValue<bool>("Demo:OpenAccess", false);
-        bool allowOtpSkip = isDemoOpenAccess && user.IsDemo && !string.IsNullOrWhiteSpace(model.Otp) && model.Otp.Trim().Length == 6;
-
-        if (!allowOtpSkip)
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null || user.Email.StartsWith("guest_") || await _userManager.IsInRoleAsync(user, "DemoViewer"))
         {
-            if (otpRecord == null || otpRecord.Attempts >= 5)
-            {
-                ModelState.AddModelError(string.Empty, "Verification code has expired or exceeded maximum attempts. Please request a new code.");
-                return View(model);
-            }
-
-            otpRecord.Attempts++;
-
-            var isCorrect = BCrypt.Net.BCrypt.Verify(model.Otp.Trim(), otpRecord.OtpHashed);
-            if (!isCorrect)
-            {
-                await _context.SaveChangesAsync();
-                ModelState.AddModelError("Otp", "Invalid verification code.");
-                return View(model);
-            }
+            ModelState.AddModelError(string.Empty, "Password reset failed. Please check the code or request a new one.");
+            return View(model);
         }
 
-        if (otpRecord != null)
+        var (valid, errorMsg) = await _otpService.ValidateOtpAsync(normalizedEmail, "ResetPassword", model.Otp);
+        if (!valid)
         {
-            otpRecord.IsUsed = true;
-            await _context.SaveChangesAsync();
+            ModelState.AddModelError("Otp", errorMsg ?? "Invalid verification code.");
+            return View(model);
         }
 
         var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
@@ -691,6 +637,15 @@ public class AccountController : Controller
 
         if (resetResult.Succeeded)
         {
+            // Invalidate all active sessions across devices
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            // Send password changed notification email
+            await _emailSender.SendEmailAsync(
+                user.Email!,
+                "Security Alert: Your Password Was Changed - The Great Ayurveda",
+                $"<p>Dear {user.FullName},</p><p>The password for your account (<strong>{user.Email}</strong>) was changed on {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC.</p><p>If you did not perform this change, please contact support immediately.</p>");
+
             TempData["SuccessMessage"] = "Your password has been reset successfully. Please sign in with your new password.";
             return RedirectToAction("Login");
         }
@@ -760,6 +715,15 @@ public class AccountController : Controller
 
         return View(model);
     }
+
+    [HttpGet]
+    [Route("account/edit-profile")]
+    [Route("account/change-password")]
+    [Route("account/add-address")]
+    [Route("account/edit-address")]
+    [Route("account/set-default-address")]
+    [Route("account/delete-address")]
+    public IActionResult ProfileFormGetRedirect() => RedirectToAction(nameof(Profile));
 
     [Authorize]
     [HttpPost]
@@ -995,14 +959,20 @@ public class AccountController : Controller
 
     [HttpPost]
     [Route("account/logout")]
+    [Route("doctor/logout")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        var isDoctor = User.IsInRole("Doctor");
-        await _signInManager.SignOutAsync();
-        HttpContext.Session.Clear();
+        var isDoctor = User.IsInRole("Doctor") || Request.Path.Value?.Contains("doctor") == true;
+        var user = await _userManager.GetUserAsync(User);
+        if (user != null && user.IsDemo && (user.Email ?? string.Empty).StartsWith("guest_"))
+        {
+            user.IsActive = false;
+            user.CreatedAt = DateTime.UtcNow; // Purge timer starts on logout (24h)
+            await _userManager.UpdateAsync(user);
+        }
 
-        // Clear cart-merge flags and session cookies
+        await _signInManager.SignOutAsync();
         Response.Cookies.Delete("tga_cart_id");
 
         TempData["SuccessMessage"] = isDoctor 
@@ -1018,18 +988,13 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [ActionName("Logout")]
     [Route("account/logout")]
-    public async Task<IActionResult> LogoutGet()
+    [Route("doctor/logout")]
+    public IActionResult LogoutGet()
     {
-        var isDoctor = User.IsInRole("Doctor");
-        await _signInManager.SignOutAsync();
-        HttpContext.Session.Clear();
-        Response.Cookies.Delete("tga_cart_id");
-
-        TempData["SuccessMessage"] = isDoctor 
-            ? "Doctor clinical session ended safely." 
-            : "You have been logged out successfully.";
-
+        // GET to logout must never 404 and must NOT change state
+        var isDoctor = Request.Path.Value?.Contains("doctor") == true || User.IsInRole("Doctor");
         if (isDoctor)
         {
             return RedirectToAction("Login", "Account", new { role = "Doctor" });
@@ -1111,26 +1076,30 @@ public class AccountController : Controller
         if (string.IsNullOrWhiteSpace(email)) return false;
         var normalized = email.Trim().ToLowerInvariant();
 
-        if (normalized.Contains("admin") || normalized.Contains("staff"))
+        var protectedEmails = new[]
         {
+            "admin@thegreatayurveda.com",
+            "admin@ayurveda.com",
+            "catalog@thegreatayurveda.com",
+            "support@thegreatayurveda.com",
+            "finance@thegreatayurveda.com",
+            "customer@ayurveda.com",
+            "anand@thegreatayurveda.com",
+            "demo.doctor@thegreatayurveda.com",
+            "demo-admin@ayurveda.local"
+        };
+        if (protectedEmails.Contains(normalized))
             return true;
-        }
 
         var user = await _userManager.FindByEmailAsync(normalized);
         if (user != null)
         {
             var roles = await _userManager.GetRolesAsync(user);
             if (roles.Any(r => r == "Admin" || r == "SuperAdmin" || r == "CatalogManager" ||
-                               r == "FinanceManager" || r == "SupportAgent" || r == "Doctor"))
+                               r == "FinanceManager" || r == "SupportAgent"))
             {
                 return true;
             }
-        }
-
-        var isDoctor = await _context.Doctors.AnyAsync(d => d.Email.ToLower() == normalized);
-        if (isDoctor)
-        {
-            return true;
         }
 
         return false;
@@ -1140,24 +1109,23 @@ public class AccountController : Controller
     {
         try
         {
-            var cutoff = DateTime.UtcNow.AddHours(-24);
-            var oldDemoUsers = await _context.Users
-                .Where(u => u.IsDemo && u.CreatedAt < cutoff && 
-                            u.Email != "demo.doctor@thegreatayurveda.com" && 
-                            u.Email != "demo-admin@ayurveda.local")
+            // Demo guests kept at least 7 days if inactive; purged after 24h once logged out (IsActive == false)
+            var cutoffActive = DateTime.UtcNow.AddDays(-7);
+            var cutoffLoggedOut = DateTime.UtcNow.AddHours(-24);
+
+            var exemptEmails = new[]
+            {
+                "customer@ayurveda.com",
+                "anand@thegreatayurveda.com",
+                "demo.doctor@thegreatayurveda.com",
+                "demo-admin@ayurveda.local"
+            };
+
+            var toDelete = await _context.Users
+                .Where(u => u.IsDemo && !exemptEmails.Contains(u.Email))
+                .Where(u => (!u.IsActive && u.CreatedAt < cutoffLoggedOut) || (u.IsActive && u.CreatedAt < cutoffActive))
                 .ToListAsync();
 
-            var totalDemoUsers = await _context.Users
-                .Where(u => u.IsDemo && 
-                            u.Email != "demo.doctor@thegreatayurveda.com" && 
-                            u.Email != "demo-admin@ayurveda.local")
-                .OrderBy(u => u.CreatedAt)
-                .ToListAsync();
-
-            var excessCount = Math.Max(0, totalDemoUsers.Count - 300);
-            var excessUsers = totalDemoUsers.Take(excessCount).ToList();
-
-            var toDelete = oldDemoUsers.Union(excessUsers).DistinctBy(u => u.Id).ToList();
             if (toDelete.Any())
             {
                 var userIds = toDelete.Select(u => u.Id).ToList();
@@ -1210,13 +1178,24 @@ public class AccountController : Controller
 
     private async Task MergeGuestCartAsync(int userId)
     {
-        var guestCartJson = HttpContext.Session.GetString("GuestCart_Items");
-        if (string.IsNullOrEmpty(guestCartJson)) return;
+        var sessionJson = HttpContext.Session.GetString("GuestCart_Items");
+        var cookieJson = Request.Cookies[CartController.GuestCartCookieName];
 
+        var combinedItems = new List<CartController.GuestCartItemDto>();
         try
         {
-            var guestItems = System.Text.Json.JsonSerializer.Deserialize<List<CartController.GuestCartItemDto>>(guestCartJson);
-            if (guestItems != null && guestItems.Any())
+            if (!string.IsNullOrEmpty(sessionJson))
+            {
+                var sItems = System.Text.Json.JsonSerializer.Deserialize<List<CartController.GuestCartItemDto>>(sessionJson);
+                if (sItems != null) combinedItems.AddRange(sItems);
+            }
+            if (!string.IsNullOrEmpty(cookieJson))
+            {
+                var cItems = System.Text.Json.JsonSerializer.Deserialize<List<CartController.GuestCartItemDto>>(cookieJson);
+                if (cItems != null) combinedItems.AddRange(cItems);
+            }
+
+            if (combinedItems.Any())
             {
                 var cart = await _context.Carts
                     .Include(c => c.CartItems)
@@ -1229,7 +1208,16 @@ public class AccountController : Controller
                     await _context.SaveChangesAsync();
                 }
 
-                foreach (var gi in guestItems)
+                // Consolidate duplicate products from both sources
+                var groupedItems = combinedItems
+                    .GroupBy(x => x.ProductId)
+                    .Select(g => new CartController.GuestCartItemDto
+                    {
+                        ProductId = g.Key,
+                        Quantity = g.Sum(x => x.Quantity)
+                    }).ToList();
+
+                foreach (var gi in groupedItems)
                 {
                     var product = await _context.Products.FindAsync(gi.ProductId);
                     if (product == null || !product.IsActive) continue;
@@ -1259,6 +1247,7 @@ public class AccountController : Controller
         finally
         {
             HttpContext.Session.Remove("GuestCart_Items");
+            Response.Cookies.Delete(CartController.GuestCartCookieName, new CookieOptions { Path = "/" });
         }
     }
 }

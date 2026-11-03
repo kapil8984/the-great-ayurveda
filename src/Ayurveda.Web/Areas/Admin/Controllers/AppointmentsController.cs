@@ -99,6 +99,18 @@ public class AppointmentsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [HttpGet]
+    public IActionResult Cancel(int id) => RedirectToAction(nameof(Details), new { id });
+
+    [HttpGet]
+    public IActionResult Reassign(int id) => RedirectToAction(nameof(Details), new { id });
+
+    [HttpGet]
+    public IActionResult MarkNoShow(int id) => RedirectToAction(nameof(Details), new { id });
+
+    [HttpGet]
+    public IActionResult ResolveDispute(int id) => RedirectToAction(nameof(Details), new { id });
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reassign(int id, int newDoctorId)

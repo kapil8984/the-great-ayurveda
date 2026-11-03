@@ -3,7 +3,7 @@ set ASPNETCORE_ENVIRONMENT=Production
 set ConnectionStrings__DefaultConnection=Server=(localdb)\mssqllocaldb;Database=AyurvedaDb_FinalPassProd;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True
 set Demo__OpenAccess=true
 set SeedData__Enabled=true
-set Admin__InitialPassword=AdminSecure@2026!
+if "%Admin__InitialPassword%"=="" if exist "%~dp0..\App_Data\admin_password.txt" set /p Admin__InitialPassword=<"%~dp0..\App_Data\admin_password.txt"
 set RateLimit__TrustForwardedFor=false
 set Site__BaseUrl=http://127.0.0.1:5099
 set DOTNET_gcServer=0

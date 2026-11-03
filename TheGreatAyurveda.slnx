@@ -4,6 +4,7 @@
     <Project Path="src/Ayurveda.Domain/Ayurveda.Domain.csproj" />
     <Project Path="src/Ayurveda.Infrastructure/Ayurveda.Infrastructure.csproj" />
     <Project Path="src/Ayurveda.Web/Ayurveda.Web.csproj" />
+    <Project Path="src/Ayurveda.Admin/Ayurveda.Admin.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ayurveda.API.Tests/Ayurveda.API.Tests.csproj" />

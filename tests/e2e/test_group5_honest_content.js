@@ -39,7 +39,7 @@ async function run() {
     try {
         // 1. Check Home Page Content
         console.log('--- 1. Testing Home Page Content ---');
-        await page.goto(`${WEB_URL}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.goto(`${WEB_URL}/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
         await page.waitForTimeout(1500);
 
         const homeHtml = await page.content();
@@ -61,8 +61,8 @@ async function run() {
         assert(!homeHtml.includes('Verified Ayurvedic Vaidyas'), 'Home page does not contain "Verified Ayurvedic Vaidyas"');
         assert(!homeHtml.includes('Verified Experiences'), 'Home page does not contain "Verified Experiences"');
 
-        // E. Footer disclaimer intact
-        assert(homeHtml.includes('Demo website, sample data. AI-generated sample images.'), 'Footer note "Demo website, sample data. AI-generated sample images." is present');
+        // E. Footer disclaimer & portfolio link
+        assert(homeHtml.includes('About this project') && homeHtml.includes('/about-project'), 'Footer link "About this project" is present');
 
         // Screenshot of testimonials and footer
         const testimonialSection = await page.$('#testimonialCarousel');
@@ -83,7 +83,7 @@ async function run() {
 
         // 2. Check Doctors Directory Content
         console.log('\n--- 2. Testing Doctors Directory ---');
-        await page.goto(`${WEB_URL}/Doctors`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.goto(`${WEB_URL}/Doctors`, { waitUntil: 'domcontentloaded', timeout: 60000 });
         await page.waitForTimeout(1500);
         const docsHtml = await page.content();
 

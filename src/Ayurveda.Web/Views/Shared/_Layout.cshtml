@@ -36,15 +36,14 @@
     <meta name="twitter:description" content="@metaDescription" />
     <meta name="twitter:image" content="/og-image.png" />
     
-    <!-- Local Bootstrap 5.3 & Bootstrap Icons (No CDN) -->
+    <!-- Local Bootstrap 5.3 & Stylesheet (At most 2 render-blocking CSS) -->
     <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css" />
-    
-    <!-- Custom Design Tokens & Stylesheet -->
     <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="/lib/bootstrap-icons/bootstrap-icons.min.css" /></noscript>
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100" data-ads-rotate-seconds="@(Configuration.GetValue<int?>("Ads:RotateSeconds") ?? Configuration.GetValue<int?>("Ads__RotateSeconds") ?? 3)">
     <partial name="_Header" />
 
     <main role="main" class="flex-grow-1 pb-4">
@@ -52,14 +51,48 @@
     </main>
 
     <partial name="_Footer" />
+    
+    @{
+        var pathLower = Context.Request.Path.Value?.ToLowerInvariant() ?? "";
+        var suppressAds = pathLower.Contains("room") ||
+                          pathLower.Contains("book") ||
+                          pathLower.Contains("checkout") ||
+                          pathLower.Contains("payment") ||
+                          pathLower.Contains("login") ||
+                          pathLower.Contains("register") ||
+                          pathLower.Contains("otp") ||
+                          pathLower.Contains("forgot-password") ||
+                          pathLower.Contains("reset-password") ||
+                          pathLower.Contains("doctorportal") ||
+                          pathLower.Contains("doctor-portal") ||
+                          pathLower.StartsWith("/admin");
+    }
+    @if (!suppressAds)
+    {
+        <!-- Dismissible Mobile Sticky Bottom Ad Banner (above bottom nav) -->
+        <div id="tgaStickyBottomAd" class="d-md-none position-fixed start-0 end-0 px-2 py-1 bg-white border-top shadow-lg" style="bottom: calc(56px + env(safe-area-inset-bottom, 0px)); z-index: 1025; display: none;">
+            <div class="position-relative d-flex align-items-center justify-content-between overflow-hidden rounded-3 border bg-light p-1">
+                <div class="d-flex align-items-center gap-2 overflow-hidden flex-grow-1">
+                    <span class="badge bg-dark bg-opacity-75 text-white px-1 py-0.5 rounded text-xs flex-shrink-0" style="font-size: 0.62rem;">Sponsored - Demo</span>
+                    <a href="/Shop?query=Sleep" class="text-decoration-none text-dark small fw-semibold text-truncate" id="tgaStickyAdLink">
+                        Moonlit Botanical Sleep Elixir &bull; Ashwagandha Deep Rest
+                    </a>
+                </div>
+                <button type="button" class="btn btn-link text-muted p-0 ms-1 tga-sticky-ad-close" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; text-decoration: none;" aria-label="Dismiss promotion">
+                    <span class="d-inline-flex align-items-center justify-content-center bg-dark bg-opacity-75 text-white rounded-circle shadow-xs" style="width: 22px; height: 22px; font-size: 12px;">&times;</span>
+                </button>
+            </div>
+        </div>
+    }
+
     <partial name="_BottomNav" />
     <partial name="_ConfirmModal" />
     <partial name="_Toasts" />
     <partial name="_CookieNotice" />
 
-    <!-- Local Bootstrap 5.3 JavaScript -->
-    <script src="/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/site.js" asp-append-version="true"></script>
+    <!-- Local Bootstrap 5.3 JavaScript (Deferred) -->
+    <script src="/lib/bootstrap/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/site.js" asp-append-version="true" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

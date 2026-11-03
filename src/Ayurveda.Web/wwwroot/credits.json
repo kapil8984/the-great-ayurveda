@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-10-27T10:00:00.000Z",
+  "statement": "Product illustrations and doctor portraits across The Great Ayurveda are generated sample images. All practitioner profiles and doctor personas are fictional. No external photography from Pexels, Pixabay, or third-party stock providers was utilized.",
+  "imagery": {
+    "products": "Generated sample product illustrations",
+    "doctors": "Fictional clinical practitioner sample portraits",
+    "sampleOnly": true
+  },
+  "stats": {
+    "totalProducts": 312,
+    "fictionalDoctors": 24,
+    "externalStockPhotosUsed": 0
+  }
+}

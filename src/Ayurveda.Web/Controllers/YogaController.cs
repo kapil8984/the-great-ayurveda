@@ -19,19 +19,46 @@ public class YogaController : Controller
     {
         var poses = await _context.Yogas
             .Include(y => y.Category)
-            .Select(y => new YogaCardViewModel
+            .OrderBy(y => y.Id)
+            .ToListAsync();
+
+        var viewModels = poses.Select(y =>
+        {
+            var (meta, benefits, steps) = ParseYogaData(y.BenefitsJson, y.Instructions);
+
+            string videoId = meta.VideoId;
+            if (string.IsNullOrEmpty(videoId) && !string.IsNullOrEmpty(y.VideoUrl))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(y.VideoUrl, @"(?:embed\/|v=)([a-zA-Z0-9_-]{11})");
+                if (match.Success) videoId = match.Groups[1].Value;
+            }
+
+            string sanskrit = !string.IsNullOrEmpty(meta.SanskritName) ? meta.SanskritName : y.YogaName.Split('(')[0].Trim();
+            string english = !string.IsNullOrEmpty(meta.EnglishName) ? meta.EnglishName : 
+                (y.YogaName.Contains('(') ? y.YogaName.Split('(')[1].Replace(")", "").Trim() : y.YogaName);
+
+            return new YogaCardViewModel
             {
                 Id = y.Id,
                 YogaName = y.YogaName,
-                CategoryName = y.Category.Name,
+                SanskritName = sanskrit,
+                EnglishName = english,
+                CategoryName = y.Category?.Name ?? "Classical Yoga",
                 Description = y.Description,
                 ImageUrl = y.ImageUrl,
-                VideoUrl = y.VideoUrl,
+                VideoUrl = !string.IsNullOrEmpty(videoId) ? $"https://www.youtube-nocookie.com/embed/{videoId}" : y.VideoUrl,
+                VideoId = videoId,
+                ChannelTitle = !string.IsNullOrEmpty(meta.ChannelTitle) ? meta.ChannelTitle : "Ministry of Ayush",
+                Difficulty = !string.IsNullOrEmpty(meta.Difficulty) ? meta.Difficulty : "Beginner",
+                Duration = !string.IsNullOrEmpty(meta.Duration) ? meta.Duration : "5-10 mins",
+                Benefits = benefits,
+                Cautions = meta.Cautions,
+                Steps = steps,
                 AverageRating = y.AverageRating
-            })
-            .ToListAsync();
+            };
+        }).ToList();
 
-        return View(poses);
+        return View(viewModels);
     }
 
     public async Task<IActionResult> Details(int id)
@@ -45,23 +72,37 @@ public class YogaController : Controller
         if (yoga == null)
             return NotFound();
 
-        List<string> benefits = new();
-        try
+        var (meta, benefits, steps) = ParseYogaData(yoga.BenefitsJson, yoga.Instructions);
+
+        string videoId = meta.VideoId;
+        if (string.IsNullOrEmpty(videoId) && !string.IsNullOrEmpty(yoga.VideoUrl))
         {
-            benefits = JsonSerializer.Deserialize<List<string>>(yoga.BenefitsJson) ?? new();
+            var match = System.Text.RegularExpressions.Regex.Match(yoga.VideoUrl, @"(?:embed\/|v=)([a-zA-Z0-9_-]{11})");
+            if (match.Success) videoId = match.Groups[1].Value;
         }
-        catch { }
+
+        string sanskrit = !string.IsNullOrEmpty(meta.SanskritName) ? meta.SanskritName : yoga.YogaName.Split('(')[0].Trim();
+        string english = !string.IsNullOrEmpty(meta.EnglishName) ? meta.EnglishName : 
+            (yoga.YogaName.Contains('(') ? yoga.YogaName.Split('(')[1].Replace(")", "").Trim() : yoga.YogaName);
 
         var model = new YogaDetailsViewModel
         {
             Id = yoga.Id,
             YogaName = yoga.YogaName,
-            CategoryName = yoga.Category.Name,
+            SanskritName = sanskrit,
+            EnglishName = english,
+            CategoryName = yoga.Category?.Name ?? "Classical Yoga",
             Description = yoga.Description,
             Instructions = yoga.Instructions,
             ImageUrl = yoga.ImageUrl,
-            VideoUrl = yoga.VideoUrl,
+            VideoUrl = !string.IsNullOrEmpty(videoId) ? $"https://www.youtube-nocookie.com/embed/{videoId}" : yoga.VideoUrl,
+            VideoId = videoId,
+            ChannelTitle = !string.IsNullOrEmpty(meta.ChannelTitle) ? meta.ChannelTitle : "Ministry of Ayush",
+            Difficulty = !string.IsNullOrEmpty(meta.Difficulty) ? meta.Difficulty : "Beginner",
+            Duration = !string.IsNullOrEmpty(meta.Duration) ? meta.Duration : "5-10 mins",
             Benefits = benefits,
+            Precautions = !string.IsNullOrEmpty(meta.Cautions) ? meta.Cautions : "Practice on an empty stomach. If experiencing spinal disc or cardiac conditions, consult an expert instructor before performing.",
+            Steps = steps,
             AverageRating = yoga.AverageRating,
             Reviews = yoga.Reviews.Select(r => new YogaReviewViewModel
             {
@@ -74,5 +115,68 @@ public class YogaController : Controller
         };
 
         return View(model);
+    }
+
+    private static (YogaMetaJson meta, List<string> benefits, List<YogaStepItem> steps) ParseYogaData(string? benefitsJson, string? instructionsJson)
+    {
+        var meta = new YogaMetaJson();
+        var benefits = new List<string>();
+        var steps = new List<YogaStepItem>();
+
+        if (!string.IsNullOrWhiteSpace(benefitsJson))
+        {
+            try
+            {
+                var parsedMeta = JsonSerializer.Deserialize<YogaMetaJson>(benefitsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (parsedMeta != null && (!string.IsNullOrEmpty(parsedMeta.SanskritName) || !string.IsNullOrEmpty(parsedMeta.EnglishName) || parsedMeta.Benefits.Any()))
+                {
+                    meta = parsedMeta;
+                    benefits = parsedMeta.Benefits;
+                }
+                else
+                {
+                    benefits = JsonSerializer.Deserialize<List<string>>(benefitsJson) ?? new();
+                }
+            }
+            catch
+            {
+                try
+                {
+                    benefits = JsonSerializer.Deserialize<List<string>>(benefitsJson) ?? new();
+                }
+                catch { }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(instructionsJson))
+        {
+            try
+            {
+                steps = JsonSerializer.Deserialize<List<YogaStepItem>>(instructionsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            }
+            catch { }
+
+            if (!steps.Any())
+            {
+                var lines = instructionsJson.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                int sNum = 1;
+                foreach (var line in lines)
+                {
+                    var trimmed = line.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed))
+                    {
+                        steps.Add(new YogaStepItem
+                        {
+                            StepNumber = sNum++,
+                            Title = $"Step {sNum - 1}",
+                            Instruction = trimmed,
+                            ImageUrl = ""
+                        });
+                    }
+                }
+            }
+        }
+
+        return (meta, benefits, steps);
     }
 }

@@ -19,8 +19,13 @@ function initImgFallback() {
 }
 initImgFallback();
 
+if (typeof navigator !== "undefined" && navigator.connection && navigator.connection.saveData) {
+    document.documentElement.classList.add("tga-save-data");
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     initSearchBox();
+    initRotatingPlaceholder();
     initConfirmModal();
     initIdleTimeoutModal();
     initAjaxCart();
@@ -34,6 +39,11 @@ document.addEventListener("DOMContentLoaded", function () {
     initStickyHeader();
     initAnimatedCounters();
     initHeaderDropdowns();
+    initAuthEnhancements();
+    initHeroParallaxAndParticles();
+    initStickyMobileCta();
+    initDemoAdsSystem();
+    initHeaderBackButton();
 });
 
 // --------------------------------------------------------------------------
@@ -352,12 +362,22 @@ function renderSuggestions(data, dropdown, query, scope, input) {
 
     // --- SCOPE: PUBLIC ---
     if (scope !== "admin") {
+        // Scope Filter Chips (All, Medicines, Doctors)
+        html += `
+            <div class="p-2 px-3 bg-light border-bottom d-flex align-items-center gap-1 overflow-x-auto tga-search-scope-bar">
+                <span class="text-xs text-muted me-1 fw-semibold">Scope:</span>
+                <button type="button" class="btn btn-xs rounded-pill px-2 py-0 border btn-search-scope active bg-white text-dark fw-bold" data-scope-target="all">All</button>
+                <button type="button" class="btn btn-xs rounded-pill px-2 py-0 border btn-search-scope bg-white text-muted" data-scope-target="medicines">Medicines</button>
+                <button type="button" class="btn btn-xs rounded-pill px-2 py-0 border btn-search-scope bg-white text-muted" data-scope-target="doctors">Doctors</button>
+            </div>
+        `;
+
         // Products
         if (data.products && data.products.length) {
-            html += `<div class="search-section-header"><i class="bi bi-capsule me-1"></i> Formulations &amp; Medicines (${data.products.length})</div>`;
+            html += `<div class="search-section-header" data-scope-section="medicines"><i class="bi bi-capsule me-1"></i> Formulations &amp; Medicines (${data.products.length})</div>`;
             data.products.forEach(p => {
                 html += `
-                    <a href="${p.url}" class="search-item" data-search-item>
+                    <a href="${p.url}" class="search-item" data-search-item data-scope-item="medicines">
                         <img src="${p.imageUrl || '/images/products/chyawanprash.svg'}" alt="" width="36" height="36" class="rounded object-fit-contain bg-light p-1" />
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="text-truncate fw-semibold small">${highlightMatch(p.title, query)}</div>
@@ -374,10 +394,10 @@ function renderSuggestions(data, dropdown, query, scope, input) {
 
         // Classical Ayurvedic Herbs
         if (data.herbs && data.herbs.length) {
-            html += `<div class="search-section-header"><i class="bi bi-flower1 me-1"></i> Classical Ayurvedic Herbs (${data.herbs.length})</div>`;
+            html += `<div class="search-section-header" data-scope-section="medicines"><i class="bi bi-flower1 me-1"></i> Classical Ayurvedic Herbs (${data.herbs.length})</div>`;
             data.herbs.forEach(h => {
                 html += `
-                    <a href="${h.url}" class="search-item" data-search-item>
+                    <a href="${h.url}" class="search-item" data-search-item data-scope-item="medicines">
                         <i class="bi bi-tree text-success fs-5"></i>
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="text-truncate fw-semibold small">${highlightMatch(h.title, query)}</div>
@@ -389,15 +409,15 @@ function renderSuggestions(data, dropdown, query, scope, input) {
             });
         }
 
-        // Categories
+        // Categories (Flipkart style: "in <Category>")
         if (data.categories && data.categories.length) {
-            html += `<div class="search-section-header"><i class="bi bi-tag me-1"></i> Categories (${data.categories.length})</div>`;
+            html += `<div class="search-section-header" data-scope-section="medicines"><i class="bi bi-tag me-1"></i> Categories (${data.categories.length})</div>`;
             data.categories.forEach(c => {
                 html += `
-                    <a href="${c.url}" class="search-item" data-search-item>
+                    <a href="${c.url}" class="search-item" data-search-item data-scope-item="medicines">
                         <i class="bi bi-grid text-muted fs-5"></i>
                         <div class="flex-grow-1 overflow-hidden">
-                            <div class="text-truncate fw-semibold small">${highlightMatch(c.title, query)}</div>
+                            <div class="text-truncate fw-semibold small">in <span class="text-success">${highlightMatch(c.title, query)}</span></div>
                             <div class="text-muted text-xs">${escapeHtml(c.subtitle || '')}</div>
                         </div>
                         <span class="badge bg-light text-secondary text-xs">Explore</span>
@@ -408,10 +428,10 @@ function renderSuggestions(data, dropdown, query, scope, input) {
 
         // Health Concerns & Doshas
         if (data.concerns && data.concerns.length) {
-            html += `<div class="search-section-header"><i class="bi bi-heart-pulse me-1"></i> Health Concerns (${data.concerns.length})</div>`;
+            html += `<div class="search-section-header" data-scope-section="medicines"><i class="bi bi-heart-pulse me-1"></i> Health Concerns (${data.concerns.length})</div>`;
             data.concerns.forEach(cn => {
                 html += `
-                    <a href="${cn.url}" class="search-item" data-search-item>
+                    <a href="${cn.url}" class="search-item" data-search-item data-scope-item="medicines">
                         <i class="bi bi-activity text-danger fs-5"></i>
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="text-truncate fw-semibold small">${highlightMatch(cn.title, query)}</div>
@@ -425,10 +445,10 @@ function renderSuggestions(data, dropdown, query, scope, input) {
 
         // Verified Doctors
         if (data.doctors && data.doctors.length) {
-            html += `<div class="search-section-header"><i class="bi bi-person-badge me-1"></i> AYUSH Vaidyas (${data.doctors.length})</div>`;
+            html += `<div class="search-section-header" data-scope-section="doctors"><i class="bi bi-person-badge me-1"></i> AYUSH Vaidyas (${data.doctors.length})</div>`;
             data.doctors.forEach(d => {
                 html += `
-                    <a href="${d.url}" class="search-item" data-search-item>
+                    <a href="${d.url}" class="search-item" data-search-item data-scope-item="doctors">
                         <i class="bi bi-person-circle fs-4 text-success"></i>
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="text-truncate fw-semibold small">${highlightMatch(d.title, query)}</div>
@@ -518,6 +538,30 @@ function renderSuggestions(data, dropdown, query, scope, input) {
 
     dropdown.innerHTML = html;
     dropdown.classList.add("show");
+
+    // Scope filter buttons (All, Medicines, Doctors)
+    dropdown.querySelectorAll(".btn-search-scope").forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            dropdown.querySelectorAll(".btn-search-scope").forEach(b => {
+                b.classList.remove("active", "fw-bold", "text-dark");
+                b.classList.add("text-muted");
+            });
+            btn.classList.add("active", "fw-bold", "text-dark");
+            btn.classList.remove("text-muted");
+
+            const target = btn.getAttribute("data-scope-target");
+            dropdown.querySelectorAll("[data-scope-section], [data-scope-item]").forEach(el => {
+                if (target === "all") {
+                    el.style.display = "";
+                } else if (el.getAttribute("data-scope-section") === target || el.getAttribute("data-scope-item") === target) {
+                    el.style.display = "";
+                } else {
+                    el.style.display = "none";
+                }
+            });
+        });
+    });
 
     // Track search click into recent searches
     dropdown.querySelectorAll("[data-search-item]").forEach(item => {
@@ -1200,49 +1244,6 @@ function escapeHtml(string) {
         .replace(/'/g, "&#039;");
 }
 
-function initStickyHeader() {
-    const headerWrapper = document.getElementById("tgaSiteHeaderWrapper");
-    if (!headerWrapper) return;
-
-    let lastScrollY = window.scrollY;
-    let ticking = false;
-
-    function handleScroll() {
-        const currentScrollY = window.scrollY;
-
-        if (currentScrollY > 20) {
-            headerWrapper.classList.add("header-scrolled");
-        } else {
-            headerWrapper.classList.remove("header-scrolled");
-        }
-
-        // Only trigger hide/show past the header threshold (100px)
-        if (currentScrollY > 100) {
-            if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 5) {
-                // Scrolling DOWN: slide up and hide smoothly
-                headerWrapper.classList.add("header-hidden");
-            } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 5) {
-                // Scrolling UP: reveal smoothly
-                headerWrapper.classList.remove("header-hidden");
-            }
-        } else {
-            headerWrapper.classList.remove("header-hidden");
-        }
-
-        lastScrollY = Math.max(0, currentScrollY);
-        ticking = false;
-    }
-
-    window.addEventListener("scroll", function () {
-        if (!ticking) {
-            window.requestAnimationFrame(handleScroll);
-            ticking = true;
-        }
-    }, { passive: true });
-
-    handleScroll();
-}
-
 // --------------------------------------------------------------------------
 // 10. ANIMATED KPI COUNTERS WITH EASING & REDUCED-MOTION RESPECT
 // --------------------------------------------------------------------------
@@ -1306,15 +1307,17 @@ function initAnimatedCounters() {
 // 11. HEADER DROPDOWNS: DESKTOP HOVER + CLICK + ESC + OUTSIDE CLICK
 // --------------------------------------------------------------------------
 function initHeaderDropdowns() {
-    // 1. Initialize Bootstrap dropdowns
+    // 1. Initialize Bootstrap dropdowns with fixed strategy
     const dropdownToggles = document.querySelectorAll('#tgaMainHeader [data-bs-toggle="dropdown"]');
     dropdownToggles.forEach(toggle => {
         if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-            bootstrap.Dropdown.getOrCreateInstance(toggle);
+            bootstrap.Dropdown.getOrCreateInstance(toggle, {
+                popperConfig: { strategy: 'fixed' }
+            });
         }
     });
 
-    // 2. Desktop hover & keyboard accessibility
+    // 2. Desktop hover, touch, & viewport collision detection
     const navDropdowns = document.querySelectorAll('.tga-header-nav-row .nav-item.dropdown');
     navDropdowns.forEach(dd => {
         const toggle = dd.querySelector('[data-bs-toggle="dropdown"]');
@@ -1323,11 +1326,24 @@ function initHeaderDropdowns() {
 
         let timeoutId = null;
 
+        function ensureInViewport() {
+            requestAnimationFrame(() => {
+                const rect = menu.getBoundingClientRect();
+                if (rect.right > window.innerWidth - 8) {
+                    const shift = rect.right - (window.innerWidth - 8);
+                    menu.style.transform = `translateX(-${shift}px)`;
+                } else {
+                    menu.style.transform = '';
+                }
+            });
+        }
+
         dd.addEventListener('mouseenter', function () {
             if (window.innerWidth >= 992 && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
                 clearTimeout(timeoutId);
                 const instance = bootstrap.Dropdown.getOrCreateInstance(toggle);
                 instance.show();
+                ensureInViewport();
             }
         });
 
@@ -1339,26 +1355,726 @@ function initHeaderDropdowns() {
                 }, 120);
             }
         });
+
+        // Keyboard navigation on dropdown toggle (Enter, Space, ArrowDown)
+        toggle.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                    const instance = bootstrap.Dropdown.getOrCreateInstance(toggle);
+                    instance.show();
+                    ensureInViewport();
+                }
+                const firstItem = menu.querySelector('.dropdown-item:not(.disabled)');
+                if (firstItem) firstItem.focus();
+            }
+        });
+
+        // Arrow navigation within the dropdown menu items
+        menu.addEventListener('keydown', function (e) {
+            const items = Array.from(menu.querySelectorAll('.dropdown-item:not(.disabled)'));
+            const currentIndex = items.indexOf(document.activeElement);
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextIndex = (currentIndex + 1) % items.length;
+                items[nextIndex]?.focus();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevIndex = (currentIndex - 1 + items.length) % items.length;
+                items[prevIndex]?.focus();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                    const instance = bootstrap.Dropdown.getInstance(toggle);
+                    if (instance) instance.hide();
+                }
+                toggle.focus();
+            }
+        });
     });
 
-    // 3. Esc key closes open dropdowns
+    // 3. Global Esc key closes open dropdowns
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
-            document.querySelectorAll('.tga-header-nav-row .dropdown-menu').forEach(m => {
-                m.classList.remove('show');
-                m.style.setProperty('display', 'none', 'important');
-                setTimeout(() => { m.style.removeProperty('display'); }, 400);
+            document.querySelectorAll('.tga-header-nav-row .dropdown-menu.show').forEach(m => {
                 const toggle = m.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
-                if (toggle) {
-                    toggle.classList.remove('show');
-                    toggle.setAttribute('aria-expanded', 'false');
-                    if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-                        const instance = bootstrap.Dropdown.getInstance(toggle);
-                        if (instance) instance.hide();
-                    }
+                if (toggle && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                    const instance = bootstrap.Dropdown.getInstance(toggle);
+                    if (instance) instance.hide();
                 }
             });
         }
     });
 }
+
+// --------------------------------------------------------------------------
+// 15. AUTHENTICATION ENHANCEMENTS & INTERACTION REFINEMENTS
+// --------------------------------------------------------------------------
+function initAuthEnhancements() {
+    // 1. Password Visibility Toggle
+    document.querySelectorAll(".password-toggle-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const wrapper = btn.closest(".password-toggle-wrapper") || btn.closest(".input-group") || btn.parentElement;
+            const input = wrapper?.querySelector("input[type='password'], input[type='text']");
+            const icon = btn.querySelector("i");
+            if (!input) return;
+
+            const isPassword = input.type === "password";
+            input.type = isPassword ? "text" : "password";
+            if (icon) {
+                icon.className = isPassword ? "bi bi-eye" : "bi bi-eye-slash";
+            }
+            btn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+        });
+    });
+
+    // 2. Password Strength Meter
+    const passInputs = document.querySelectorAll("input[data-strength-target]");
+    passInputs.forEach(input => {
+        const targetId = input.getAttribute("data-strength-target");
+        const meter = document.getElementById(targetId);
+        if (!meter) return;
+
+        const progressBar = meter.querySelector(".progress-bar");
+        const statusText = meter.querySelector(".strength-text");
+
+        input.addEventListener("input", function () {
+            const val = input.value || "";
+            let score = 0;
+            if (val.length >= 8) score++;
+            if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score++;
+            if (/\d/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+
+            if (val.length === 0) {
+                meter.style.display = "none";
+                return;
+            }
+            meter.style.display = "block";
+
+            let pct = 25;
+            let barClass = "bg-danger";
+            let label = "Weak";
+
+            if (score === 2) {
+                pct = 50;
+                barClass = "bg-warning";
+                label = "Fair";
+            } else if (score === 3) {
+                pct = 75;
+                barClass = "bg-info";
+                label = "Good";
+            } else if (score >= 4) {
+                pct = 100;
+                barClass = "bg-success";
+                label = "Strong";
+            }
+
+            if (progressBar) {
+                progressBar.style.width = pct + "%";
+                progressBar.className = "progress-bar " + barClass;
+            }
+            if (statusText) {
+                statusText.textContent = label;
+            }
+        });
+    });
+
+    // 3. Form Submit Button Loading State
+    const authForms = document.querySelectorAll("#loginForm, #registerForm, #doctorRegisterWizard, #otpForm, form[data-tga-auth-form]");
+    authForms.forEach(form => {
+        form.addEventListener("submit", function (e) {
+            if (form.checkValidity && !form.checkValidity()) {
+                return;
+            }
+            const submitBtn = form.querySelector("button[type='submit']:not([formnovalidate])");
+            if (submitBtn && !submitBtn.classList.contains("btn-loading")) {
+                submitBtn.classList.add("btn-loading");
+                submitBtn.disabled = true;
+                const spinner = document.createElement("span");
+                spinner.className = "spinner-border spinner-border-sm me-2";
+                spinner.setAttribute("role", "status");
+                spinner.setAttribute("aria-hidden", "true");
+                submitBtn.prepend(spinner);
+            }
+        });
+    });
+
+    // 4. Shake on Validation Error
+    const hasErrors = document.querySelector(".alert-danger, .field-validation-error, .validation-summary-errors");
+    if (hasErrors) {
+        const card = document.querySelector(".card.shadow-xl, .auth-card");
+        if (card) {
+            card.classList.add("shake-error");
+            setTimeout(() => card.classList.remove("shake-error"), 600);
+        }
+    }
+}
+
+// --------------------------------------------------------------------------
+// 16. HERO PARALLAX (POINTER: FINE ONLY) & PARTICLE OBSERVER
+// --------------------------------------------------------------------------
+function initHeroParallaxAndParticles() {
+    const hero = document.getElementById("homeHeroCarousel");
+    const particles = document.getElementById("heroParticlesLayer");
+    if (!hero) return;
+
+    // Pause particles when hero scrolls out of viewport
+    if (particles && "IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    particles.classList.remove("hero-particles-paused");
+                } else {
+                    particles.classList.add("hero-particles-paused");
+                }
+            });
+        }, { threshold: 0.1 });
+        observer.observe(hero);
+    }
+
+    // Layered Parallax for Desktop Fine Pointer Devices Only
+    const prefersFinePointer = window.matchMedia("(pointer: fine)").matches && window.innerWidth >= 992;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersFinePointer && !prefersReducedMotion) {
+        hero.addEventListener("mousemove", (e) => {
+            const rect = hero.getBoundingClientRect();
+            const relX = (e.clientX - rect.left) / rect.width - 0.5;
+            const relY = (e.clientY - rect.top) / rect.height - 0.5;
+
+            const activeSlide = hero.querySelector(".carousel-item.active");
+            if (!activeSlide) return;
+
+            const caption = activeSlide.querySelector(".banner-caption-box");
+            if (caption) {
+                caption.style.transform = `translate3d(${relX * 10}px, ${relY * 8}px, 0)`;
+            }
+            if (particles) {
+                particles.style.transform = `translate3d(${-relX * 15}px, ${-relY * 12}px, 0)`;
+            }
+        });
+
+        hero.addEventListener("mouseleave", () => {
+            const activeSlide = hero.querySelector(".carousel-item.active");
+            const caption = activeSlide?.querySelector(".banner-caption-box");
+            if (caption) caption.style.transform = "translate3d(0, 0, 0)";
+            if (particles) particles.style.transform = "translate3d(0, 0, 0)";
+        });
+    }
+}
+
+// --------------------------------------------------------------------------
+// 17. MOBILE STICKY CALL-TO-ACTION BAR
+// --------------------------------------------------------------------------
+function initStickyMobileCta() {
+    const stickyBar = document.querySelector(".tga-sticky-mobile-cta");
+    if (!stickyBar || window.innerWidth >= 768) return;
+
+    let lastScroll = window.pageYOffset;
+    window.addEventListener("scroll", () => {
+        const curScroll = window.pageYOffset;
+        if (curScroll > 300) {
+            stickyBar.classList.add("is-visible");
+        } else {
+            stickyBar.classList.remove("is-visible");
+        }
+        lastScroll = curScroll;
+    }, { passive: true });
+}
+
+// --------------------------------------------------------------------------
+// 18. STICKY HEADER ENGINE (PHASE 3)
+// --------------------------------------------------------------------------
+function initStickyHeader() {
+    const headerWrapper = document.getElementById("tgaSiteHeaderWrapper");
+    if (!headerWrapper) return;
+
+    let lastScrollY = window.pageYOffset || document.documentElement.scrollTop;
+    let accumulatedUpScroll = 0;
+    let ticking = false;
+
+    function onScroll() {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollDiff = currentScrollY - lastScrollY;
+
+                // Always visible at the top (<= 80px)
+                if (currentScrollY <= 80) {
+                    headerWrapper.classList.remove("header-hidden");
+                    accumulatedUpScroll = 0;
+                } else {
+                    // Beyond 80px: scrolling down hides it
+                    if (scrollDiff > 0) {
+                        headerWrapper.classList.add("header-hidden");
+                        accumulatedUpScroll = 0;
+                    }
+                    // ANY upward scroll of 6px shows it immediately
+                    else if (scrollDiff < 0) {
+                        accumulatedUpScroll += Math.abs(scrollDiff);
+                        if (accumulatedUpScroll >= 6) {
+                            headerWrapper.classList.remove("header-hidden");
+                        }
+                    }
+                }
+
+                if (currentScrollY > 10) {
+                    headerWrapper.classList.add("header-scrolled");
+                } else {
+                    headerWrapper.classList.remove("header-scrolled");
+                }
+
+                lastScrollY = currentScrollY;
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+}
+
+// --------------------------------------------------------------------------
+// 19. ROTATING SEARCH PLACEHOLDER (PHASE 4 - FLIPKART STYLE)
+// --------------------------------------------------------------------------
+function initRotatingPlaceholder() {
+    const inputs = document.querySelectorAll(".tga-search-input[data-scope='public'], .tga-search-input:not([data-scope])");
+    if (!inputs.length) return;
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+        inputs.forEach(input => {
+            input.setAttribute("placeholder", "Search for 'Ashwagandha', classical formulations, health concerns...");
+        });
+        return;
+    }
+
+    let terms = [
+        "Ashwagandha", "Chyawanprash", "Triphala", "Kumkumadi Tailam",
+        "Digestion & Gut Agni", "Brahmi Vati", "Stress & Anxiety", "A2 Cow Ghee",
+        "Immunity & Rasayana", "Giloy Ghanvati", "Hair Fall Oil", "Joint Mobility",
+        "Skin Glow & Detox", "Shatavari", "Neem Tablets", "Amalaki Rasayana",
+        "Tulsi Drops", "Arjuna Tablets", "Shilajit Pure Resin", "Women's Hormonal Care"
+    ];
+
+    fetch("/search/placeholders")
+        .then(res => res.ok ? res.json() : null)
+        .then(serverTerms => {
+            if (Array.isArray(serverTerms) && serverTerms.length > 0) {
+                terms = serverTerms;
+            }
+        })
+        .catch(() => { /* use default terms */ });
+
+    let index = 0;
+    setInterval(() => {
+        let anyActive = false;
+        inputs.forEach(input => {
+            if (document.activeElement === input || input.value.trim().length > 0) {
+                anyActive = true;
+            }
+        });
+        if (anyActive) return; // Paused while focused or typing
+
+        index = (index + 1) % terms.length;
+        let nextTerm = terms[index];
+        if (window.innerWidth < 992 && nextTerm.length > 22) {
+            nextTerm = nextTerm.slice(0, 19) + "…";
+        }
+
+        inputs.forEach(input => {
+            input.classList.add("placeholder-fade");
+            setTimeout(() => {
+                const placeholderText = (window.innerWidth < 992) ? `Search '${nextTerm}'` : `Search for '${nextTerm}'`;
+                input.setAttribute("placeholder", placeholderText);
+                input.classList.remove("placeholder-fade");
+            }, 200);
+        });
+    }, 2500);
+}
+
+// --------------------------------------------------------------------------
+// DEMO ADS MANAGEMENT ENGINE (PHASE 3 & 4)
+// --------------------------------------------------------------------------
+function initDemoAdsSystem() {
+    const currentPath = window.location.pathname.toLowerCase();
+    // Exclude ads on call room, booking, checkout, payment, auth, doctor and admin pages
+    if (currentPath.includes('/room') ||
+        currentPath.includes('/book') ||
+        currentPath.includes('/checkout') || 
+        currentPath.includes('/payment') || 
+        currentPath.includes('/login') || 
+        currentPath.includes('/register') || 
+        currentPath.includes('/otp') ||
+        currentPath.includes('/forgot-password') ||
+        currentPath.includes('/reset-password') ||
+        currentPath.includes('/doctorportal') ||
+        currentPath.includes('/doctor-portal') ||
+        currentPath.startsWith('/admin')) {
+        document.querySelectorAll(".tga-demo-ad-wrapper, #tgaStickyBottomAd").forEach(el => el.remove());
+        return;
+    }
+
+    const isMobile = window.innerWidth < 768;
+    const maxSlots = isMobile ? 4 : 7;
+
+    // Configured rotation interval (default 3s, clamped 1-10s)
+    let rotateSeconds = parseInt(document.body.dataset.adsRotateSeconds, 10);
+    if (isNaN(rotateSeconds) || rotateSeconds < 1) rotateSeconds = 3;
+    if (rotateSeconds > 10) rotateSeconds = 10;
+
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rotateMs = prefersReducedMotion ? Math.max(rotateSeconds * 1000, 6000) : (rotateSeconds * 1000);
+
+    // Retrieve last 10 shown ads from localStorage
+    let recentAds = [];
+    try {
+        const stored = localStorage.getItem("tga_recent_ads");
+        if (stored) recentAds = JSON.parse(stored);
+        if (!Array.isArray(recentAds)) recentAds = [];
+    } catch (e) {
+        recentAds = [];
+    }
+
+    const adWrappers = Array.from(document.querySelectorAll(".tga-demo-ad-wrapper"));
+    let visibleCount = 0;
+    const displayedImages = new Set();
+    const timerControllers = [];
+
+    // Pause all rotations when tab is hidden, resume when tab is visible
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            timerControllers.forEach(ctrl => ctrl.stop());
+        } else {
+            timerControllers.forEach(ctrl => ctrl.start());
+        }
+    });
+
+    adWrappers.forEach((wrapper) => {
+        const adId = wrapper.getAttribute("data-ad-id");
+        const slot = wrapper.getAttribute("data-ad-slot");
+
+        // Check if user dismissed this ad or slot during this session
+        if (sessionStorage.getItem("tga_closed_ad_" + adId) === "true" ||
+            sessionStorage.getItem("tga_closed_slot_" + slot) === "true") {
+            wrapper.style.display = "none";
+            return;
+        }
+
+        // Frequency capping: hide slots beyond limit (4 on phones, 7 on desktop)
+        if (visibleCount >= maxSlots) {
+            wrapper.style.display = "none";
+            return;
+        }
+
+        // Parse pool of ads for this slot
+        let pool = [];
+        try {
+            const poolAttr = wrapper.getAttribute("data-ad-pool");
+            if (poolAttr) pool = JSON.parse(poolAttr);
+        } catch (e) {
+            pool = [];
+        }
+
+        const imgEl = wrapper.querySelector(".tga-ad-img");
+        const linkEl = wrapper.querySelector(".tga-ad-link");
+        const bgImg = wrapper.querySelector(".tga-ad-bg-blur");
+        const sourceMob = wrapper.querySelector(".tga-ad-source-mob");
+
+        if (pool && pool.length > 0 && imgEl && linkEl) {
+            // Pick ad excluding recently shown (last 10 in localStorage) and already displayed on page
+            let candidateAds = pool.filter(item => !displayedImages.has(item.ImageUrl) && !recentAds.includes(item.Id));
+            if (candidateAds.length === 0) {
+                candidateAds = pool.filter(item => !displayedImages.has(item.ImageUrl));
+            }
+            if (candidateAds.length === 0) {
+                candidateAds = pool;
+            }
+
+            // Selection
+            const selectedAd = candidateAds[Math.floor(Math.random() * candidateAds.length)];
+            const desktopUrl = selectedAd.DesktopUrl || selectedAd.ImageUrl;
+            const mobileUrl = selectedAd.MobileUrl || selectedAd.ImageUrl;
+
+            displayedImages.add(selectedAd.ImageUrl);
+            if (bgImg) bgImg.src = desktopUrl;
+            if (sourceMob) sourceMob.srcset = mobileUrl;
+            imgEl.src = desktopUrl;
+            imgEl.alt = selectedAd.Title;
+            linkEl.href = selectedAd.LinkUrl || "/Shop";
+
+            // Record to recentAds (keep last 10)
+            if (!recentAds.includes(selectedAd.Id)) {
+                recentAds.push(selectedAd.Id);
+                if (recentAds.length > 10) recentAds.shift();
+                try { localStorage.setItem("tga_recent_ads", JSON.stringify(recentAds)); } catch (e) {}
+            }
+
+            // Auto-rotate with 400ms crossfade
+            if (pool.length > 1) {
+                let currentIndex = pool.findIndex(item => item.Id === selectedAd.Id);
+                if (currentIndex === -1) currentIndex = 0;
+                let timer = null;
+                let isPausedByInteraction = false;
+
+                const rotateNext = () => {
+                    currentIndex = (currentIndex + 1) % pool.length;
+                    const nextAd = pool[currentIndex];
+                    const nextDesktop = nextAd.DesktopUrl || nextAd.ImageUrl;
+                    const nextMobile = nextAd.MobileUrl || nextAd.ImageUrl;
+
+                    if (prefersReducedMotion) {
+                        if (bgImg) bgImg.src = nextDesktop;
+                        if (sourceMob) sourceMob.srcset = nextMobile;
+                        imgEl.src = nextDesktop;
+                        imgEl.alt = nextAd.Title;
+                        linkEl.href = nextAd.LinkUrl || "/Shop";
+                    } else {
+                        linkEl.style.opacity = "0";
+                        if (bgImg) bgImg.style.opacity = "0";
+                        setTimeout(() => {
+                            if (bgImg) bgImg.src = nextDesktop;
+                            if (sourceMob) sourceMob.srcset = nextMobile;
+                            imgEl.src = nextDesktop;
+                            imgEl.alt = nextAd.Title;
+                            linkEl.href = nextAd.LinkUrl || "/Shop";
+                            linkEl.style.opacity = "1";
+                            if (bgImg) bgImg.style.opacity = "1";
+                        }, 400);
+                    }
+                };
+
+                const startTimer = () => {
+                    if (timer || isPausedByInteraction || document.hidden) return;
+                    timer = setInterval(rotateNext, rotateMs);
+                };
+
+                const stopTimer = () => {
+                    if (timer) {
+                        clearInterval(timer);
+                        timer = null;
+                    }
+                };
+
+                timerControllers.push({ start: startTimer, stop: stopTimer });
+                startTimer();
+
+                // Pause on hover, focus, touch; resume on leave/blur/touchend
+                wrapper.addEventListener("mouseenter", () => { isPausedByInteraction = true; stopTimer(); });
+                wrapper.addEventListener("mouseleave", () => { isPausedByInteraction = false; startTimer(); });
+                wrapper.addEventListener("focusin", () => { isPausedByInteraction = true; stopTimer(); });
+                wrapper.addEventListener("focusout", () => { isPausedByInteraction = false; startTimer(); });
+                wrapper.addEventListener("touchstart", () => { isPausedByInteraction = true; stopTimer(); }, { passive: true });
+                wrapper.addEventListener("touchend", () => { isPausedByInteraction = false; startTimer(); }, { passive: true });
+            }
+        }
+
+        visibleCount++;
+
+        // Dismiss button handler (44px hit area, 22px visible circle)
+        const dismissBtn = wrapper.querySelector(".tga-ad-dismiss-btn");
+        if (dismissBtn) {
+            dismissBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Remember in sessionStorage
+                sessionStorage.setItem("tga_closed_ad_" + adId, "true");
+                sessionStorage.setItem("tga_closed_slot_" + slot, "true");
+
+                // Smooth collapse
+                wrapper.style.maxHeight = wrapper.offsetHeight + "px";
+                requestAnimationFrame(() => {
+                    wrapper.style.maxHeight = "0px";
+                    wrapper.style.opacity = "0";
+                    wrapper.style.marginTop = "0px";
+                    wrapper.style.marginBottom = "0px";
+                    wrapper.style.paddingTop = "0px";
+                    wrapper.style.paddingBottom = "0px";
+                });
+                setTimeout(() => {
+                    wrapper.style.display = "none";
+                }, 380);
+            });
+        }
+    });
+
+    // Mobile Sticky Bottom Ad Banner
+    const stickyBottomAd = document.getElementById("tgaStickyBottomAd");
+    const stickyCta = document.querySelector(".tga-sticky-purchase-bar, #doctorStickyBookingBar, .tga-floating-cta");
+
+    if (stickyBottomAd) {
+        // When a sticky CTA bar exists (Add to cart, Book bar), ad must hide
+        if (sessionStorage.getItem("tga_closed_sticky_bottom") === "true" || stickyCta) {
+            stickyBottomAd.remove();
+        } else if (isMobile) {
+            // Check max 25% height rule (fixed header + ad + bottom bars <= 25% viewport height)
+            const headerHeight = document.getElementById("tgaMainHeader")?.offsetHeight || 0;
+            const bottomNavHeight = document.querySelector(".tga-bottom-nav")?.offsetHeight || 56;
+            const adHeight = 44;
+            const totalBarsHeight = headerHeight + bottomNavHeight + adHeight;
+
+            if (totalBarsHeight > window.innerHeight * 0.25) {
+                stickyBottomAd.style.display = "none";
+            } else {
+                stickyBottomAd.style.display = "block";
+                const closeBtn = stickyBottomAd.querySelector(".tga-sticky-ad-close");
+                if (closeBtn) {
+                    closeBtn.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        sessionStorage.setItem("tga_closed_sticky_bottom", "true");
+                        stickyBottomAd.style.transition = "transform 0.3s ease, opacity 0.3s ease";
+                        stickyBottomAd.style.transform = "translateY(100%)";
+                        stickyBottomAd.style.opacity = "0";
+                        setTimeout(() => {
+                            stickyBottomAd.style.display = "none";
+                            stickyBottomAd.remove();
+                        }, 320);
+                    });
+                }
+            }
+        }
+    }
+}
+
+// --------------------------------------------------------------------------
+// B3. SMART APP-LIKE BACK BUTTON & NAVIGATION STACK
+// --------------------------------------------------------------------------
+function initHeaderBackButton() {
+    const backBtn = document.getElementById("headerBackBtn");
+    if (!backBtn) return;
+
+    const currentPath = window.location.pathname.toLowerCase();
+    const isHome = currentPath === "/" || currentPath === "/home" || currentPath === "/home/index";
+
+    // Manage same-origin nav stack in sessionStorage (max 20 entries)
+    let stack = [];
+    try {
+        const stored = sessionStorage.getItem("tga_nav_history");
+        if (stored) stack = JSON.parse(stored);
+        if (!Array.isArray(stack)) stack = [];
+    } catch (e) {
+        stack = [];
+    }
+
+    // Skip auth/callback paths from stack
+    const isAuthOrCallback = currentPath.includes("/login") ||
+                             currentPath.includes("/logout") ||
+                             currentPath.includes("/register") ||
+                             currentPath.includes("/otp") ||
+                             currentPath.includes("/verify") ||
+                             currentPath.includes("/reset-password") ||
+                             currentPath.includes("/forgot-password") ||
+                             currentPath.includes("/callback") ||
+                             currentPath.includes("/order-confirmation");
+
+    function recordCurrentPage() {
+        const fullUrl = window.location.pathname + window.location.search;
+        if (!isAuthOrCallback) {
+            if (stack.length === 0 || stack[stack.length - 1] !== fullUrl) {
+                stack.push(fullUrl);
+                if (stack.length > 20) stack.shift();
+                try { sessionStorage.setItem("tga_nav_history", JSON.stringify(stack)); } catch (e) {}
+            }
+        }
+    }
+
+    recordCurrentPage();
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted) recordCurrentPage();
+    });
+
+    // Parent fallback hierarchy
+    function getParentUrl() {
+        if (currentPath.includes("/login") || currentPath.includes("/register") || currentPath.includes("/otp") || currentPath.includes("/logout") || currentPath.includes("/forgot") || currentPath.includes("/reset")) return "/";
+        if (currentPath.includes("/shop/details") || currentPath.includes("/shop/category")) return "/Shop";
+        if (currentPath.includes("/doctors/room") || currentPath.includes("/doctors/book")) return "/Doctors";
+        if (currentPath.includes("/doctors/details") || currentPath.includes("/doctors/profile")) return "/Doctors";
+        if (currentPath.includes("/checkout")) return "/Cart";
+        if (currentPath.includes("/orders/details") || currentPath.includes("/orders/track")) return "/Orders";
+        if (currentPath.includes("/orders")) return "/Account/Profile";
+        if (currentPath.includes("/account/")) return "/Account/Profile";
+        return "/";
+    }
+
+    // Determine visibility: On phones (<992px) and PWA/standalone mode, show on all non-home pages
+    const isMobile = window.innerWidth < 992;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    if (!isHome && (isMobile || isStandalone)) {
+        backBtn.classList.remove("d-none");
+        backBtn.classList.add("d-inline-flex");
+    } else {
+        backBtn.classList.remove("d-inline-flex");
+        backBtn.classList.add("d-none");
+    }
+
+    // Back click behavior
+    backBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        // 1. If any drawer/sheet/modal is open, close it first
+        const openOffcanvas = document.querySelector(".offcanvas.show");
+        if (openOffcanvas) {
+            if (typeof bootstrap !== "undefined" && bootstrap.Offcanvas) {
+                const inst = bootstrap.Offcanvas.getInstance(openOffcanvas);
+                if (inst) { inst.hide(); return; }
+            }
+            openOffcanvas.classList.remove("show");
+            return;
+        }
+
+        const openModal = document.querySelector(".modal.show");
+        if (openModal) {
+            if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+                const inst = bootstrap.Modal.getInstance(openModal);
+                if (inst) { inst.hide(); return; }
+            }
+            openModal.classList.remove("show");
+            return;
+        }
+
+        const openSearch = document.querySelector(".search-results-dropdown.show");
+        if (openSearch) {
+            openSearch.classList.remove("show");
+            return;
+        }
+
+        // 2. Pop current page from stack
+        const currentFull = window.location.pathname + window.location.search;
+        while (stack.length > 0 && (
+            stack[stack.length - 1] === currentFull ||
+            stack[stack.length - 1].includes("/login") ||
+            stack[stack.length - 1].includes("/logout") ||
+            stack[stack.length - 1].includes("/register") ||
+            stack[stack.length - 1].includes("/otp") ||
+            stack[stack.length - 1].includes("/verify") ||
+            stack[stack.length - 1].includes("/reset-password") ||
+            stack[stack.length - 1].includes("/forgot-password")
+        )) {
+            stack.pop();
+        }
+
+        if (stack.length > 0) {
+            const targetUrl = stack.pop();
+            try { sessionStorage.setItem("tga_nav_history", JSON.stringify(stack)); } catch (err) {}
+            window.location.href = targetUrl;
+        } else {
+            window.location.href = getParentUrl();
+        }
+    });
+
+    // Close drawers when user presses hardware/browser Back button
+    window.addEventListener("popstate", function (e) {
+        const openOffcanvas = document.querySelector(".offcanvas.show");
+        if (openOffcanvas && typeof bootstrap !== "undefined" && bootstrap.Offcanvas) {
+            const inst = bootstrap.Offcanvas.getInstance(openOffcanvas);
+            if (inst) inst.hide();
+        }
+    });
+}
+
+
 

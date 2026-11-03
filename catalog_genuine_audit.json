@@ -1,0 +1,298 @@
+{
+  "totalChecked": 400,
+  "genuineFound": 376,
+  "multipleAnglesCount": 294,
+  "singleAngleCount": 52,
+  "unavailableCount": 54,
+  "totalImagesSaved": 1258,
+  "byBrand": {
+    "Himalaya Wellness": {
+      "total": 50,
+      "found": 50,
+      "multipleAngles": 31,
+      "singleAngle": 19,
+      "totalPhotos": 154
+    },
+    "Dabur India": {
+      "total": 50,
+      "found": 48,
+      "multipleAngles": 41,
+      "singleAngle": 7,
+      "totalPhotos": 143
+    },
+    "Patanjali Ayurved": {
+      "total": 50,
+      "found": 49,
+      "multipleAngles": 46,
+      "singleAngle": 3,
+      "totalPhotos": 190
+    },
+    "Baidyanath": {
+      "total": 50,
+      "found": 50,
+      "multipleAngles": 41,
+      "singleAngle": 9,
+      "totalPhotos": 166
+    },
+    "Zandu Care": {
+      "total": 40,
+      "found": 24,
+      "multipleAngles": 19,
+      "singleAngle": 3,
+      "totalPhotos": 96
+    },
+    "Kottakkal Arya Vaidya Sala": {
+      "total": 50,
+      "found": 48,
+      "multipleAngles": 38,
+      "singleAngle": 10,
+      "totalPhotos": 144
+    },
+    "Charak Pharma": {
+      "total": 30,
+      "found": 29,
+      "multipleAngles": 29,
+      "singleAngle": 0,
+      "totalPhotos": 140
+    },
+    "AVP — The Arya Vaidya Pharmacy": {
+      "total": 30,
+      "found": 28,
+      "multipleAngles": 0,
+      "singleAngle": 0,
+      "totalPhotos": 0
+    },
+    "Maharishi Ayurveda": {
+      "total": 25,
+      "found": 25,
+      "multipleAngles": 25,
+      "singleAngle": 0,
+      "totalPhotos": 121
+    },
+    "Sri Sri Tattva": {
+      "total": 25,
+      "found": 25,
+      "multipleAngles": 24,
+      "singleAngle": 1,
+      "totalPhotos": 104
+    }
+  },
+  "unavailableProducts": [
+    {
+      "brand": "Dabur India",
+      "title": "Dabur Gripe Water"
+    },
+    {
+      "brand": "Dabur India",
+      "title": "Dabur Kanakasava"
+    },
+    {
+      "brand": "Patanjali Ayurved",
+      "title": "Patanjali Hingwashtak Churna"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Rhumayog Gold"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Vigorex Gold"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Brento (Tablet / Syrup)"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Trishun Tablet"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Lalima Blood Purifier"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Pure Honey"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Shilajit Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Tulsi Drops"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Haldi Drops"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Giloy Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Karela Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Amla Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Triphala Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Shatavari Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Gokshura Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Neem Capsules"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Garcinia Cambogia"
+    },
+    {
+      "brand": "Zandu Care",
+      "title": "Zandu Ovoutoline (Tablet / Syrup)"
+    },
+    {
+      "brand": "Kottakkal Arya Vaidya Sala",
+      "title": "Kottakkal Saraswatha Ghritam"
+    },
+    {
+      "brand": "Kottakkal Arya Vaidya Sala",
+      "title": "Kottakkal Balarishtam"
+    },
+    {
+      "brand": "Charak Pharma",
+      "title": "Charak Moha Sunscreen Spray"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Dhanwantharam (108) Soft Gel Capsules"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Sahacharadi Seevitham"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Ksheerabala (101) Soft Gel Capsules"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Gandha Thailam Capsules"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Anu Thailam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Kumkumadi Thailam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Nimi Tailam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Hinguvachadi Choornam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Ashtachooranam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Eladi Choornam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Jathyadi Ointment"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Heal Balm"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Manjishtadi Kwatham"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Pathyakshadhatryadi Kwatham"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Mahamanjishtadi Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Punarnavadi Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Gulguluthikthakam Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Sukumaram Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Muslikhadiradi Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Nimbadi Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Rasnairandadi Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Chiruvilwadi Kashayam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Balathailam"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Sudarsanam Tablet"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Wilwadi Gulika"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Dooshivishari Gulika"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Chandraprabha Vati"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Kanchanara Guggulu"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Yogaraja Guggulu"
+    },
+    {
+      "brand": "AVP — The Arya Vaidya Pharmacy",
+      "title": "AVP Amruthaprasam"
+    }
+  ]
+}

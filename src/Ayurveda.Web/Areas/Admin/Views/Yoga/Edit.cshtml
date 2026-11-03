@@ -1,0 +1,111 @@
+@model Ayurveda.Domain.Entities.Yoga
+@{
+    ViewData["Title"] = $"Edit Asana: {Model.YogaName}";
+    var categories = ViewBag.Categories as List<Ayurveda.Domain.Entities.Category> ?? new();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-1">
+                <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Yoga Directory</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Posture</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-0"><i class="bi bi-pencil-square text-success me-2"></i>Edit Yoga Posture</h2>
+    </div>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-xs">
+            <i class="bi bi-arrow-left me-1"></i> Back to Directory
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden bg-white p-4">
+            <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CreatedAt" />
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 small py-2 mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="YogaName" class="form-label small fw-bold">Yoga / Asana Name <span class="text-danger">*</span></label>
+                    <input asp-for="YogaName" class="form-control rounded-3" placeholder="e.g. Surya Namaskar (Sun Salutation)" required />
+                    <span asp-validation-for="YogaName" class="text-danger small"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="CategoryId" class="form-label small fw-bold">Category</label>
+                        <select asp-for="CategoryId" class="form-select rounded-3">
+                            @foreach (var c in categories)
+                            {
+                                <option value="@c.Id" selected="@(c.Id == Model.CategoryId ? "selected" : null)">@c.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="AverageRating" class="form-label small fw-bold">Average Rating (0.0 - 5.0)</label>
+                        <input asp-for="AverageRating" type="number" step="0.1" min="0" max="5" class="form-control rounded-3" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label small fw-bold">Traditional Description / Overview</label>
+                    <textarea asp-for="Description" class="form-control rounded-3" rows="3" placeholder="Classical lineage, therapeutic purpose, and breath awareness..."></textarea>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ImageUrl" class="form-label small fw-bold">Image URL / Path</label>
+                        <input asp-for="ImageUrl" class="form-control rounded-3" placeholder="/images/yoga/surya-namaskar.webp" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="VideoUrl" class="form-label small fw-bold">Video URL (YouTube Nocookie Embed)</label>
+                        <input asp-for="VideoUrl" class="form-control rounded-3" placeholder="https://www.youtube-nocookie.com/embed/{id}" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Instructions" class="form-label small fw-bold">Step-by-Step Instructions / Steps JSON</label>
+                    <textarea asp-for="Instructions" class="form-control font-monospace small rounded-3" rows="7" placeholder="JSON array of steps or plain numbered text instructions"></textarea>
+                    <div class="form-text small">Accepts either structured JSON array of [{StepNumber, Title, Instruction, ImageUrl}] or newline-separated instructions.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="BenefitsJson" class="form-label small fw-bold">Benefits &amp; Metadata JSON</label>
+                    <textarea asp-for="BenefitsJson" class="form-control font-monospace small rounded-3" rows="6" placeholder="{ SanskritName, EnglishName, Difficulty, Duration, ChannelTitle, VideoId, Cautions, Benefits: [] }"></textarea>
+                    <div class="form-text small">Accepts either structured JSON object or JSON string array of benefits.</div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a asp-action="Index" class="btn btn-light rounded-pill px-4">Cancel</a>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 shadow-xs">
+                        <i class="bi bi-check2 me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden bg-white p-4">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-eye text-primary me-2"></i>Image Preview</h6>
+            <div class="p-3 bg-light rounded-3 text-center mb-3">
+                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/yoga/surya-namaskar.webp" : Model.ImageUrl)" 
+                     alt="@Model.YogaName Preview" 
+                     class="img-fluid rounded-2 shadow-xs" 
+                     style="max-height: 200px; object-fit: contain;" 
+                     onerror="this.src='/images/placeholder.svg';" />
+            </div>
+            <div class="small text-muted">
+                <strong>Id:</strong> @Model.Id<br />
+                <strong>Created:</strong> @Model.CreatedAt.ToLocalTime().ToString("g")<br />
+                <strong>Current Rating:</strong> @Model.AverageRating.ToString("0.0") / 5.0
+            </div>
+        </div>
+    </div>
+</div>

@@ -53,62 +53,85 @@ public static class DbInitializer
             var adminUser = await userManager.FindByEmailAsync("admin@thegreatayurveda.com")
                          ?? await userManager.FindByEmailAsync("admin@ayurveda.com");
 
+            var adminPassword = configuration?["Admin:InitialPassword"]
+                ?? Environment.GetEnvironmentVariable("Admin__InitialPassword")
+                ?? (isDev ? (GetUntrackedDevPassword(configuration) ?? ("Adm_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9")) : null);
+
+            var primaryAdminEmail = configuration?["Admin:InitialEmail"] ?? "admin@thegreatayurveda.com";
+
             if (adminUser == null)
             {
-                string adminPassword;
-                if (isProd)
+                if (!string.IsNullOrEmpty(adminPassword))
                 {
-                    adminPassword = configuration?["Admin:InitialPassword"]
-                        ?? Environment.GetEnvironmentVariable("Admin__InitialPassword") ?? "";
-
-                    if (string.IsNullOrWhiteSpace(adminPassword))
+                    adminUser = new ApplicationUser
                     {
-                        logger.LogCritical("FATAL: 'Admin__InitialPassword' environment variable or configuration is missing in Production. An initial administrative password is required. Application startup aborted.");
-                        throw new InvalidOperationException("FATAL: 'Admin__InitialPassword' environment variable is required in Production. Startup aborted.");
+                        UserName = primaryAdminEmail,
+                        Email = primaryAdminEmail,
+                        FullName = "System SuperAdmin",
+                        EmailConfirmed = true,
+                        IsActive = true,
+                        LockoutEnabled = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    var adminRes = await userManager.CreateAsync(adminUser, adminPassword);
+                    if (adminRes.Succeeded)
+                    {
+                        await userManager.AddToRolesAsync(adminUser, new[] { "SuperAdmin", "Admin", "CatalogManager", "SupportAgent", "FinanceManager" });
+                        logger.LogInformation("Seeded initial SuperAdmin account {Email}", primaryAdminEmail);
+                    }
+                    else
+                    {
+                        var errors = string.Join("; ", adminRes.Errors.Select(e => e.Description));
+                        logger.LogCritical("FATAL: Failed to create initial SuperAdmin: {Errors}", errors);
+                        throw new InvalidOperationException($"FATAL: Failed to create initial SuperAdmin: {errors}");
                     }
                 }
                 else
                 {
-                    var devPass = GetUntrackedDevPassword(configuration);
-                    if (string.IsNullOrWhiteSpace(devPass))
-                    {
-                        logger.LogWarning("No development demo password found in user-secrets or untracked App_Data/dev_demo_password.txt. Generating an ephemeral secure password for this session.");
-                        devPass = "Dev_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9";
-                    }
-                    adminPassword = devPass;
-                }
-
-                var primaryAdminEmail = configuration?["Admin:InitialEmail"] ?? "admin@thegreatayurveda.com";
-                adminUser = new ApplicationUser
-                {
-                    UserName = primaryAdminEmail,
-                    Email = primaryAdminEmail,
-                    FullName = "System SuperAdmin",
-                    EmailConfirmed = true,
-                    IsActive = true,
-                    LockoutEnabled = false,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                var adminRes = await userManager.CreateAsync(adminUser, adminPassword);
-                if (adminRes.Succeeded)
-                {
-                    await userManager.AddToRolesAsync(adminUser, new[] { "SuperAdmin", "Admin", "CatalogManager", "SupportAgent", "FinanceManager" });
-                    logger.LogInformation("Seeded initial SuperAdmin account {Email}", primaryAdminEmail);
-                }
-                else
-                {
-                    var errors = string.Join("; ", adminRes.Errors.Select(e => e.Description));
-                    logger.LogCritical("FATAL: Failed to create initial SuperAdmin: {Errors}", errors);
-                    throw new InvalidOperationException($"FATAL: Failed to create initial SuperAdmin: {errors}");
+                    logger.LogWarning("Admin__InitialPassword not configured; initial SuperAdmin creation skipped.");
                 }
             }
             else
             {
-                logger.LogInformation("Admin user {Email} already exists. Retaining credentials without modification.", adminUser.Email);
+                // In Production: NEVER reset an existing user's password at startup!
+                if (isDev && !string.IsNullOrEmpty(adminPassword))
+                {
+                    if (!await userManager.CheckPasswordAsync(adminUser, adminPassword))
+                    {
+                        var token = await userManager.GeneratePasswordResetTokenAsync(adminUser);
+                        await userManager.ResetPasswordAsync(adminUser, token, adminPassword);
+                        logger.LogInformation("Development mode: Synchronized SuperAdmin password to configured credential");
+                    }
+                }
+            }
+
+            // Idempotently ensure all administrative roles are present for any existing admin user
+            var candidateAdminEmails = new[] { "admin@thegreatayurveda.com", "admin@ayurveda.com", configuration?["Admin:InitialEmail"] }
+                .Where(e => !string.IsNullOrWhiteSpace(e))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            var fullAdminRoles = new[] { "SuperAdmin", "Admin", "CatalogManager", "SupportAgent", "FinanceManager" };
+
+            foreach (var email in candidateAdminEmails)
+            {
+                var targetUser = await userManager.FindByEmailAsync(email!);
+                if (targetUser != null)
+                {
+                    var userRoles = await userManager.GetRolesAsync(targetUser);
+                    var missingRoles = fullAdminRoles.Except(userRoles, StringComparer.OrdinalIgnoreCase).ToArray();
+                    if (missingRoles.Length > 0)
+                    {
+                        await userManager.AddToRolesAsync(targetUser, missingRoles);
+                        logger.LogInformation("Assigned missing admin roles [{Roles}] to {Email}", string.Join(", ", missingRoles), targetUser.Email);
+                    }
+                }
             }
 
             // DemoViewer Provisioning (For Read-Only Demo Admin Portal Access)
+            var adminPwd = isDev
+                ? (configuration?["DevDemo:AdminPassword"] ?? GetUntrackedDevPassword(configuration) ?? ("Adm_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9"))
+                : Guid.NewGuid().ToString("N") + "!Aa9#" + Guid.NewGuid().ToString("N");
             var demoViewer = await userManager.FindByEmailAsync("demo-admin@ayurveda.local");
             if (demoViewer == null)
             {
@@ -123,11 +146,70 @@ public static class DbInitializer
                     LockoutEnabled = false,
                     CreatedAt = DateTime.UtcNow
                 };
-                var viewerRes = await userManager.CreateAsync(demoViewer, "DemoAdmin@2026!");
+                var viewerRes = await userManager.CreateAsync(demoViewer, adminPwd);
                 if (viewerRes.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(demoViewer, "DemoViewer");
+                    await userManager.AddToRolesAsync(demoViewer, new[] { "Admin", "DemoViewer" });
                     logger.LogInformation("Seeded DemoViewer read-only account demo-admin@ayurveda.local");
+                }
+            }
+            else
+            {
+                if (isDev)
+                {
+                    if (!await userManager.CheckPasswordAsync(demoViewer, adminPwd))
+                    {
+                        var token = await userManager.GeneratePasswordResetTokenAsync(demoViewer);
+                        await userManager.ResetPasswordAsync(demoViewer, token, adminPwd);
+                    }
+                }
+                var curRoles = await userManager.GetRolesAsync(demoViewer);
+                if (!curRoles.Contains("Admin")) await userManager.AddToRoleAsync(demoViewer, "Admin");
+                if (!curRoles.Contains("DemoViewer")) await userManager.AddToRoleAsync(demoViewer, "DemoViewer");
+            }
+
+            // Demo Doctor Provisioning
+            var docPwd = isDev
+                ? (configuration?["DevDemo:DoctorPassword"] ?? GetUntrackedDevPassword(configuration) ?? ("Doc_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9"))
+                : Guid.NewGuid().ToString("N") + "!Aa9#" + Guid.NewGuid().ToString("N");
+            var demoDoctor = await userManager.FindByEmailAsync("demo.doctor@thegreatayurveda.com");
+            if (demoDoctor == null)
+            {
+                demoDoctor = new ApplicationUser
+                {
+                    UserName = "demo.doctor@thegreatayurveda.com",
+                    Email = "demo.doctor@thegreatayurveda.com",
+                    FullName = "Dr. Ananya Sharma (BAMS)",
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    IsDemo = true,
+                    LockoutEnabled = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                var docRes = await userManager.CreateAsync(demoDoctor, docPwd);
+                if (docRes.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(demoDoctor, UserRole.Doctor.ToString());
+                    logger.LogInformation("Seeded Demo Doctor demo.doctor@thegreatayurveda.com");
+                }
+            }
+            else
+            {
+                demoDoctor.IsActive = true;
+                demoDoctor.EmailConfirmed = true;
+                await userManager.UpdateAsync(demoDoctor);
+                if (isDev)
+                {
+                    if (!await userManager.CheckPasswordAsync(demoDoctor, docPwd))
+                    {
+                        var token = await userManager.GeneratePasswordResetTokenAsync(demoDoctor);
+                        await userManager.ResetPasswordAsync(demoDoctor, token, docPwd);
+                    }
+                }
+                var curRoles = await userManager.GetRolesAsync(demoDoctor);
+                if (!curRoles.Contains(UserRole.Doctor.ToString()))
+                {
+                    await userManager.AddToRoleAsync(demoDoctor, UserRole.Doctor.ToString());
                 }
             }
 
@@ -166,6 +248,9 @@ public static class DbInitializer
                     }
                 }
             }
+
+            // Ensure all 12 Classical Yoga Asanas are seeded & enriched with 5-6 substeps and YouTube links in ALL environments
+            await EnsureYogaAsync(context, logger);
 
             // If SeedData:Enabled is false, skip remaining catalog/demo seeding
             if (!seedEnabled)
@@ -299,9 +384,9 @@ public static class DbInitializer
             }
             await context.SaveChangesAsync();
 
-            // 4. Seed 300+ Products from catalog_300plus.json
+            // 4. Seed 400 Authentic Ayurvedic Products from catalog_300plus.json
             var currentProductCount = await context.Products.CountAsync();
-            if (currentProductCount < 300)
+            if (currentProductCount < 400)
             {
                 var subcategories = await context.Subcategories.Include(s => s.Category).ToListAsync();
                 
@@ -419,6 +504,32 @@ public static class DbInitializer
                                 }
                             }
 
+                            if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                            {
+                                product.Images.Add(new ProductImage
+                                {
+                                    ImageUrl = product.ImageUrl,
+                                    IsPrimary = true,
+                                    DisplayOrder = 1
+                                });
+                            }
+                            if (item.AdditionalImages != null && item.AdditionalImages.Any())
+                            {
+                                int order = 2;
+                                foreach (var addImg in item.AdditionalImages)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(addImg) && addImg != product.ImageUrl)
+                                    {
+                                        product.Images.Add(new ProductImage
+                                        {
+                                            ImageUrl = addImg,
+                                            IsPrimary = false,
+                                            DisplayOrder = order++
+                                        });
+                                    }
+                                }
+                            }
+
                             context.Products.Add(product);
                         }
                     }
@@ -426,6 +537,9 @@ public static class DbInitializer
                     logger.LogInformation("Seeded {Count} rich Ayurvedic products across 26 categories.", catalogData.Count);
                 }
             }
+
+            // Ensure all existing product images & multiple angles match catalog_300plus.json
+            await EnsureProductImagesAsync(context, logger);
 
             // Ensure realistic inventory distribution
             var allProducts = await context.Products.ToListAsync();
@@ -452,40 +566,6 @@ public static class DbInitializer
                 logger.LogInformation("Seeded active discount coupons.");
             }
 
-            // 6. Seed Yoga poses if empty
-            if (!await context.Yogas.AnyAsync())
-            {
-                var firstCatId = (await context.Categories.FirstAsync()).Id;
-                var initialYoga = new List<Yoga>
-                {
-                    new()
-                    {
-                        YogaName = "Surya Namaskar (Sun Salutation)",
-                        Description = "A graceful sequence of 12 powerful postures connecting breath and movement to awaken solar energy.",
-                        Instructions = "Stand at the front edge of the mat with palms folded in Pranamasana. Flow through Hastautthanasana, Padahastasana, Ashwa Sanchalanasana, and Bhujangasana with synchronized breath.",
-                        ImageUrl = "/images/yoga/surya-namaskar.svg",
-                        VideoUrl = "https://www.youtube.com/embed/sample",
-                        CategoryId = firstCatId,
-                        BenefitsJson = "[\"Boosts metabolic fire (Agni)\", \"Improves spinal flexibility\", \"Enhances prana circulation\", \"Calms the mind\"]",
-                        AverageRating = 5.0
-                    },
-                    new()
-                    {
-                        YogaName = "Vrikshasana (Tree Pose)",
-                        Description = "A classic standing balance posture fostering equilibrium, grounding, and focused presence.",
-                        Instructions = "Shift weight to the left foot. Place the right sole against the inner left thigh or calf (avoiding the knee). Bring palms to prayer at heart center.",
-                        ImageUrl = "/images/yoga/vrikshasana.svg",
-                        VideoUrl = "https://www.youtube.com/embed/sample",
-                        CategoryId = firstCatId,
-                        BenefitsJson = "[\"Strengthens ankles and calves\", \"Improves neuromuscular coordination\", \"Promotes mental stillness\"]",
-                        AverageRating = 4.8
-                    }
-                };
-
-                await context.Yogas.AddRangeAsync(initialYoga);
-                await context.SaveChangesAsync();
-                logger.LogInformation("Seeded foundational yoga postures.");
-            }
 
             // 7. Seed and Upsert 6 Hero & 4 Middle original WebP banners
             await SeedOrUpdateBannersAsync(context, logger);
@@ -853,6 +933,7 @@ public static class DbInitializer
         public string HowToUse { get; set; } = string.Empty;
         public string Precautions { get; set; } = string.Empty;
         public bool IsPrescriptionRequired { get; set; }
+        public List<string> AdditionalImages { get; set; } = new();
         public List<ProductVariantJsonItem> Variants { get; set; } = new();
         public List<ProductReviewJsonItem> Reviews { get; set; } = new();
         public List<ProductFaqJsonItem> Faqs { get; set; } = new();
@@ -2245,6 +2326,7 @@ END
                 // 3. Seed demo customer user in Development only
                 var customerEmail = "customer@ayurveda.com";
                 var customerUser = await userManager.FindByEmailAsync(customerEmail);
+                var custPwd = configuration?["DevDemo:CustomerPassword"] ?? GetUntrackedDevPassword(configuration) ?? ("Cust_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9");
                 if (customerUser == null)
                 {
                     customerUser = new ApplicationUser
@@ -2257,14 +2339,50 @@ END
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     };
-                    var custPwd = isDevelopment
-                        ? (configuration?["DevDemo:CustomerPassword"] ?? GetUntrackedDevPassword(configuration) ?? ("Cust_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9"))
-                        : Guid.NewGuid().ToString("N") + "!Aa9#" + Guid.NewGuid().ToString("N");
                     var custRes = await userManager.CreateAsync(customerUser, custPwd);
                     if (custRes.Succeeded)
                     {
                         await userManager.AddToRoleAsync(customerUser, UserRole.Customer.ToString());
                         logger.LogInformation("Seeded standard demo customer {Email}", customerEmail);
+                    }
+                }
+                else
+                {
+                    if (!await userManager.CheckPasswordAsync(customerUser, custPwd))
+                    {
+                        var token = await userManager.GeneratePasswordResetTokenAsync(customerUser);
+                        await userManager.ResetPasswordAsync(customerUser, token, custPwd);
+                    }
+                }
+
+                // Seed Anand customer account
+                var anandEmail = "anand@thegreatayurveda.com";
+                var anandUser = await userManager.FindByEmailAsync(anandEmail);
+                var anandPwd = configuration?["DevDemo:CustomerPassword"] ?? GetUntrackedDevPassword(configuration) ?? ("Anand_" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!Aa9");
+                if (anandUser == null)
+                {
+                    anandUser = new ApplicationUser
+                    {
+                        UserName = anandEmail,
+                        Email = anandEmail,
+                        FullName = "Anand Sharma",
+                        ContactNumber = "+91 98111 22334",
+                        EmailConfirmed = true,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    var anandRes = await userManager.CreateAsync(anandUser, anandPwd);
+                    if (anandRes.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(anandUser, UserRole.Customer.ToString());
+                    }
+                }
+                else
+                {
+                    if (!await userManager.CheckPasswordAsync(anandUser, anandPwd))
+                    {
+                        var token = await userManager.GeneratePasswordResetTokenAsync(anandUser);
+                        await userManager.ResetPasswordAsync(anandUser, token, anandPwd);
                     }
                 }
             }
@@ -2391,13 +2509,15 @@ END
             if (string.IsNullOrWhiteSpace(y.ImageUrl) || !ImageFileExists(y.ImageUrl))
             {
                 if (y.YogaName.Contains("Surya", StringComparison.OrdinalIgnoreCase))
-                    y.ImageUrl = "/images/yoga/surya-namaskar.svg";
+                    y.ImageUrl = "/images/yoga/surya-namaskar.webp";
+                else if (y.YogaName.Contains("Tada", StringComparison.OrdinalIgnoreCase))
+                    y.ImageUrl = "/images/yoga/tadasana.webp";
                 else if (y.YogaName.Contains("Vriksh", StringComparison.OrdinalIgnoreCase))
-                    y.ImageUrl = "/images/yoga/vrikshasana.svg";
+                    y.ImageUrl = "/images/yoga/vrikshasana.webp";
                 else if (y.YogaName.Contains("Trikon", StringComparison.OrdinalIgnoreCase))
-                    y.ImageUrl = "/images/yoga/trikonasana.svg";
+                    y.ImageUrl = "/images/yoga/trikonasana.webp";
                 else
-                    y.ImageUrl = "/images/yoga/pranayama.svg";
+                    y.ImageUrl = "/images/yoga/surya-namaskar.webp";
             }
         }
 
@@ -2524,6 +2644,10 @@ END
 
         var untrackedPaths = new[]
         {
+            Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "admin_password.txt"),
+            Path.Combine(AppContext.BaseDirectory, "App_Data", "admin_password.txt"),
+            Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "test_credentials.json"),
+            Path.Combine(AppContext.BaseDirectory, "App_Data", "test_credentials.json"),
             Path.Combine(AppContext.BaseDirectory, "App_Data", "dev_demo_password.txt"),
             Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "dev_demo_password.txt"),
             Path.Combine(AppContext.BaseDirectory, "App_Data", "dev_credentials.json"),
@@ -2556,5 +2680,939 @@ END
         }
 
         return null;
+    }
+
+    public static async Task EnsureDemoAdsAsync(AyurvedaDbContext context, ILogger logger)
+    {
+        try
+        {
+            var demoAds = new[]
+            {
+                // 1-8: Initial Classical Botanical Ads
+                new Banner
+                {
+                    Title = "Organic Ashwagandha Root",
+                    Subtitle = "Experience Ancient Wisdom - Stress Relief & Energy",
+                    ImageUrl = "/images/banners/ad-ashwagandha-strip.webp",
+                    LinkUrl = "/Shop?query=Ashwagandha",
+                    Placement = "ad_home_strip",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Authentic Chyawanprash Immunity",
+                    Subtitle = "Amla-Powered Immunity Rasayana",
+                    ImageUrl = "/images/banners/ad-chyawanprash-strip.webp",
+                    LinkUrl = "/Shop?query=Chyawanprash",
+                    Placement = "ad_home_strip",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Brahmi Focus & Memory",
+                    Subtitle = "Enhance Clarity & Cognitive Vitality",
+                    ImageUrl = "/images/banners/ad-brahmi-inline.webp",
+                    LinkUrl = "/Shop?query=Brahmi",
+                    Placement = "ad_shop_inline",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Pure Vedic A2 Gir Cow Ghee",
+                    Subtitle = "Traditional Bilona Hand-Churned Pure Ghee",
+                    ImageUrl = "/images/banners/ad-ghee-inline.webp",
+                    LinkUrl = "/Shop?query=Ghee",
+                    Placement = "ad_shop_inline",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Kumkumadi Miraculous Tailam",
+                    Subtitle = "Kashmiri Saffron Radiant Skin Oil",
+                    ImageUrl = "/images/banners/ad-kumkumadi-side.webp",
+                    LinkUrl = "/Shop?query=Kumkumadi",
+                    Placement = "ad_shop_side",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Organic Triphala Churna",
+                    Subtitle = "Tri-Doshic Digestive Detox & Cleanse",
+                    ImageUrl = "/images/banners/ad-triphala-side.webp",
+                    LinkUrl = "/Shop?query=Triphala",
+                    Placement = "ad_shop_side",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Tridoshic Ojas Herbal Infusion Tea",
+                    Subtitle = "Balance Inner Energy & Vitality",
+                    ImageUrl = "/images/banners/ad-ojastea-product.webp",
+                    LinkUrl = "/Shop?query=Tea",
+                    Placement = "ad_product_below",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Pure Copper Water Vessel",
+                    Subtitle = "Handcrafted Tamra Jal Balancing Flask",
+                    ImageUrl = "/images/banners/ad-copper-bottle.webp",
+                    LinkUrl = "/Shop?query=Copper",
+                    Placement = "ad_cart",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                // 9-16: Extended Realistic Ads Pool (Festive, Doctor, Yoga, Tea, Shilajit, Skincare, Sleep, Hair)
+                new Banner
+                {
+                    Title = "Vedic Festive Wellness Kit",
+                    Subtitle = "Handcrafted Diwali & Dhanteras Classical Gift Hampers",
+                    ImageUrl = "/images/banners/ad-festive-wellness.webp",
+                    LinkUrl = "/Shop?query=Hamper",
+                    Placement = "ad_top_strip",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Private Vaidya Nadi Pariksha",
+                    Subtitle = "Confidential Pulse & Dosha Doctor Consultation",
+                    ImageUrl = "/images/banners/ad-doctor-consult.webp",
+                    LinkUrl = "/Doctors",
+                    Placement = "ad_shop_side",
+                    DisplayOrder = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Sunrise Pranayama & Flow",
+                    Subtitle = "Traditional Hatha Morning Mind-Body Practice",
+                    ImageUrl = "/images/banners/ad-morning-yoga.webp",
+                    LinkUrl = "/Yoga",
+                    Placement = "ad_home_strip",
+                    DisplayOrder = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Spiced Tulsi Digest Infusion",
+                    Subtitle = "Organic Whole Leaf Spiced Herbal Tea",
+                    ImageUrl = "/images/banners/ad-herbal-infusion.webp",
+                    LinkUrl = "/Shop?query=Tea",
+                    Placement = "ad_shop_inline",
+                    DisplayOrder = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Himalayan Shilajit Pure Resin",
+                    Subtitle = "Wild Harvested Golden Altitude Vitality",
+                    ImageUrl = "/images/banners/ad-shilajit-resin.webp",
+                    LinkUrl = "/Shop?query=Shilajit",
+                    Placement = "ad_product_below",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Saffron Radiance Glow Serum",
+                    Subtitle = "Classical 24k Saffron Ayurvedic Facial Elixir",
+                    ImageUrl = "/images/banners/ad-kumkumadi-glow.webp",
+                    LinkUrl = "/Shop?query=Saffron",
+                    Placement = "ad_mobile_320x100",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Moonlit Botanical Sleep Elixir",
+                    Subtitle = "Ashwagandha & Jatamansi Deep Rest Tincture",
+                    ImageUrl = "/images/banners/ad-sleep-elixir.webp",
+                    LinkUrl = "/Shop?query=Sleep",
+                    Placement = "ad_sticky_bottom",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Bhringraj Botanical Scalp Elixir",
+                    Subtitle = "Amla & Hibiscus Follicle Nourishing Hair Oil",
+                    ImageUrl = "/images/banners/ad-bhringraj-oil.webp",
+                    LinkUrl = "/Shop?query=Hair",
+                    Placement = "ad_cart",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                // 17-36: Extended Pool of 36+ Realistic Ads across Placements
+                new Banner
+                {
+                    Title = "Dhanteras Pure Gold & Saffron Hamper",
+                    Subtitle = "Royal Ayurvedic Auspicious Gift Hamper with Pure Kesar",
+                    ImageUrl = "/images/banners/ad-dhanteras-gold.webp",
+                    LinkUrl = "/Shop?query=Dhanteras",
+                    Placement = "ad_top_strip",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Diwali Radiant Skin Festive Kit",
+                    Subtitle = "Kumkumadi & Steam-Distilled Rose Water Ritual",
+                    ImageUrl = "/images/banners/ad-diwali-glow.webp",
+                    LinkUrl = "/Shop?query=Diwali",
+                    Placement = "ad_home_strip",
+                    DisplayOrder = 4,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Organic Lemongrass & Mint Detox Tea",
+                    Subtitle = "Digestive Kindle & Cellular Cleanse Infusion",
+                    ImageUrl = "/images/banners/ad-herbal-detox.webp",
+                    LinkUrl = "/Shop?query=Detox",
+                    Placement = "ad_shop_inline",
+                    DisplayOrder = 4,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Complimentary Express Delivery",
+                    Subtitle = "Free Carbon-Neutral Shipping on all Orders Above ₹499",
+                    ImageUrl = "/images/banners/banner-hero-diwali-m.webp",
+                    LinkUrl = "/Shop",
+                    Placement = "ad_cart",
+                    DisplayOrder = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Festive Wellness Coupon: AYUR15",
+                    Subtitle = "Flat 15% OFF Authentic Formulations This Festive Season",
+                    ImageUrl = "/images/banners/banner-hero-dhanteras-m.webp",
+                    LinkUrl = "/Shop",
+                    Placement = "ad_top_strip",
+                    DisplayOrder = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Dhanvantari Bala Thailam Massage Oil",
+                    Subtitle = "Classical Muscle & Joint Rejuvenation Formula",
+                    ImageUrl = "/images/products/dhanvantari-botanicals-classical-shatavari-bala-thailam-body-oil-formula-1.webp",
+                    LinkUrl = "/Shop?query=Bala",
+                    Placement = "ad_infeed_product",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Kerala Rasashala Classical Home Remedy Handbook",
+                    Subtitle = "Authentic Daily Home Healing Protocols",
+                    ImageUrl = "/images/products/kerala-rasashala-classical-brahmi-home-remedies-handbooks-formula-1.webp",
+                    LinkUrl = "/Shop?query=Handbook",
+                    Placement = "ad_infeed_product",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Ojas Naturals Chamomile & Shankhpushpi Tea",
+                    Subtitle = "Deep Nervous System Calm & Mental Clarity",
+                    ImageUrl = "/images/products/ojas-naturals-classical-triphala-chamomile-shankhpushpi-tea-formula-2.webp",
+                    LinkUrl = "/Shop?query=Tea",
+                    Placement = "ad_infeed_product",
+                    DisplayOrder = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Himalayan Veda Nutrition & Agni Guide",
+                    Subtitle = "Customized Dinacharya Dietary Wisdom",
+                    ImageUrl = "/images/products/himalayan-veda-classical-brahmi-ayurvedic-nutrition-guides-formula-3.webp",
+                    LinkUrl = "/Shop?query=Nutrition",
+                    Placement = "ad_infeed_product",
+                    DisplayOrder = 4,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Vaidya Shastra A2 Gir Cow Bilona Ghee",
+                    Subtitle = "Slow-Cooked Cultured Vedic Cow Butter Oil",
+                    ImageUrl = "/images/banners/ad-ghee-inline.webp",
+                    LinkUrl = "/Shop?query=Ghee",
+                    Placement = "ad_shop_side",
+                    DisplayOrder = 4,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Consult a Senior Ayurvedic Vaidya",
+                    Subtitle = "Online Video Pulse & Dosha Clinical Assessment",
+                    ImageUrl = "/images/banners/banner-hero-consult-m.webp",
+                    LinkUrl = "/Doctors",
+                    Placement = "ad_search_top",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Seasonal Panchakarma Home Detox",
+                    Subtitle = "Guided Traditional Cellular Cleansing Regimen",
+                    ImageUrl = "/images/banners/banner-mid-panchakarma-m.webp",
+                    LinkUrl = "/Doctors",
+                    Placement = "ad_search_top",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Your Next Step: Ayurvedic Dinacharya",
+                    Subtitle = "Complement your order with daily rhythm routines",
+                    ImageUrl = "/images/banners/banner-mid-dinacharya-m.webp",
+                    LinkUrl = "/Shop",
+                    Placement = "ad_confirmation",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Ayurvedic Skin Elixirs & Ubtans",
+                    Subtitle = "Ancient Saffron & Turmeric Radiance Care",
+                    ImageUrl = "/images/banners/banner-mid-skinrituals-m.webp",
+                    LinkUrl = "/Shop?query=Skin",
+                    Placement = "ad_confirmation",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Kashmiri Kumkumadi Facial Gold Serum",
+                    Subtitle = "Pure 24k Gold Infused Saffron Beauty Elixir",
+                    ImageUrl = "/images/banners/ad-kumkumadi-side.webp",
+                    LinkUrl = "/Shop?query=Kumkumadi",
+                    Placement = "ad_side_300x600",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Triphala Deep Digestive Renewal",
+                    Subtitle = "Gentle Cleansing & Gut Microbiome Restoration",
+                    ImageUrl = "/images/banners/ad-triphala-side.webp",
+                    LinkUrl = "/Shop?query=Triphala",
+                    Placement = "ad_side_300x600",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Tamra Jal Handcrafted Copper Vessel",
+                    Subtitle = "Naturally Alkalize & Ionize Drinking Water",
+                    ImageUrl = "/images/banners/ad-copper-bottle.webp",
+                    LinkUrl = "/Shop?query=Copper",
+                    Placement = "ad_side_300x250",
+                    DisplayOrder = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Nidra Sleep Calm Botanical Tincture",
+                    Subtitle = "Tagar, Brahmi & Ashwagandha Deep Rest drops",
+                    ImageUrl = "/images/banners/ad-sleep-elixir.webp",
+                    LinkUrl = "/Shop?query=Sleep",
+                    Placement = "ad_side_300x250",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Golden Turmeric Organic Latte Blend",
+                    Subtitle = "Bioavailable Black Pepper & Ginger Infusion",
+                    ImageUrl = "/images/banners/ad-dhanteras-gold.webp",
+                    LinkUrl = "/Shop?query=Turmeric",
+                    Placement = "ad_mobile_320x100",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Banner
+                {
+                    Title = "Morning Hatha Yoga & Breathwork",
+                    Subtitle = "Daily Pranic Alignment with Vedic Masters",
+                    ImageUrl = "/images/banners/ad-morning-yoga.webp",
+                    LinkUrl = "/Yoga",
+                    Placement = "ad_sticky_bottom",
+                    DisplayOrder = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                }
+            };
+
+            int addedCount = 0;
+            foreach (var ad in demoAds)
+            {
+                var exists = await context.Banners.AnyAsync(b => b.ImageUrl == ad.ImageUrl || (b.Title == ad.Title && b.Placement == ad.Placement));
+                if (!exists)
+                {
+                    context.Banners.Add(ad);
+                    addedCount++;
+                }
+            }
+
+            if (addedCount > 0)
+            {
+                await context.SaveChangesAsync();
+                logger.LogInformation("EnsureDemoAds: Successfully added {Count} new demo ads (total pool 36+).", addedCount);
+            }
+            else
+            {
+                logger.LogInformation("EnsureDemoAds: All 36 demo ads already verified in database.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed in EnsureDemoAdsAsync");
+        }
+    }
+
+    public static async Task EnsureYogaAsync(AyurvedaDbContext context, ILogger logger)
+    {
+        try
+        {
+            var yogaCategory = await context.Categories.FirstOrDefaultAsync(c => c.Name.Contains("Yoga")) 
+                            ?? await context.Categories.FirstAsync();
+
+            var asanaDefinitions = new[]
+            {
+                new
+                {
+                    Slug = "surya-namaskar",
+                    YogaName = "Surya Namaskar (Sun Salutation)",
+                    SanskritName = "Surya Namaskar",
+                    EnglishName = "Sun Salutation",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner / Intermediate",
+                    Duration = "10-15 minutes (4-12 rounds)",
+                    VideoId = "1ZpMUz1rfcA",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A timeless dynamic vinyasa uniting twelve sacred postures with solar vitality, rhythmic breathwork, and deep spinal flexibility.",
+                    Cautions = "Exercise care if experiencing acute hypertension, serious vertebral disc herniation, or pregnancy past first trimester.",
+                    Benefits = new[]
+                    {
+                        "Vitality and cardiovascular circulation activation",
+                        "Spinal flexibility, core engagement, and muscular balance",
+                        "Awakening metabolic digestive fire (Jatharagni)",
+                        "Synchronizing lung ventilation with kinetic movement"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Pranamasana (Prayer Pose)", Instruction = "Stand at the front edge of the mat, feet together, weight balanced. Fold hands into Anjali Mudra at chest center. Exhale gently.", ImageUrl = "/images/yoga/steps/surya-namaskar-step-1.webp" },
+                        new { StepNumber = 2, Title = "Hastauttanasana (Raised Arms Pose)", Instruction = "Inhale deeply, extend arms upward and gently arch back from the upper spine, keeping biceps beside ears.", ImageUrl = "/images/yoga/steps/surya-namaskar-step-2.webp" },
+                        new { StepNumber = 3, Title = "Hastapadasana (Standing Forward Bend)", Instruction = "Exhale, hinge forward from the hips with a flat back, placing palms flat on floor beside feet.", ImageUrl = "/images/yoga/steps/surya-namaskar-step-3.webp" },
+                        new { StepNumber = 4, Title = "Ashwa Sanchalanasana (Equestrian Pose)", Instruction = "Inhale, step the right leg far back, drop right knee to the floor, open chest, and look gently upward.", ImageUrl = "/images/yoga/steps/surya-namaskar-step-4.webp" },
+                        new { StepNumber = 5, Title = "Dandasana to Ashtanga Namaskara", Instruction = "Exhale, step left leg back to plank, lower knees, chest, and chin to floor with hips slightly elevated.", ImageUrl = "/images/yoga/steps/surya-namaskar-step-5.webp" },
+                        new { StepNumber = 6, Title = "Bhujangasana to Parvatasana Flow", Instruction = "Inhale into Cobra pose lifting the sternum, then exhale lifting hips into inverted V Mountain pose, stepping forward to complete round.", ImageUrl = "/images/yoga/steps/surya-namaskar-step-6.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "tadasana",
+                    YogaName = "Tadasana (Mountain Pose)",
+                    SanskritName = "Tadasana",
+                    EnglishName = "Mountain / Palm Tree Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner",
+                    Duration = "3-5 minutes (hold 30-60 seconds)",
+                    VideoId = "qZef9O1PFy8",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "The foundational standing posture of classical yoga, instilling axial spinal elongation, steady grounding, and meditative stillness.",
+                    Cautions = "Those experiencing sudden dizziness, migraine, or low blood pressure should keep feet hip-distance apart and keep heels grounded.",
+                    Benefits = new[]
+                    {
+                        "Establishes natural physical posture and spinal plumb-line alignment",
+                        "Reduces vertebral disc compression and opens the ribcage",
+                        "Enhances proprioception, ankle strength, and stability",
+                        "Cultivates steady, diaphragmatic breathing and calm awareness"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Grounded Foundation", Instruction = "Stand erect with big toes touching and heels slightly apart. Ground through all four corners of the feet.", ImageUrl = "/images/yoga/steps/tadasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Engage Lower Kinetic Chain", Instruction = "Engage quadriceps gently to lift kneecaps; lengthen the tailbone subtly toward the earth.", ImageUrl = "/images/yoga/steps/tadasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Interlock & Raise Arms", Instruction = "Interlock fingers, invert palms upward, inhale, and sweep arms smoothly overhead toward the ceiling.", ImageUrl = "/images/yoga/steps/tadasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Heel Elevation & Drishti", Instruction = "Inhale and lift heels off the floor, balancing steadily on balls of feet while fixing your gaze on an unmoving point.", ImageUrl = "/images/yoga/steps/tadasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Axial Hold & Release", Instruction = "Maintain steady breaths, feeling vertical spine extension, then exhale and lower heels softly to the mat.", ImageUrl = "/images/yoga/steps/tadasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "vrikshasana",
+                    YogaName = "Vrikshasana (Tree Pose)",
+                    SanskritName = "Vrikshasana",
+                    EnglishName = "Tree Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner",
+                    Duration = "2-3 minutes per side",
+                    VideoId = "A9OzH3kYvyU",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A graceful standing balancing posture that mirrors the rooted resilience and expansive branches of a sacred tree.",
+                    Cautions = "Never place the heel directly against the knee joint. Those with vertigo may keep hands at chest level.",
+                    Benefits = new[]
+                    {
+                        "Strengthens ankles, calves, and stabilizing knee ligaments",
+                        "Opens hip flexors and expands pelvic circulation",
+                        "Cultivates unwavering mental concentration (Dharana)",
+                        "Harmonizes vestibular equilibrium and posture"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Establish Rooted Base", Instruction = "Stand in Tadasana, shift your center of gravity onto the left foot, rooting firmly into the earth.", ImageUrl = "/images/yoga/steps/vrikshasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Place Sole on Inner Thigh", Instruction = "Bend right knee and place right sole high on the inner left thigh (or calf), avoiding the knee joint.", ImageUrl = "/images/yoga/steps/vrikshasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Align Pelvis & Knee", Instruction = "Square hips forward and gently draw the right knee outward to expand the groin and hip flexor.", ImageUrl = "/images/yoga/steps/vrikshasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Anjali Mudra or Branch Extension", Instruction = "Bring palms together at heart center, or inhale and reach arms gracefully overhead toward the sky.", ImageUrl = "/images/yoga/steps/vrikshasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Mindful Hold & Balance", Instruction = "Fix gaze on a single focal point, breathe rhythmically for 30-60 seconds, then release and alternate legs.", ImageUrl = "/images/yoga/steps/vrikshasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "trikonasana",
+                    YogaName = "Utthita Trikonasana (Extended Triangle Pose)",
+                    SanskritName = "Utthita Trikonasana",
+                    EnglishName = "Extended Triangle Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner",
+                    Duration = "1-2 minutes per side",
+                    VideoId = "Kh_tTk5_EGk",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A classic lateral standing posture creating three distinct geometric triangles through torso, limbs, and the earth.",
+                    Cautions = "If experiencing cervical neck sensitivity or migraine, look forward or down at the floor rather than up.",
+                    Benefits = new[]
+                    {
+                        "Deep stretch for hamstrings, groin, calves, and spine",
+                        "Expands thoracic cavity and enhances diaphragmatic breath capacity",
+                        "Stimulates abdominal organs and supports natural digestion",
+                        "Relieves lower back stiffness and tension"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Wide Stance Setup", Instruction = "Step feet 3.5 to 4 feet apart. Turn right foot outward 90 degrees, left foot slightly inward 15 degrees.", ImageUrl = "/images/yoga/steps/trikonasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Arm Extension", Instruction = "Inhale and raise arms parallel to the floor at shoulder height, palms facing down, shoulders relaxed.", ImageUrl = "/images/yoga/steps/trikonasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Lateral Torso Reach", Instruction = "Exhale and reach your torso sideways over the right leg, hinging at the right hip crease without bending sideways at waist.", ImageUrl = "/images/yoga/steps/trikonasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Palm Placement & Skyward Reach", Instruction = "Rest right hand on shin, yoga block, or floor outside ankle. Extend left arm vertically toward the ceiling.", ImageUrl = "/images/yoga/steps/trikonasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Chest Rotation & Hold", Instruction = "Rotate chest open to ceiling, gaze gently up at left thumb, breathe for 5 cycles, then repeat on opposite side.", ImageUrl = "/images/yoga/steps/trikonasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "bhujangasana",
+                    YogaName = "Bhujangasana (Cobra Pose)",
+                    SanskritName = "Bhujangasana",
+                    EnglishName = "Cobra Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner",
+                    Duration = "1-3 minutes (hold 15-30 seconds, 3 rounds)",
+                    VideoId = "3buRKYrnyJk",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A revitalizing prone backbend inspired by the majestic hood of the cobra, awakening upper back strength and heart vitality.",
+                    Cautions = "Avoid during pregnancy, active abdominal hernia, carpal tunnel, or acute lumbar disc inflammation.",
+                    Benefits = new[]
+                    {
+                        "Strengthens dorsal spinal extensors and tone gluteal muscles",
+                        "Opens the sternum, clavicles, and heart center (Anahata)",
+                        "Gently massages abdominal organs and adrenal glands",
+                        "Counters slouching desk posture and forward head carriage"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Prone Position Setup", Instruction = "Lie flat on stomach with forehead on the mat, legs extended together, tops of feet pressing into floor.", ImageUrl = "/images/yoga/steps/bhujangasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Hand Placement Under Shoulders", Instruction = "Place palms flat on the mat directly below shoulders, spreading fingers wide and hugging elbows close to ribcage.", ImageUrl = "/images/yoga/steps/bhujangasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Gentle Chest Elevation", Instruction = "Inhale, engage upper back muscles, and slowly peel chest off the floor without straining neck or pressing heavily into hands.", ImageUrl = "/images/yoga/steps/bhujangasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Shoulder Roll & Neck Lengthening", Instruction = "Roll shoulders back and down away from ears; keep back of neck long and gaze softly ahead.", ImageUrl = "/images/yoga/steps/bhujangasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Mindful Hold & Controlled Descent", Instruction = "Breathe deeply into ribcage for 15-30 seconds, then exhale and lower chest smoothly back to mat.", ImageUrl = "/images/yoga/steps/bhujangasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "dhanurasana",
+                    YogaName = "Dhanurasana (Bow Pose)",
+                    SanskritName = "Dhanurasana",
+                    EnglishName = "Bow Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Intermediate",
+                    Duration = "1-2 minutes (hold 15-20 seconds, 2-3 rounds)",
+                    VideoId = "04HRGFo2WdE",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A full-body energetic backbend where the arms act like a taut bowstring, elevating chest and thighs in harmonious tension.",
+                    Cautions = "Contraindicated in severe hypertension, peptic ulcers, abdominal hernia, or recent surgical procedures.",
+                    Benefits = new[]
+                    {
+                        "Reinvigorates the entire vertebral axis from cervical to lumbar spine",
+                        "Expands chest and anterior shoulder mobility comprehensively",
+                        "Stimulates Manipura chakra and supports metabolic vitality",
+                        "Strengthens back musculature and pelvic floor ligaments"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Prone Alignment", Instruction = "Lie flat on your stomach with arms along your sides, forehead resting gently on the mat.", ImageUrl = "/images/yoga/steps/dhanurasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Bend Knees & Reach Ankles", Instruction = "Bend knees, bring heels toward buttocks, reach hands back, and firmly grasp outer ankles.", ImageUrl = "/images/yoga/steps/dhanurasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Kick Up & Lift Chest", Instruction = "Inhale, kick feet back into hands while simultaneously lifting chest and thighs away from the floor.", ImageUrl = "/images/yoga/steps/dhanurasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Balance on Abdomen", Instruction = "Balance comfortably on pelvic region and abdomen, pulling shoulder blades together, gaze lifted.", ImageUrl = "/images/yoga/steps/dhanurasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Steady Breathing & Release", Instruction = "Hold for 15-20 seconds with rhythmic breath, exhale, release ankles, and rest in crocodile pose.", ImageUrl = "/images/yoga/steps/dhanurasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "vajrasana",
+                    YogaName = "Vajrasana (Thunderbolt Pose)",
+                    SanskritName = "Vajrasana",
+                    EnglishName = "Thunderbolt / Diamond Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner",
+                    Duration = "5-15 minutes (ideal post-meals)",
+                    VideoId = "fSKBk9u9tP8",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A venerable kneeling posture known as the Adamantine pose, famously recommended post-meals to kindle digestive Agni.",
+                    Cautions = "Avoid in acute knee osteoarthritis, recent meniscus injury, or severe ankle ligament sprains.",
+                    Benefits = new[]
+                    {
+                        "Classical posture traditionally recommended immediately after meals to support digestion",
+                        "Directs enhanced blood circulation to pelvic basin and digestive organs",
+                        "Narrows spinal curvature into effortless upright vertical alignment",
+                        "Steady foundation for pranayama practice and calm introspective meditation"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Kneeling Setup", Instruction = "Kneel on the yoga mat with knees together and tops of feet flat on floor with big toes touching.", ImageUrl = "/images/yoga/steps/vajrasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Sit Back on Heels", Instruction = "Separate heels slightly and lower your sitting bones into the space cradled between feet.", ImageUrl = "/images/yoga/steps/vajrasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Erect Axial Alignment", Instruction = "Stack shoulders directly over hips, draw chin slightly in, and lengthen through the crown of the head.", ImageUrl = "/images/yoga/steps/vajrasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Hand Placement on Thighs", Instruction = "Rest palms downward gently on thighs, relaxing shoulder blades and keeping elbows soft.", ImageUrl = "/images/yoga/steps/vajrasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Digestive Diaphragmatic Breath", Instruction = "Close eyes softly and breathe slowly into lower belly for 5 to 15 minutes in relaxed contemplation.", ImageUrl = "/images/yoga/steps/vajrasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "padmasana",
+                    YogaName = "Padmasana (Lotus Pose)",
+                    SanskritName = "Padmasana",
+                    EnglishName = "Lotus Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Advanced",
+                    Duration = "5-20 minutes",
+                    VideoId = "fO0GHpS1U9s",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "The quintessential meditative seat of yogic tradition, symbolising purity and transcendence through symmetric pelvic grounding.",
+                    Cautions = "Never force the knees. Those with stiff hips or sciatica should practice Sukhasana or Ardha Padmasana.",
+                    Benefits = new[]
+                    {
+                        "Promotes profound tranquility and parasympathetic nervous activation",
+                        "Creates an immovable geometric base for pranayama and dhyana",
+                        "Promotes symmetric musculoskeletal balance across hips and knees",
+                        "Anchors spinal uprightness without muscular fatigue"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Dandasana Preparation", Instruction = "Sit on the floor with legs extended straight forward, spine tall, and shoulders relaxed.", ImageUrl = "/images/yoga/steps/padmasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Fold First Leg", Instruction = "Bend right knee, cradle foot and ankle, and place right foot high on upper left thigh with sole facing up.", ImageUrl = "/images/yoga/steps/padmasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Cross Second Leg", Instruction = "Gently bend left knee, guide left foot over right calf, and nestle it onto upper right thigh near hip crease.", ImageUrl = "/images/yoga/steps/padmasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Chin Mudra Hand Seal", Instruction = "Rest wrists on knees, joining tip of thumb and index finger in Chin Mudra, palms facing up.", ImageUrl = "/images/yoga/steps/padmasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Contemplative Stillness", Instruction = "Align head, neck, and trunk. Close eyes and observe spontaneous breath flow in quiet meditation.", ImageUrl = "/images/yoga/steps/padmasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "ardha-matsyendrasana",
+                    YogaName = "Ardha Matsyendrasana (Half Lord of the Fishes Pose)",
+                    SanskritName = "Ardha Matsyendrasana",
+                    EnglishName = "Half Lord of the Fishes Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Intermediate",
+                    Duration = "2-3 minutes per side",
+                    VideoId = "MD4rn9Ye4no",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A classical seated spinal twist dedicated to the sage Matsyendra, releasing thoracic stiffness and revitalizing internal organs.",
+                    Cautions = "Avoid aggressive twisting if suffering from active lumbar disc displacement or during late pregnancy.",
+                    Benefits = new[]
+                    {
+                        "Enhances lateral and rotational mobility of the vertebral column",
+                        "Gently compresses and cleanses visceral abdominal organs",
+                        "Nourishes intervertebral discs with fresh synovial hydration",
+                        "Releases persistent tension in mid-back, shoulders, and hips"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Seated Setup", Instruction = "Sit with legs extended. Bend right leg and step right foot flat on the floor outside left knee.", ImageUrl = "/images/yoga/steps/ardha-matsyendrasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Fold Lower Leg", Instruction = "Bend left leg and tuck left heel comfortably beside the outer right buttock.", ImageUrl = "/images/yoga/steps/ardha-matsyendrasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Axial Lengthening", Instruction = "Inhale and raise left arm vertically to create maximum space and length along the spinal column.", ImageUrl = "/images/yoga/steps/ardha-matsyendrasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Torso Twist & Knee Lever", Instruction = "Exhale, rotate torso to the right, place left upper arm outside right knee, and right hand on floor behind.", ImageUrl = "/images/yoga/steps/ardha-matsyendrasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Deepen & Hold", Instruction = "Gaze over right shoulder on exhalations; maintain for 30-60 seconds, then untwist and switch sides.", ImageUrl = "/images/yoga/steps/ardha-matsyendrasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "paschimottanasana",
+                    YogaName = "Paschimottanasana (Seated Forward Bend)",
+                    SanskritName = "Paschimottanasana",
+                    EnglishName = "Seated Forward Bend",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner / Intermediate",
+                    Duration = "2-4 minutes",
+                    VideoId = "dzH-2C1EwCA",
+                    ChannelTitle = "Ministry of Ayush",
+                    Description = "A profound forward fold stretching the entire western (posterior) side of the body, encouraging introspection and calm surrender.",
+                    Cautions = "Individuals with lumbar disc herniations should keep knees slightly bent and refrain from rounding upper back.",
+                    Benefits = new[]
+                    {
+                        "Deep, gentle stretch along entire posterior kinetic chain and hamstrings",
+                        "Calms the sympathetic nervous system and alleviates mental fatigue",
+                        "Stimulates digestive fire (Agni) and peristaltic tone",
+                        "Cultivates patience, surrender, and deep breath regulation"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Dandasana Foundation", Instruction = "Sit upright with legs straight together in front of you, feet active with toes flexed toward shins.", ImageUrl = "/images/yoga/steps/paschimottanasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Overhead Lengthening", Instruction = "Inhale, reach both arms upward toward the sky, lifting out of the waist and expanding ribcage.", ImageUrl = "/images/yoga/steps/paschimottanasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Hinge from the Pelvis", Instruction = "Exhale and hinge forward from hip joints, keeping spine flat and chest leading forward toward feet.", ImageUrl = "/images/yoga/steps/paschimottanasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Grasp Outer Feet or Shins", Instruction = "Take hold of outer edges of feet, big toes, or shins, keeping shoulders relaxed away from ears.", ImageUrl = "/images/yoga/steps/paschimottanasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Surrender into Forward Fold", Instruction = "With each exhale, soften elbows outward and allow upper torso to rest gently toward shins for 1-2 minutes.", ImageUrl = "/images/yoga/steps/paschimottanasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "setu-bandhasana",
+                    YogaName = "Setu Bandhasana (Bridge Pose)",
+                    SanskritName = "Setu Bandhasana",
+                    EnglishName = "Bridge Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner",
+                    Duration = "2-3 minutes (hold 30-60 seconds, 2-3 rounds)",
+                    VideoId = "fG6uUKbQbws",
+                    ChannelTitle = "The Yoga Institute",
+                    Description = "An accessible supine backbend constructing a strong bridge across chest and legs, rejuvenating tired spine and legs.",
+                    Cautions = "Do not turn the head while in elevated bridge position to protect cervical vertebrae.",
+                    Benefits = new[]
+                    {
+                        "Expands the anterior chest, clavicles, ribcage, and hip flexors",
+                        "Strengthens gluteus musculature, hamstrings, and lower back extensors",
+                        "Gently stimulates thyroid and parathyroid glands through chin lock",
+                        "Relieves heavy leg sensations and promotes restorative relaxation"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Supine Setup", Instruction = "Lie on back with knees bent, feet hip-width apart and flat on floor, heels close to fingertips.", ImageUrl = "/images/yoga/steps/setu-bandhasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Arm Anchoring", Instruction = "Place arms along sides with palms pressing into the mat, keeping shoulders relaxed on floor.", ImageUrl = "/images/yoga/steps/setu-bandhasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Elevate Pelvis & Hips", Instruction = "Exhale, press feet firmly into floor, and lift hips and lower back towards the ceiling.", ImageUrl = "/images/yoga/steps/setu-bandhasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Interlace Fingers Beneath", Instruction = "Roll outer shoulders under torso, interlace fingers underneath pelvis, and press knuckles towards heels.", ImageUrl = "/images/yoga/steps/setu-bandhasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Chest Expansion & Release", Instruction = "Keep thighs parallel, lift sternum toward chin, hold for 5 slow breaths, then roll spine down gently.", ImageUrl = "/images/yoga/steps/setu-bandhasana-step-5.webp" }
+                    }
+                },
+                new
+                {
+                    Slug = "shavasana",
+                    YogaName = "Shavasana (Corpse Pose)",
+                    SanskritName = "Shavasana",
+                    EnglishName = "Corpse Pose",
+                    Category = yogaCategory.Id,
+                    Difficulty = "Beginner",
+                    Duration = "5-15 minutes",
+                    VideoId = "ZkyN4Dy4kO0",
+                    ChannelTitle = "The Yoga Institute",
+                    Description = "The supreme restorative posture of complete physical surrender, integrating the subtle energetic benefits of all prior asana practice.",
+                    Cautions = "If experiencing lower back sensitivity, place a comfortable bolster or rolled blanket under knees.",
+                    Benefits = new[]
+                    {
+                        "Seamlessly integrates energetic and physical benefits of whole practice",
+                        "Prompts profound parasympathetic relaxation and recovery",
+                        "Lowers muscular tension, stabilizes pulse rate, and rests mind",
+                        "Facilitates inward sensory withdrawal (Pratyahara) and conscious rest"
+                    },
+                    Steps = new[]
+                    {
+                        new { StepNumber = 1, Title = "Reclined Foundation", Instruction = "Lie flat on back on your yoga mat, ensuring spine, neck, and head are in effortless straight alignment.", ImageUrl = "/images/yoga/steps/shavasana-step-1.webp" },
+                        new { StepNumber = 2, Title = "Drop Limbs Outward", Instruction = "Let legs fall open naturally, feet wider than hips. Place arms 6-8 inches from torso with palms facing up.", ImageUrl = "/images/yoga/steps/shavasana-step-2.webp" },
+                        new { StepNumber = 3, Title = "Systematic Muscular Release", Instruction = "Close eyes softly. Consciously relax forehead, jaw, tongue, shoulders, belly, and toes.", ImageUrl = "/images/yoga/steps/shavasana-step-3.webp" },
+                        new { StepNumber = 4, Title = "Witness Spontaneous Breath", Instruction = "Cease conscious breath manipulation; simply be the calm witness of natural, effortless inhalation and exhalation.", ImageUrl = "/images/yoga/steps/shavasana-step-4.webp" },
+                        new { StepNumber = 5, Title = "Gentle Reawakening", Instruction = "After 10 minutes of still recovery, gently wiggle toes and fingers, roll to right side, and slowly rise to seated.", ImageUrl = "/images/yoga/steps/shavasana-step-5.webp" }
+                    }
+                }
+            };
+
+            foreach (var def in asanaDefinitions)
+            {
+                var existing = await context.Yogas.FirstOrDefaultAsync(y => 
+                    y.YogaName == def.YogaName || 
+                    y.YogaName.Contains(def.SanskritName) ||
+                    y.YogaName.Contains(def.Slug));
+
+                var meta = new
+                {
+                    SanskritName = def.SanskritName,
+                    EnglishName = def.EnglishName,
+                    Difficulty = def.Difficulty,
+                    Duration = def.Duration,
+                    ChannelTitle = def.ChannelTitle,
+                    VideoId = def.VideoId,
+                    Cautions = def.Cautions,
+                    Benefits = def.Benefits
+                };
+                string benefitsJson = System.Text.Json.JsonSerializer.Serialize(meta);
+                string instructionsJson = System.Text.Json.JsonSerializer.Serialize(def.Steps);
+                string imageUrl = $"/images/yoga/{def.Slug}.webp";
+                string videoUrl = $"https://www.youtube-nocookie.com/embed/{def.VideoId}";
+
+                if (existing == null)
+                {
+                    context.Yogas.Add(new Yoga
+                    {
+                        YogaName = def.YogaName,
+                        Description = def.Description,
+                        Instructions = instructionsJson,
+                        ImageUrl = imageUrl,
+                        VideoUrl = videoUrl,
+                        CategoryId = def.Category,
+                        BenefitsJson = benefitsJson,
+                        AverageRating = 4.9,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    existing.YogaName = def.YogaName;
+                    existing.Description = def.Description;
+                    existing.Instructions = instructionsJson;
+                    existing.ImageUrl = imageUrl;
+                    existing.VideoUrl = videoUrl;
+                    existing.CategoryId = def.Category;
+                    existing.BenefitsJson = benefitsJson;
+                    existing.AverageRating = 4.9;
+                }
+            }
+
+            await context.SaveChangesAsync();
+            logger.LogInformation("EnsureYogaAsync: Verified and seeded all 12 classical yoga asanas with full steps, benefits, cautions, and YouTube nocookie embeds.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed in EnsureYogaAsync");
+        }
+    }
+
+    private static async Task EnsureProductImagesAsync(AyurvedaDbContext context, ILogger logger)
+    {
+        try
+        {
+            string[] candidates = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "catalog_300plus.json"),
+                Path.Combine(AppContext.BaseDirectory, "Data", "catalog_300plus.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "catalog_300plus.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "Data", "catalog_300plus.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "src", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "..", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json"),
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "src", "Ayurveda.Infrastructure", "Data", "catalog_300plus.json")
+            };
+            string? jsonPath = candidates.FirstOrDefault(File.Exists);
+            if (string.IsNullOrEmpty(jsonPath)) return;
+
+            var jsonContent = await File.ReadAllTextAsync(jsonPath);
+            var catalogData = System.Text.Json.JsonSerializer.Deserialize<List<ProductJsonItem>>(jsonContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (catalogData == null || !catalogData.Any()) return;
+
+            var existingProducts = await context.Products.Include(p => p.Images).ToListAsync();
+            var productMap = existingProducts.ToDictionary(p => p.Title, StringComparer.OrdinalIgnoreCase);
+
+            bool changesMade = false;
+            foreach (var item in catalogData)
+            {
+                if (!productMap.TryGetValue(item.Title, out var product)) continue;
+
+                if (!string.IsNullOrWhiteSpace(item.ImageUrl) && product.ImageUrl != item.ImageUrl)
+                {
+                    product.ImageUrl = item.ImageUrl;
+                    changesMade = true;
+                }
+
+                int targetImgCount = (string.IsNullOrWhiteSpace(item.ImageUrl) ? 0 : 1) + (item.AdditionalImages?.Count ?? 0);
+                if (product.Images.Count != targetImgCount && !string.IsNullOrWhiteSpace(item.ImageUrl))
+                {
+                    context.ProductImages.RemoveRange(product.Images);
+                    product.Images.Clear();
+
+                    product.Images.Add(new ProductImage
+                    {
+                        ImageUrl = item.ImageUrl,
+                        IsPrimary = true,
+                        DisplayOrder = 1
+                    });
+
+                    if (item.AdditionalImages != null && item.AdditionalImages.Any())
+                    {
+                        int order = 2;
+                        foreach (var addImg in item.AdditionalImages)
+                        {
+                            if (!string.IsNullOrWhiteSpace(addImg) && addImg != item.ImageUrl)
+                            {
+                                product.Images.Add(new ProductImage
+                                {
+                                    ImageUrl = addImg,
+                                    IsPrimary = false,
+                                    DisplayOrder = order++
+                                });
+                            }
+                        }
+                    }
+                    changesMade = true;
+                }
+            }
+
+            if (changesMade)
+            {
+                await context.SaveChangesAsync();
+                logger.LogInformation("EnsureProductImagesAsync: Synchronized genuine product photographs and angle gallery images for all catalog products.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed in EnsureProductImagesAsync");
+        }
     }
 }

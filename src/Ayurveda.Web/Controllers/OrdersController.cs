@@ -13,11 +13,16 @@ public class OrdersController : Controller
 {
     private readonly AyurvedaDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IConfiguration _configuration;
 
-    public OrdersController(AyurvedaDbContext context, UserManager<ApplicationUser> userManager)
+    public OrdersController(
+        AyurvedaDbContext context,
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration)
     {
         _context = context;
         _userManager = userManager;
+        _configuration = configuration;
     }
 
     private async Task<ApplicationUser?> GetCurrentUserAsync()
@@ -84,7 +89,7 @@ public class OrdersController : Controller
         var order = await _context.Orders
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
-            .FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
+            .FirstOrDefaultAsync(o => o.Id == id && (o.UserId == user.Id || User.IsInRole("Admin") || User.IsInRole("Doctor")));
 
         if (order == null)
             return NotFound();
@@ -150,8 +155,20 @@ public class OrdersController : Controller
             }).ToList()
         };
 
+        if (double.TryParse(_configuration["Demo:WarehouseLat"] ?? _configuration["Demo__WarehouseLat"], out var whLat) && whLat != 0)
+        {
+            model.WarehouseLat = whLat;
+        }
+        if (double.TryParse(_configuration["Demo:WarehouseLng"] ?? _configuration["Demo__WarehouseLng"], out var whLng) && whLng != 0)
+        {
+            model.WarehouseLng = whLng;
+        }
+
         return View(model);
     }
+
+    [HttpGet]
+    public Task<IActionResult> Track(int id) => Details(id);
 
     [HttpPost]
     [ValidateAntiForgeryToken]

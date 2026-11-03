@@ -30,7 +30,7 @@
                 <div class="card p-4 shadow-sm border-0 rounded-4 bg-white">
                     <div class="row align-items-center g-3">
                         <div class="col-md-3">
-                            <h5 class="fw-bold text-dark mb-1 font-serif">Dr. @appt.DoctorName</h5>
+                            <h5 class="fw-bold text-dark mb-1 font-serif">@appt.FormattedDoctorName</h5>
                             <span class="badge bg-success-subtle text-success border border-success-subtle text-xs">@appt.SpecializationName</span>
                             <div class="small text-muted mt-2">
                                 <i class="bi bi-broadcast text-secondary me-1"></i> @appt.ConsultationType Mode
@@ -123,7 +123,7 @@
                                     <input type="hidden" name="id" value="@appt.Id" />
                                     <div class="modal-body py-3">
                                         <p class="small text-muted mb-3">
-                                            You are cancelling your appointment with Dr. @appt.DoctorName on @appt.StartUtc.AddHours(5.5).ToString("dd MMM yyyy") at @appt.TimeSlot.
+                                            You are cancelling your appointment with @appt.FormattedDoctorName on @appt.StartUtc.AddHours(5.5).ToString("dd MMM yyyy") at @appt.TimeSlot.
                                         </p>
                                         <label class="form-label small fw-semibold">Reason for Cancellation</label>
                                         <select name="reason" class="form-select form-select-sm mb-3">
@@ -201,7 +201,7 @@
                                     <input type="hidden" name="DoctorId" value="@appt.DoctorId" />
                                     <div class="modal-body py-3">
                                         <p class="small text-muted mb-3">
-                                            Share your consultation experience with Dr. @appt.DoctorName. Your review helps other seekers find the right Vaidya.
+                                            Share your consultation experience with @appt.FormattedDoctorName. Your review helps other seekers find the right Vaidya.
                                         </p>
                                         <div class="mb-3">
                                             <label class="form-label small fw-semibold">Consultation Rating *</label>

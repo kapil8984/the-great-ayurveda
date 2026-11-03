@@ -52,6 +52,8 @@
                         <li><a asp-controller="Home" asp-action="Refunds">Refund &amp; Return Policy (Demo)</a></li>
                         <li><a asp-controller="Home" asp-action="Shipping">Shipping Policy (Demo)</a></li>
                         <li><a asp-controller="Home" asp-action="Privacy">Privacy Policy</a></li>
+                        <li class="mt-1 pt-1 border-top border-secondary border-opacity-25"><a asp-controller="Home" asp-action="AboutProject" class="fw-semibold text-warning">About this project</a></li>
+                        <li><a asp-controller="Home" asp-action="Credits" class="text-light-emphasis">Media Credits</a></li>
                     </ul>
                 </div>
             </div>
@@ -91,16 +93,10 @@
                     </p>
                 </div>
                 <div class="col-lg-3 text-lg-end mt-3 mt-lg-0">
-                    <p class="mb-0 text-white-50">© @DateTime.UtcNow.Year The Great Ayurveda.<br />All rights reserved.</p>
+                    <p class="mb-0 text-white-50">© @DateTime.UtcNow.Year The Great Ayurveda.<br />All rights reserved. &bull; <a href="/about-project" class="text-white-50 text-decoration-underline">About this project</a> &bull; <a href="/credits" class="text-white-50 text-decoration-underline">Credits</a></p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Demo Mode Notice Bar -->
-    <div class="bg-black py-2 text-center border-top border-secondary border-opacity-25">
-        <span class="badge bg-warning text-dark px-3 py-1 font-monospace small">
-            <i class="bi bi-info-circle-fill me-1"></i> Demo website, sample data. AI-generated sample images.
-        </span>
-    </div>
 </footer>

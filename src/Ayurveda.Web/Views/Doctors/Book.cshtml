@@ -1,6 +1,6 @@
 @model Ayurveda.Application.ViewModels.BookAppointmentViewModel
 @{
-    ViewData["Title"] = $"Book Consultation with Dr. {Model.DoctorName}";
+    ViewData["Title"] = $"Book Consultation with {Model.FormattedDoctorName}";
 }
 
 <div class="container py-4">
@@ -8,7 +8,7 @@
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">Vaidyas</a></li>
-            <li class="breadcrumb-item"><a asp-action="Profile" asp-route-id="@Model.DoctorId" class="text-success text-decoration-none">Dr. @Model.DoctorName</a></li>
+            <li class="breadcrumb-item"><a asp-action="Profile" asp-route-id="@Model.DoctorId" class="text-success text-decoration-none">@Model.FormattedDoctorName</a></li>
             <li class="breadcrumb-item active" aria-current="page">Book Consultation</li>
         </ol>
     </nav>
@@ -34,7 +34,7 @@
                             </span>
                         </div>
                         <h2 class="h4 fw-bold mb-0 text-dark font-serif">Book Ayurvedic Consultation</h2>
-                        <div class="text-muted small">Consulting with <strong>Dr. @Model.DoctorName</strong> • @Model.SpecializationName</div>
+                        <div class="text-muted small">Consulting with <strong>@Model.FormattedDoctorName</strong> • @Model.SpecializationName</div>
                     </div>
                     <div class="text-end">
                         <div class="small text-muted">Consultation Fee</div>
@@ -48,6 +48,11 @@
                     <input type="hidden" asp-for="DoctorName" />
                     <input type="hidden" asp-for="ConsultationFee" />
                     <input type="hidden" asp-for="SpecializationName" />
+                    <input type="hidden" asp-for="IsLiveRazorpay" id="docRzpIsLive" />
+                    <input type="hidden" asp-for="RazorpayKeyId" id="docRzpKeyId" />
+                    <input type="hidden" asp-for="RazorpayOrderId" id="docRzpOrderId" />
+                    <input type="hidden" asp-for="RazorpayPaymentId" id="docRzpPaymentId" />
+                    <input type="hidden" asp-for="RazorpaySignature" id="docRzpSignature" />
 
                     <!-- 1. Date & Time Slot -->
                     <div class="mb-4">
@@ -163,6 +168,18 @@
                             <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill px-3 py-1 small fw-bold"><i class="bi bi-shield-check me-1"></i> Demo payment - no money is charged</span>
                         </div>
 
+                        <!-- Sandbox Test Credentials Advisory -->
+                        <div class="alert alert-info py-2 px-3 small rounded-3 mb-3 border-info-subtle">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-info-circle-fill text-primary"></i>
+                                <strong>Test Mode Sandbox Credentials:</strong>
+                            </div>
+                            <div class="text-xs text-muted">
+                                <strong>Card:</strong> <code class="user-select-all">4111 1111 1111 1111</code>, any future date (e.g. 12/28), any CVV (e.g. 123)<br />
+                                <strong>UPI:</strong> <code class="user-select-all">success@razorpay</code> (or <code class="user-select-all">failure@razorpay</code> to test decline)
+                            </div>
+                        </div>
+
                         <!-- Payment Method Radios -->
                         <div class="row g-2 mb-3">
                             <div class="col-md-4">
@@ -236,7 +253,7 @@
                         </div>
                     </div>
                     <h5 class="fw-bold text-dark mb-1">Processing Consultation Payment...</h5>
-                    <p class="text-muted small mb-3" id="consultProcessingStatusText">Authorizing fee for Dr. @Model.DoctorName...</p>
+                    <p class="text-muted small mb-3" id="consultProcessingStatusText">Authorizing fee for @Model.FormattedDoctorName...</p>
                     <div class="progress rounded-pill mb-2" style="height: 6px;">
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="consultProgressBar" style="width: 25%;"></div>
                     </div>
@@ -278,12 +295,17 @@
                         <i class="bi bi-check-circle-fill display-3"></i>
                     </div>
                     <h5 class="fw-bold text-success mb-1">Fee Authorized Successfully!</h5>
-                    <p class="text-muted small mb-3">Generating video room link with Dr. @Model.DoctorName...</p>
+                    <p class="text-muted small mb-3">Generating video room link with @Model.FormattedDoctorName...</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@if (Model.IsLiveRazorpay)
+{
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+}
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -313,19 +335,67 @@ document.addEventListener("DOMContentLoaded", function () {
     const statusText = document.getElementById("consultProcessingStatusText");
     const btnRetry = document.getElementById("btnRetryConsultPayment");
 
+    const isLiveRazorpay = @(Model.IsLiveRazorpay ? "true" : "false");
+
     btnPay.addEventListener("click", function () {
-        // Validate form HTML5 required fields
         if (!bookForm.checkValidity()) {
             bookForm.reportValidity();
             return;
         }
 
-        // Show Processing Modal
+        // Live Razorpay Checkout flow
+        if (isLiveRazorpay && typeof Razorpay !== "undefined") {
+            if (failureToggle && failureToggle.checked) {
+                stateProcessing.classList.add("d-none");
+                stateFailure.classList.remove("d-none");
+                modal.show();
+                return;
+            }
+
+            const rzpOptions = {
+                key: "@Model.RazorpayKeyId",
+                amount: Math.round(@Model.ConsultationFee * 100),
+                currency: "INR",
+                name: "The Great Ayurveda",
+                description: "Ayurvedic Physician Consultation Fee",
+                order_id: "@Model.RazorpayOrderId",
+                handler: function (response) {
+                    const elPid = document.getElementById("docRzpPaymentId");
+                    const elOid = document.getElementById("docRzpOrderId");
+                    const elSig = document.getElementById("docRzpSignature");
+                    if (elPid) elPid.value = response.razorpay_payment_id || "";
+                    if (elOid) elOid.value = response.razorpay_order_id || "";
+                    if (elSig) elSig.value = response.razorpay_signature || "";
+                    bookForm.submit();
+                },
+                modal: {
+                    ondismiss: function () {
+                        stateProcessing.classList.add("d-none");
+                        stateFailure.classList.remove("d-none");
+                        modal.show();
+                    }
+                },
+                theme: {
+                    color: "#2E7D32"
+                }
+            };
+
+            const rzp = new Razorpay(rzpOptions);
+            rzp.on('payment.failed', function () {
+                stateProcessing.classList.add("d-none");
+                stateFailure.classList.remove("d-none");
+                modal.show();
+            });
+            rzp.open();
+            return;
+        }
+
+        // Show Simulated Processing Modal
         stateProcessing.classList.remove("d-none");
         stateFailure.classList.add("d-none");
         stateSuccess.classList.add("d-none");
         progressBar.style.width = "25%";
-        statusText.textContent = "Authorizing consultation fee for Dr. @Model.DoctorName...";
+        statusText.textContent = "Authorizing consultation fee for @Model.FormattedDoctorName...";
         modal.show();
 
         setTimeout(() => {
@@ -334,7 +404,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 700);
 
         setTimeout(() => {
-            if (failureToggle.checked) {
+            if (failureToggle && failureToggle.checked) {
                 stateProcessing.classList.add("d-none");
                 stateFailure.classList.remove("d-none");
             } else {
@@ -349,7 +419,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     btnRetry.addEventListener("click", function () {
-        failureToggle.checked = false;
+        if (failureToggle) failureToggle.checked = false;
         modal.hide();
     });
 });

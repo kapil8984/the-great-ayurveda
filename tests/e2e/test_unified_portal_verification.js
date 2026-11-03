@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
-const { getDevAdminPassword } = require('./getTestPassword');
+const { getDevAdminPassword, getCustomerPassword } = require('./getTestPassword');
 
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5000';
 const ADMIN_URL = `${BASE_URL}/admin-portal`;
@@ -67,7 +67,7 @@ function logStep(name, status, details = '') {
         console.log('\n--- Step 2: Customer Login & Logout Confirmation ---');
         await publicPage.goto(`${BASE_URL}/Account/Login`, { waitUntil: 'domcontentloaded' });
         await publicPage.fill('#loginForm input[name="Email"]', 'customer@ayurveda.com');
-        await publicPage.fill('#loginForm input[name="Password"]', 'Customer@123');
+        await publicPage.fill('#loginForm input[name="Password"]', getCustomerPassword());
         await publicPage.click('#loginForm button[type="submit"]');
         await publicPage.waitForURL(url => !url.href.toLowerCase().includes('/account/login'), { timeout: 15000 });
 

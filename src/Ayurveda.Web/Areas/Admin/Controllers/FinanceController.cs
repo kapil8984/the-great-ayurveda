@@ -138,4 +138,12 @@ public class FinanceController : Controller
 
         return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", $"tga_gst_report_{DateTime.UtcNow:yyyyMMdd}.csv");
     }
+
+    // -------------------------------------------------------------------------
+    // 4. FINANCIAL & GST ANALYTICS REPORTS
+    // -------------------------------------------------------------------------
+    public async Task<IActionResult> Reports()
+    {
+        return await Index();
+    }
 }

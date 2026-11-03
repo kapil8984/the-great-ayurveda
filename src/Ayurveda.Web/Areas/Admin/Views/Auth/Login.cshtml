@@ -52,7 +52,7 @@
             color: var(--tga-ink-light);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             min-height: 100vh;
-            overflow-x: hidden;
+            overflow-x: clip;
             display: flex;
             align-items: stretch;
         }
@@ -797,12 +797,17 @@
                             <i class="bi bi-capslock-fill me-1"></i> <strong>Caps Lock is ON</strong>
                         </div>
 
-                        <!-- Remember Me -->
-                        <div class="stagger-5 form-check custom-check mb-4 mt-2">
-                            <input asp-for="RememberMe" class="form-check-input" id="adminRememberCheck" />
-                            <label class="form-check-label" for="adminRememberCheck">
-                                Keep administrative session active on this workstation
-                            </label>
+                        <!-- Remember Me & Forgot Password -->
+                        <div class="stagger-5 d-flex justify-content-between align-items-center mb-4 mt-2">
+                            <div class="form-check custom-check mb-0">
+                                <input asp-for="RememberMe" class="form-check-input" id="adminRememberCheck" />
+                                <label class="form-check-label" for="adminRememberCheck">
+                                    Keep session active
+                                </label>
+                            </div>
+                            <a href="/admin-portal/auth/forgot-password" class="text-xs text-warning text-decoration-none opacity-75">
+                                Forgot password?
+                            </a>
                         </div>
 
                         <!-- Submit Button with Gradient & Loading State -->
@@ -828,12 +833,17 @@
                                 Real administrative accounts are protected. Use the read-only demo viewer to inspect the management console:
                             </p>
                             <div class="d-flex flex-wrap gap-1">
-                                <button type="button" class="chip-pill demo-chip" data-demo-email="demo-admin@ayurveda.local" data-demo-pwd="DemoAdmin@2026!" title="Read-only administrative demo inspector">
-                                    <i class="bi bi-person-badge-fill me-1"></i> Demo Admin (Read-Only)
-                                </button>
+                                <form method="post" action="/admin-portal/continue-demo" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="chip-pill demo-chip text-white border-0" style="background: rgba(255,255,255,0.08); cursor: pointer;" title="Read-only administrative demo inspector">
+                                        <i class="bi bi-person-badge-fill me-1"></i> Demo Admin (One-Click Read-Only)
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     }
+
+                    @* Admin portal has zero self-registration links *@
 
                     <!-- Secure Area Footer -->
                     <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary border-opacity-25 stagger-6">

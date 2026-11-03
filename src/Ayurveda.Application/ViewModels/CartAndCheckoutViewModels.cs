@@ -53,6 +53,9 @@ public class CheckoutViewModel
     public string? IdempotencyKey { get; set; }
     public string? RazorpayKeyId { get; set; }
     public string? RazorpayOrderId { get; set; }
+    public bool IsLiveRazorpay { get; set; }
+    public string? RazorpayPaymentId { get; set; }
+    public string? RazorpaySignature { get; set; }
     public bool SimulateFailure { get; set; } = false;
 }
 
@@ -107,6 +110,11 @@ public class OrderDetailViewModel
     public string? CancellationReason { get; set; }
     public string? ReturnReason { get; set; }
     public string? ReturnStatus { get; set; }
+    
+    public double WarehouseLat { get; set; } = 22.7196;
+    public double WarehouseLng { get; set; } = 75.8577;
+    public double? DestinationLat { get; set; }
+    public double? DestinationLng { get; set; }
     
     public List<OrderItemViewModel> Items { get; set; } = new();
     public List<OrderTimelineStep> Timeline { get; set; } = new();

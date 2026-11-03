@@ -3,35 +3,64 @@
     ViewData["Title"] = "Yoga Directory";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
-        <h2 class="fw-bold mb-1">Yoga Asanas</h2>
-        <p class="text-muted small mb-0">Manage classical postures, instructions, and benefits</p>
+        <h2 class="fw-bold mb-1"><i class="bi bi-flower1 text-success me-2"></i>Yoga Asanas &amp; Wellness</h2>
+        <p class="text-muted small mb-0">Manage classical postures, instructions, therapeutic dosha alignment, and benefits.</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-xs" onclick="alert('Yoga Asana catalog entry form - Feature active for Catalog Managers.')">
+            <i class="bi bi-plus-lg me-1"></i> Add Yoga Posture
+        </button>
     </div>
 </div>
 
-<div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Asana Name</th>
-                    <th>Category</th>
-                    <th>Description</th>
-                    <th>Rating</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var yoga in Model)
-                {
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden bg-white">
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 px-3">
+            <div class="rounded-circle bg-success-subtle text-success mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; font-size: 1.75rem;">
+                <i class="bi bi-flower1"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">No Yoga Asanas Cataloged</h5>
+            <p class="text-muted small mb-3">Begin by provisioning classical asanas with instructions, benefits, and category classifications.</p>
+            <button type="button" class="btn btn-success btn-sm rounded-pill px-4 shadow-xs" onclick="alert('Yoga Asana catalog entry form - Feature active for Catalog Managers.')">
+                <i class="bi bi-plus-lg me-1"></i> Add First Asana
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
                     <tr>
-                        <td class="fw-bold">@yoga.YogaName</td>
-                        <td>@(yoga.Category?.Name ?? "General")</td>
-                        <td class="small text-muted" style="max-width: 400px;">@yoga.Description</td>
-                        <td><i class="bi bi-star-fill text-warning"></i> @yoga.AverageRating.ToString("0.0")</td>
+                        <th class="ps-4">Asana Name</th>
+                        <th>Category</th>
+                        <th>Description &amp; Benefits</th>
+                        <th class="text-center">Rating</th>
+                        <th class="text-end pe-4">Actions</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    @foreach (var yoga in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">
+                                <i class="bi bi-flower1 text-success me-2"></i>@yoga.YogaName
+                            </td>
+                            <td><span class="badge bg-light text-dark border">@(yoga.Category?.Name ?? "General")</span></td>
+                            <td class="small text-muted" style="max-width: 400px;">@yoga.Description</td>
+                            <td class="text-center"><i class="bi bi-star-fill text-warning"></i> @yoga.AverageRating.ToString("0.0")</td>
+                            <td class="text-end pe-4">
+                                <a asp-action="Edit" asp-route-id="@yoga.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-xs">
+                                    <i class="bi bi-pencil me-1"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>

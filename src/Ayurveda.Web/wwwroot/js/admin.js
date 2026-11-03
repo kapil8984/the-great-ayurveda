@@ -1,19 +1,3 @@
-// Centralized loop-proof image fallback handler
-function initImgFallback() {
-    window.addEventListener("error", function (e) {
-        var target = e.target;
-        if (!target || target.tagName !== "IMG") return;
-        if (target.getAttribute("data-fb-done") === "true") {
-            target.style.opacity = "0.7";
-            return;
-        }
-        target.setAttribute("data-fb-done", "true");
-        var fb = target.getAttribute("data-fallback") || "/images/placeholder.svg";
-        target.src = fb;
-    }, true);
-}
-initImgFallback();
-
 // Admin Smart Search & Interactions Engine
 document.addEventListener("DOMContentLoaded", function () {
     initAdminSearchBox();
@@ -95,7 +79,7 @@ function initAdminSearchBox() {
                 .catch(err => {
                     if (err.name !== "AbortError") console.error("Admin search error:", err);
                 });
-            }, 250);
+            }, 150);
         });
 
         input.addEventListener("keydown", function (e) {
@@ -304,7 +288,7 @@ function initConfirmModal() {
             e.preventDefault();
             lastFocusedElement = btn;
 
-            const actionUrl = btn.getAttribute("data-action-url") || "/admin-portal/auth/logout";
+            const actionUrl = btn.getAttribute("data-action-url") || "/Auth/Logout";
 
             if (modalTitleText) modalTitleText.innerText = "Confirm Administrative Sign Out";
             if (modalBody) modalBody.innerText = "Are you sure you want to terminate your administrative session?";
@@ -453,13 +437,45 @@ function initThemeToggle() {
             localStorage.setItem("tga-admin-theme", next);
             toggleBtns.forEach(b => updateToggleBtnIcon(b, next));
 
-            // Re-render charts with updated theme palette if Chart is present
-            if (window.tgaCharts) {
-                window.tgaCharts.forEach(c => {
-                    if (c && typeof c.update === "function") c.update();
-                });
-            }
+            // Dynamic Chart.js theme re-color
+            applyThemeToCharts(next);
         });
+    });
+}
+
+function applyThemeToCharts(theme) {
+    if (!window.tgaCharts || !window.tgaCharts.length || typeof Chart === "undefined") return;
+    const isDark = theme === "dark";
+    const textColor = isDark ? "#A0AEC0" : "#6B7280";
+    const gridColor = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)";
+    const donutBorder = isDark ? "#14211A" : "#FFFFFF";
+
+    Chart.defaults.color = textColor;
+
+    window.tgaCharts.forEach(c => {
+        if (!c) return;
+        if (c.config.type === "doughnut") {
+            if (c.data && c.data.datasets && c.data.datasets[0]) {
+                c.data.datasets[0].borderColor = donutBorder;
+            }
+            if (c.options && c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels) {
+                c.options.plugins.legend.labels.color = isDark ? "#E5E7EB" : "#374151";
+            }
+        } else if (c.options && c.options.scales) {
+            if (c.options.scales.x) {
+                if (c.options.scales.x.ticks) c.options.scales.x.ticks.color = textColor;
+                if (c.options.scales.x.grid && c.options.scales.x.grid.display !== false) {
+                    c.options.scales.x.grid.color = gridColor;
+                }
+            }
+            if (c.options.scales.y) {
+                if (c.options.scales.y.ticks) c.options.scales.y.ticks.color = textColor;
+                if (c.options.scales.y.grid && c.options.scales.y.grid.display !== false) {
+                    c.options.scales.y.grid.color = gridColor;
+                }
+            }
+        }
+        c.update();
     });
 }
 
@@ -555,9 +571,15 @@ function initDashboardCharts() {
         return;
     }
 
+    const activeTheme = document.documentElement.getAttribute("data-theme") || "light";
+    const isDark = activeTheme === "dark";
+    const textColor = isDark ? "#A0AEC0" : "#6B7280";
+    const gridColor = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)";
+    const donutBorder = isDark ? "#14211A" : "#FFFFFF";
+
     // Chart.js global defaults
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    Chart.defaults.color = "#6B7280";
+    Chart.defaults.color = textColor;
 
     // 1. Sales Trend Line Chart
     const salesCanvas = document.getElementById("adminSalesTrendChart");
@@ -598,15 +620,17 @@ function initDashboardCharts() {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: "rgba(0, 0, 0, 0.05)" },
+                        grid: { color: gridColor },
                         ticks: {
+                            color: textColor,
                             callback: function (val) {
                                 return "₹" + Number(val).toLocaleString("en-IN");
                             }
                         }
                     },
                     x: {
-                        grid: { display: false }
+                        grid: { display: false },
+                        ticks: { color: textColor }
                     }
                 }
             }
@@ -630,7 +654,7 @@ function initDashboardCharts() {
                         "#1F5E3B", "#2C7E50", "#E3A72F", "#F5C55A", "#A4553A", "#C46D50", "#3B82F6", "#8B5CF6"
                     ],
                     borderWidth: 2,
-                    borderColor: "#FFFFFF"
+                    borderColor: donutBorder
                 }]
             },
             options: {
@@ -639,7 +663,12 @@ function initDashboardCharts() {
                 plugins: {
                     legend: {
                         position: "bottom",
-                        labels: { boxWidth: 12, padding: 10, font: { size: 11 } }
+                        labels: { 
+                            boxWidth: 12, 
+                            padding: 10, 
+                            font: { size: 11 },
+                            color: isDark ? "#E5E7EB" : "#374151"
+                        }
                     }
                 },
                 cutout: "68%"
@@ -674,14 +703,16 @@ function initDashboardCharts() {
                 },
                 scales: {
                     x: {
-                        grid: { color: "rgba(0, 0, 0, 0.05)" },
+                        grid: { color: gridColor },
                         ticks: {
+                            color: textColor,
                             callback: function (val) { return "₹" + val; }
                         }
                     },
                     y: {
                         grid: { display: false },
                         ticks: {
+                            color: textColor,
                             callback: function (val, idx) {
                                 const full = titles[idx] || "";
                                 return full.length > 20 ? full.slice(0, 18) + "…" : full;

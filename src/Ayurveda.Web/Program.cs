@@ -59,31 +59,36 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
 // Legacy BCrypt support & upgrade
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BCryptPasswordHasher>();
 
-// Cookie Configuration for Public Site
+// Cookie Configuration for Public Site (Independent customer scheme, 30 days sliding persistence)
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = ".Ayurveda.Web.Auth";
+    options.Cookie.Path = "/";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
-    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.SlidingExpiration = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.MaxAge = TimeSpan.FromDays(30);
 });
 
-// Dedicated Admin Cookie Scheme (Isolated from public site)
+// Dedicated Admin Cookie Scheme (Fully isolated from public site)
 builder.Services.AddAuthentication()
     .AddCookie("AdminCookieScheme", options =>
     {
         options.Cookie.Name = ".Ayurveda.Admin.Auth";
+        options.Cookie.Path = "/";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.LoginPath = "/admin-portal/auth/login";
         options.AccessDeniedPath = "/admin-portal/auth/accessdenied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
         options.SlidingExpiration = true;
+        options.Cookie.IsEssential = true;
     });
 
 // Admin Authorization Policies with legacy "Admin" role mapped to SuperAdmin
@@ -116,13 +121,17 @@ builder.Services.AddAuthorization(options =>
 
 // Register Domain & Infrastructure Services
 builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<ILoginThrottleService, LoginThrottleService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<ICatalogImportService, CatalogImportService>();
 builder.Services.AddScoped<IPaymentProvider, PaymentProvider>();
 builder.Services.AddScoped<ICallProvider, CallProvider>();
 builder.Services.AddScoped<ITelephonyProvider, TelephonyProvider>();
 builder.Services.AddScoped<ICacheBuster, CacheBuster>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();
@@ -143,6 +152,8 @@ builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<Ayurveda.Web.Filters.DemoViewerReadOnlyFilter>();
 });
+
+builder.Services.AddSignalR();
 
 builder.Services.AddHostedService<Ayurveda.Web.Services.WorkingSetTrimmerService>();
 
@@ -250,6 +261,7 @@ using (var scope = app.Services.CreateScope())
         }
 
         await DbInitializer.InitializeAsync(db, userManager, roleManager, logger, builder.Configuration, builder.Environment);
+        await DbInitializer.EnsureDemoAdsAsync(db, logger);
     }
     catch (Exception ex)
     {
@@ -313,6 +325,9 @@ app.Use(async (context, next) =>
         !path.StartsWith("/api", StringComparison.OrdinalIgnoreCase) &&
         !path.StartsWith("/admin-portal", StringComparison.OrdinalIgnoreCase) &&
         !path.StartsWith("/admin", StringComparison.OrdinalIgnoreCase) &&
+        !path.Contains("/login", StringComparison.OrdinalIgnoreCase) &&
+        !path.Contains("/logout", StringComparison.OrdinalIgnoreCase) &&
+        !path.Contains("/otp", StringComparison.OrdinalIgnoreCase) &&
         path.Any(char.IsUpper))
     {
         var lowercaseUrl = path.ToLowerInvariant() + (context.Request.QueryString.HasValue ? context.Request.QueryString.Value : "");
@@ -416,9 +431,23 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Permissions-Policy", "camera=(self), microphone=(self), display-capture=(self)");
     if (context.Request.Path.StartsWithSegments("/admin-portal"))
     {
         context.Response.Headers.Append("X-Robots-Tag", "noindex, nofollow");
+    }
+    await next();
+});
+
+// Doctor Login Aliases Redirects (B6)
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value?.TrimEnd('/')?.ToLowerInvariant() ?? "";
+    if (path == "/doctor-login" || path == "/doctors/login" || path == "/doctorportal/login" || path == "/doctor/signin")
+    {
+        var queryString = context.Request.QueryString.Value ?? "";
+        context.Response.Redirect("/doctor/login" + queryString, permanent: true);
+        return;
     }
     await next();
 });
@@ -428,10 +457,10 @@ app.UseSession();
 
 app.UseAuthentication();
 
-// Set context.User from AdminCookieScheme for all /admin-portal paths
+// Set context.User from AdminCookieScheme for all /admin-portal and /admin paths
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/admin-portal"))
+    if (context.Request.Path.StartsWithSegments("/admin-portal") || context.Request.Path.StartsWithSegments("/admin") || context.Request.Path.StartsWithSegments("/Admin"))
     {
         var adminResult = await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.AuthenticateAsync(context, "AdminCookieScheme");
         if (adminResult.Succeeded && adminResult.Principal != null)
@@ -449,6 +478,11 @@ app.MapAreaControllerRoute(
     name: "AdminArea",
     areaName: "Admin",
     pattern: "admin-portal/{controller=Dashboard}/{action=Index}/{id?}");
+
+app.MapAreaControllerRoute(
+    name: "AdminAreaAlias",
+    areaName: "Admin",
+    pattern: "admin/{controller=Dashboard}/{action=Index}/{id?}");
 
 // robots.txt & sitemap.xml using configured Site:BaseUrl (no hardcoded domain)
 app.MapGet("/robots.txt", (IConfiguration config, HttpContext httpContext) =>
@@ -499,6 +533,8 @@ app.MapGet("/health", (IWebHostEnvironment env) =>
     }
     return Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow, staticFiles = staticFilesStatus });
 });
+
+app.MapHub<Ayurveda.Web.Hubs.CallHub>("/hubs/call");
 
 app.MapControllerRoute(
     name: "default",

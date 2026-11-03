@@ -44,14 +44,57 @@ public class SearchController : Controller
         return Json(result);
     }
 
+    [HttpGet("placeholders")]
+    [ResponseCache(Duration = 3600)]
+    public IActionResult Placeholders()
+    {
+        var terms = _cache.GetOrCreate("Search_Placeholder_Terms", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
+            var topProducts = _context.Products
+                .Where(p => p.IsActive)
+                .OrderByDescending(p => p.AverageRating)
+                .Take(12)
+                .Select(p => p.Title)
+                .ToList();
+
+            var topConcerns = new[]
+            {
+                "Digestion & Gut Agni",
+                "Stress, Anxiety & Sleep",
+                "Immunity & Rasayana",
+                "Joint & Muscle Mobility",
+                "Hair Vitality & Scalp",
+                "Skin Glow & Detox",
+                "Healthy Metabolism",
+                "Women's Hormonal Care"
+            };
+
+            var list = new List<string>();
+            var max = Math.Max(topProducts.Count, topConcerns.Length);
+            for (int i = 0; i < max && list.Count < 20; i++)
+            {
+                if (i < topProducts.Count) list.Add(topProducts[i]);
+                if (i < topConcerns.Length) list.Add(topConcerns[i]);
+            }
+            return list.Distinct().Take(20).ToList();
+        });
+
+        return Json(terms);
+    }
+
     [HttpGet("")]
     public async Task<IActionResult> Index(
         [FromQuery] string? q,
         [FromQuery] int? categoryId,
+        [FromQuery] int? subcategoryId,
         [FromQuery] string? brand,
+        [FromQuery] string? concern,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] double? minRating,
+        [FromQuery] int? minDiscount,
+        [FromQuery] bool inStockOnly = false,
         [FromQuery] string? sort = "relevance",
         [FromQuery] int page = 1)
     {
@@ -67,7 +110,7 @@ public class SearchController : Controller
             .Include(p => p.Subcategory)
             .Where(p => p.IsActive);
 
-        // Apply text search
+        // Text search
         if (!string.IsNullOrWhiteSpace(cleanQuery))
         {
             var term = cleanQuery.ToLower();
@@ -75,7 +118,6 @@ public class SearchController : Controller
 
             if (!string.IsNullOrWhiteSpace(suggestionResult.SynonymApplied))
             {
-                // Format is: "CanonicalTerm (CategoryName)"
                 var parts = suggestionResult.SynonymApplied.Split('(');
                 if (parts.Length > 0)
                 {
@@ -97,10 +139,14 @@ public class SearchController : Controller
                 )));
         }
 
-        // Category filter
+        // Category & Subcategory filters
         if (categoryId.HasValue)
         {
             productsQuery = productsQuery.Where(p => p.CategoryId == categoryId.Value);
+        }
+        if (subcategoryId.HasValue)
+        {
+            productsQuery = productsQuery.Where(p => p.SubcategoryId == subcategoryId.Value);
         }
 
         // Brand filter
@@ -110,7 +156,16 @@ public class SearchController : Controller
             productsQuery = productsQuery.Where(p => p.Brand == trimmedBrand);
         }
 
-        // Price filter
+        // Concern filter
+        if (!string.IsNullOrWhiteSpace(concern))
+        {
+            var concernLower = concern.Trim().ToLower();
+            productsQuery = productsQuery.Where(p =>
+                (p.TraditionallyUsedFor != null && p.TraditionallyUsedFor.ToLower().Contains(concernLower)) ||
+                (p.Tags != null && p.Tags.ToLower().Contains(concernLower)));
+        }
+
+        // Price range
         if (minPrice.HasValue)
         {
             productsQuery = productsQuery.Where(p => p.Price >= minPrice.Value);
@@ -120,10 +175,22 @@ public class SearchController : Controller
             productsQuery = productsQuery.Where(p => p.Price <= maxPrice.Value);
         }
 
-        // Minimum rating filter
+        // Rating filter
         if (minRating.HasValue)
         {
             productsQuery = productsQuery.Where(p => p.AverageRating >= minRating.Value);
+        }
+
+        // Discount filter (10%, 20%, 30%+)
+        if (minDiscount.HasValue)
+        {
+            productsQuery = productsQuery.Where(p => p.DiscountPercent >= minDiscount.Value);
+        }
+
+        // In-stock only
+        if (inStockOnly)
+        {
+            productsQuery = productsQuery.Where(p => p.Stock > 0);
         }
 
         // Sorting
@@ -133,6 +200,7 @@ public class SearchController : Controller
             "price_desc" => productsQuery.OrderByDescending(p => p.Price),
             "rating" => productsQuery.OrderByDescending(p => p.AverageRating),
             "newest" => productsQuery.OrderByDescending(p => p.Id),
+            "discount" => productsQuery.OrderByDescending(p => p.DiscountPercent),
             _ => productsQuery.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.Id) // relevance
         };
 
@@ -158,31 +226,82 @@ public class SearchController : Controller
             })
             .ToListAsync();
 
-        // Faceted categories
-        var allCategories = await _context.Categories
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.Id)
-            .Select(c => new CategoryFilterItem
-            {
-                Id = c.Id,
-                Name = c.Name,
-                ProductCount = c.Products.Count(p => p.IsActive),
-                IsSelected = categoryId.HasValue && categoryId.Value == c.Id
-            })
-            .ToListAsync();
+        // Cached facet counts (5 min TTL)
+        var cachedFacets = await _cache.GetOrCreateAsync("Search_Facet_Counts", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
-        // Faceted brands
-        var allBrands = await _context.Products
-            .Where(p => p.IsActive)
-            .GroupBy(p => p.Brand)
-            .Select(g => new BrandFilterItem
+            var categories = await _context.Categories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Id)
+                .Select(c => new CategoryFilterItem
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    ProductCount = c.Products.Count(p => p.IsActive)
+                })
+                .ToListAsync();
+
+            var subcategories = await _context.Subcategories
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.Name)
+                .Select(s => new SubcategoryFilterItem
+                {
+                    Id = s.Id,
+                    CategoryId = s.CategoryId,
+                    Name = s.Name,
+                    ProductCount = s.Products.Count(p => p.IsActive)
+                })
+                .ToListAsync();
+
+            var brands = await _context.Products
+                .Where(p => p.IsActive)
+                .GroupBy(p => p.Brand)
+                .Select(g => new BrandFilterItem
+                {
+                    Name = g.Key,
+                    ProductCount = g.Count()
+                })
+                .OrderBy(b => b.Name)
+                .ToListAsync();
+
+            return (categories, subcategories, brands);
+        });
+
+        var (allCategories, allSubcategories, allBrands) = cachedFacets;
+
+        // Mark selected states
+        var categoriesWithSelected = allCategories.Select(c => new CategoryFilterItem
+        {
+            Id = c.Id,
+            Name = c.Name,
+            ProductCount = c.ProductCount,
+            IsSelected = categoryId.HasValue && categoryId.Value == c.Id
+        }).ToList();
+
+        var subcategoriesWithSelected = allSubcategories
+            .Where(s => !categoryId.HasValue || s.CategoryId == categoryId.Value)
+            .Select(s => new SubcategoryFilterItem
             {
-                Name = g.Key,
-                ProductCount = g.Count(),
-                IsSelected = brand != null && brand.Equals(g.Key, StringComparison.OrdinalIgnoreCase)
-            })
-            .OrderBy(b => b.Name)
-            .ToListAsync();
+                Id = s.Id,
+                CategoryId = s.CategoryId,
+                Name = s.Name,
+                ProductCount = s.ProductCount,
+                IsSelected = subcategoryId.HasValue && subcategoryId.Value == s.Id
+            }).ToList();
+
+        var brandsWithSelected = allBrands.Select(b => new BrandFilterItem
+        {
+            Name = b.Name,
+            ProductCount = b.ProductCount,
+            IsSelected = brand != null && brand.Equals(b.Name, StringComparison.OrdinalIgnoreCase)
+        }).ToList();
+
+        // Available concerns
+        var availableConcerns = new List<string>
+        {
+            "Digestion", "Stress", "Immunity", "Joints", "Hair", "Skin", "Metabolism", "Womens"
+        };
 
         // Active filter chips
         var activeChips = new List<ActiveFilterChip>();
@@ -192,17 +311,27 @@ public class SearchController : Controller
             {
                 Key = "q",
                 Label = $"Query: \"{cleanQuery}\"",
-                RemoveUrl = BuildUrlWithoutParam("q", cleanQuery, categoryId, brand, minPrice, maxPrice, minRating, sort)
+                RemoveUrl = BuildUrlWithoutParam("q", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
             });
         }
         if (categoryId.HasValue)
         {
-            var catName = allCategories.FirstOrDefault(c => c.Id == categoryId.Value)?.Name ?? "Category";
+            var catName = categoriesWithSelected.FirstOrDefault(c => c.Id == categoryId.Value)?.Name ?? "Category";
             activeChips.Add(new ActiveFilterChip
             {
                 Key = "categoryId",
                 Label = catName,
-                RemoveUrl = BuildUrlWithoutParam("categoryId", cleanQuery, categoryId, brand, minPrice, maxPrice, minRating, sort)
+                RemoveUrl = BuildUrlWithoutParam("categoryId", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
+            });
+        }
+        if (subcategoryId.HasValue)
+        {
+            var subName = subcategoriesWithSelected.FirstOrDefault(s => s.Id == subcategoryId.Value)?.Name ?? "Subcategory";
+            activeChips.Add(new ActiveFilterChip
+            {
+                Key = "subcategoryId",
+                Label = subName,
+                RemoveUrl = BuildUrlWithoutParam("subcategoryId", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
             });
         }
         if (!string.IsNullOrWhiteSpace(brand))
@@ -211,7 +340,16 @@ public class SearchController : Controller
             {
                 Key = "brand",
                 Label = brand,
-                RemoveUrl = BuildUrlWithoutParam("brand", cleanQuery, categoryId, brand, minPrice, maxPrice, minRating, sort)
+                RemoveUrl = BuildUrlWithoutParam("brand", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
+            });
+        }
+        if (!string.IsNullOrWhiteSpace(concern))
+        {
+            activeChips.Add(new ActiveFilterChip
+            {
+                Key = "concern",
+                Label = $"Concern: {concern}",
+                RemoveUrl = BuildUrlWithoutParam("concern", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
             });
         }
         if (minPrice.HasValue || maxPrice.HasValue)
@@ -220,7 +358,7 @@ public class SearchController : Controller
             {
                 Key = "price",
                 Label = $"₹{minPrice ?? 0} - ₹{maxPrice ?? 5000}",
-                RemoveUrl = BuildUrlWithoutParam("price", cleanQuery, categoryId, brand, minPrice, maxPrice, minRating, sort)
+                RemoveUrl = BuildUrlWithoutParam("price", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
             });
         }
         if (minRating.HasValue)
@@ -229,7 +367,25 @@ public class SearchController : Controller
             {
                 Key = "minRating",
                 Label = $"{minRating.Value}★ & above",
-                RemoveUrl = BuildUrlWithoutParam("minRating", cleanQuery, categoryId, brand, minPrice, maxPrice, minRating, sort)
+                RemoveUrl = BuildUrlWithoutParam("minRating", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
+            });
+        }
+        if (minDiscount.HasValue)
+        {
+            activeChips.Add(new ActiveFilterChip
+            {
+                Key = "minDiscount",
+                Label = $"{minDiscount.Value}% or more off",
+                RemoveUrl = BuildUrlWithoutParam("minDiscount", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
+            });
+        }
+        if (inStockOnly)
+        {
+            activeChips.Add(new ActiveFilterChip
+            {
+                Key = "inStockOnly",
+                Label = "In Stock Only",
+                RemoveUrl = BuildUrlWithoutParam("inStockOnly", cleanQuery, categoryId, subcategoryId, brand, concern, minPrice, maxPrice, minRating, minDiscount, inStockOnly, sort)
             });
         }
 
@@ -247,21 +403,39 @@ public class SearchController : Controller
             Catalog = new CatalogListViewModel
             {
                 Products = pagedItems,
-                Categories = allCategories,
-                Brands = allBrands,
+                Categories = categoriesWithSelected,
+                Subcategories = subcategoriesWithSelected,
+                Brands = brandsWithSelected,
+                AvailableConcerns = availableConcerns,
                 ActiveChips = activeChips,
                 TotalCount = totalCount,
                 PageIndex = page,
                 PageSize = pageSize,
                 SelectedCategoryId = categoryId,
+                SelectedSubcategoryId = subcategoryId,
                 SelectedBrand = brand,
                 SelectedSort = sort,
                 MinPrice = minPrice,
                 MaxPrice = maxPrice,
                 MinRating = minRating,
+                MinDiscount = minDiscount,
+                InStockOnly = inStockOnly,
+                Concern = concern,
                 SearchQuery = cleanQuery
             }
         };
+
+        ViewBag.AdShopInline = await _context.Banners
+            .AsNoTracking()
+            .Where(b => b.IsActive && b.Placement == "ad_shop_inline")
+            .OrderBy(b => b.DisplayOrder)
+            .ToListAsync();
+
+        ViewBag.AdShopSide = await _context.Banners
+            .AsNoTracking()
+            .Where(b => b.IsActive && b.Placement == "ad_shop_side")
+            .OrderBy(b => b.DisplayOrder)
+            .FirstOrDefaultAsync();
 
         return View(viewModel);
     }
@@ -270,10 +444,14 @@ public class SearchController : Controller
         string removeKey,
         string? q,
         int? categoryId,
+        int? subcategoryId,
         string? brand,
+        string? concern,
         decimal? minPrice,
         decimal? maxPrice,
         double? minRating,
+        int? minDiscount,
+        bool inStockOnly,
         string? sort)
     {
         var queryParams = new List<string>();
@@ -284,8 +462,14 @@ public class SearchController : Controller
         if (removeKey != "categoryId" && categoryId.HasValue)
             queryParams.Add($"categoryId={categoryId.Value}");
 
+        if (removeKey != "subcategoryId" && subcategoryId.HasValue)
+            queryParams.Add($"subcategoryId={subcategoryId.Value}");
+
         if (removeKey != "brand" && !string.IsNullOrWhiteSpace(brand))
             queryParams.Add($"brand={Uri.EscapeDataString(brand)}");
+
+        if (removeKey != "concern" && !string.IsNullOrWhiteSpace(concern))
+            queryParams.Add($"concern={Uri.EscapeDataString(concern)}");
 
         if (removeKey != "price")
         {
@@ -295,6 +479,12 @@ public class SearchController : Controller
 
         if (removeKey != "minRating" && minRating.HasValue)
             queryParams.Add($"minRating={minRating.Value}");
+
+        if (removeKey != "minDiscount" && minDiscount.HasValue)
+            queryParams.Add($"minDiscount={minDiscount.Value}");
+
+        if (removeKey != "inStockOnly" && inStockOnly)
+            queryParams.Add("inStockOnly=true");
 
         if (!string.IsNullOrWhiteSpace(sort) && sort != "relevance")
             queryParams.Add($"sort={Uri.EscapeDataString(sort)}");

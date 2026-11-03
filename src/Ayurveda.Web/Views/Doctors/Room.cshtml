@@ -1,25 +1,105 @@
-@model Ayurveda.Domain.Entities.Appointment
+@model Ayurveda.Application.ViewModels.CallRoomViewModel
 @{
-    ViewData["Title"] = $"Live Consultation Room — Dr. {Model.Doctor.DoctorName}";
-    bool isDoctor = ViewBag.IsDoctor == true;
-    bool isPatient = ViewBag.IsPatient == true;
-    string docName = Model.Doctor.DoctorName;
-    string docImage = string.IsNullOrEmpty(Model.Doctor.ProfileImage) ? "/images/doctor-avatar.svg" : Model.Doctor.ProfileImage;
+    ViewData["Title"] = $"Live Consultation Room — {Model.FormattedDoctorName}";
+    bool isDoctor = Model.Role == "doctor";
+    string userRole = Model.Role;
 }
 
-<div class="container-fluid px-3 py-3" style="max-width: 1440px;">
-    <!-- Emergency Warning Banner -->
-    <div class="alert alert-warning border-0 rounded-4 shadow-sm d-flex align-items-center justify-content-between p-2 px-3 mb-3">
+<style>
+    /* Scoped Call Room styles */
+    #roomRootContainer {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+    @@media (max-width: 767.98px) {
+        #lobbyVideoContainer,
+        #videoStage {
+            aspect-ratio: 4 / 3 !important;
+            max-height: 55vh !important;
+            min-height: unset !important;
+            width: 100% !important;
+        }
+        #floatingControls {
+            position: relative !important;
+            left: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            margin: 0.75rem auto 0 auto !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 0.5rem !important;
+            border-radius: 1.5rem !important;
+            max-width: 100% !important;
+            padding: 0.5rem !important;
+        }
+        #floatingControls .btn {
+            width: 40px !important;
+            height: 40px !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-shrink: 0 !important;
+        }
+        #localPipContainer {
+            width: 110px !important;
+            height: 80px !important;
+            bottom: 12px !important;
+            right: 12px !important;
+        }
+        #callSideBackdrop.active {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1045;
+        }
+        #callSidePanelColumn {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1050 !important;
+            max-height: 70vh !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            transform: translateY(105%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: block !important;
+        }
+        #callSidePanelColumn.sheet-open {
+            transform: translateY(0%) !important;
+        }
+        #callSidePanelColumn #callSideCard {
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            max-height: 70vh !important;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.3) !important;
+        }
+        #remoteParticipantTitle {
+            font-size: 1.15rem !important;
+            word-break: break-word !important;
+        }
+    }
+</style>
+
+<div class="container-fluid px-2 px-md-4 py-3" style="max-width: 1440px;" id="roomRootContainer">
+    <!-- Privacy & Security Notice -->
+    <div class="alert alert-success border-0 rounded-4 shadow-sm d-flex flex-wrap align-items-center justify-content-between p-2 px-3 mb-3">
         <div class="small d-flex align-items-center gap-2">
-            <i class="bi bi-shield-check text-success fs-5"></i>
-            <span><strong>Clinical Simulation Mode:</strong> Simulated secure WebRTC end-to-end encrypted consultation active. No external third-party login required.</span>
+            <i class="bi bi-shield-lock-fill text-success fs-5"></i>
+            <span><strong>Private WebRTC Connection:</strong> Audio and video stream directly between you and @(isDoctor ? "the patient" : "the doctor"). Calls are never recorded or stored.</span>
         </div>
-        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">
-            <i class="bi bi-record-fill text-danger me-1"></i> Connected (Simulated)
+        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 mt-1 mt-md-0">
+            <i class="bi bi-lock-fill me-1"></i> Peer-to-Peer
         </span>
     </div>
 
-    <!-- Room Topbar -->
+    <!-- Room Header -->
     <div class="card bg-dark text-white border-0 rounded-4 p-3 mb-3 shadow">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div class="d-flex align-items-center gap-3">
@@ -27,218 +107,288 @@
                     <span class="spinner-grow spinner-grow-sm text-light" style="width: 8px; height: 8px;"></span> LIVE CONSULTATION
                 </span>
                 <div>
-                    <h5 class="fw-bold mb-0 font-serif">Dr. @docName &amp; @Model.PatientName</h5>
+                    <h5 class="fw-bold mb-0 font-serif">@Model.FormattedDoctorName &bull; @Model.PatientName</h5>
                     <div class="text-white-50 small">
-                        Slot: @Model.TimeSlot (@Model.AppointmentDate.ToString("dd MMM yyyy")) • @Model.ConsultationType Mode • Room #@Model.Id
+                        @Model.DoctorSpecialization &bull; Room #@Model.AppointmentId &bull; You are joining as: <span class="badge bg-warning text-dark text-capitalize">@userRole</span>
                     </div>
                 </div>
             </div>
 
-            <div class="d-flex align-items-center gap-3">
-                <!-- Live Duration Timer -->
-                <div class="bg-black bg-opacity-50 px-3 py-2 rounded-pill font-monospace small border border-secondary text-warning">
-                    <i class="bi bi-stopwatch text-warning me-1"></i> <span id="callDurationTimer">00:00:00</span>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Call Duration Timer -->
+                <div class="bg-black bg-opacity-50 px-3 py-2 rounded-pill font-monospace small border border-secondary text-warning" id="timerBox">
+                    <i class="bi bi-stopwatch me-1"></i> <span id="callDurationTimer">00:00</span>
                 </div>
 
-                @if (isDoctor)
+                <!-- Network Quality Indicator -->
+                <div class="badge bg-black bg-opacity-50 border border-secondary text-light px-2 py-2 rounded-pill small d-flex align-items-center gap-1" id="qualityBadge">
+                    <i class="bi bi-reception-4 text-success" id="qualityIcon"></i>
+                    <span id="qualityText">Connecting</span>
+                </div>
+
+                <button type="button" class="btn btn-outline-light rounded-pill px-3 btn-sm" id="leaveTopBtn">
+                    <i class="bi bi-box-arrow-left me-1"></i> Exit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         1. LOBBY VIEW (Device Check, Mic Meter, Permissions & Self-Preview)
+         ====================================================================== -->
+    <div id="lobbySection" class="card border-0 shadow-lg rounded-4 p-3 p-md-4 bg-white mb-4">
+        <div class="row g-4 align-items-center">
+            <!-- Mirrored Self Preview & Mic Meter -->
+            <div class="col-lg-6">
+                <div class="card border-0 bg-dark rounded-4 overflow-hidden position-relative shadow" id="lobbyVideoContainer" style="aspect-ratio: 16/9; min-height: 240px;">
+                    <video id="lobbyVideo" autoplay playsinline muted class="w-100 h-100 object-fit-cover" style="transform: scaleX(-1); background: #0c140f;"></video>
+                    
+                    <div id="lobbyPreviewPlaceholder" class="position-absolute inset-0 d-flex flex-column align-items-center justify-content-center text-center p-3 text-white-50" style="background: rgba(12, 20, 15, 0.95); inset: 0;">
+                        <i class="bi bi-camera-video-off fs-1 text-secondary mb-2"></i>
+                        <p class="mb-0 small">Camera preview will appear after granting device permission.</p>
+                    </div>
+
+                    <!-- Mic level overlay bar -->
+                    <div class="position-absolute bottom-0 start-0 end-0 p-2 bg-black bg-opacity-75 d-flex align-items-center gap-2">
+                        <i class="bi bi-mic-fill text-warning small"></i>
+                        <div class="progress flex-grow-1 bg-secondary bg-opacity-50" style="height: 6px;">
+                            <div id="micLevelBar" class="progress-bar bg-success transition-all" role="progressbar" style="width: 0%; transition: width 0.05s ease;"></div>
+                        </div>
+                        <span class="text-white-50 small font-monospace" style="font-size: 0.7rem;">Mic Level</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Selectors & Join CTA -->
+            <div class="col-lg-6">
+                <h4 class="font-serif fw-bold text-success mb-2">Ready to enter your consultation?</h4>
+                <p class="text-muted small mb-3">Please verify your camera and microphone below before connecting.</p>
+
+                <!-- Diagnostics Banner -->
+                <div id="deviceAlert" class="alert alert-danger d-none rounded-3 py-2 px-3 small mb-2" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="deviceAlertMsg"></span>
+                </div>
+                <div id="deviceInfo" class="alert alert-warning d-none rounded-3 py-2 px-3 small mb-2" role="alert">
+                    <i class="bi bi-info-circle-fill me-1"></i> <span id="deviceInfoMsg"></span>
+                </div>
+
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-success fw-semibold rounded-pill px-3 py-2 btn-sm" id="requestMediaBtn">
+                        <i class="bi bi-camera-video me-1"></i> Allow Camera &amp; Mic
+                    </button>
+                    <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 btn-sm" id="retryDetectDevicesBtn">
+                        <i class="bi bi-arrow-repeat me-1"></i> Retry Detecting Devices
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 btn-sm" id="testSpeakerBtn">
+                        <i class="bi bi-volume-up me-1"></i> Test Speaker
+                    </button>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-6">
+                        <label for="cameraSelect" class="form-label small fw-bold text-secondary mb-1">Camera</label>
+                        <select id="cameraSelect" class="form-select form-select-sm rounded-pill"></select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="micSelect" class="form-label small fw-bold text-secondary mb-1">Microphone</label>
+                        <select id="micSelect" class="form-select form-select-sm rounded-pill"></select>
+                    </div>
+                    <div class="col-12" id="speakerSelectGroup">
+                        <label for="speakerSelect" class="form-label small fw-bold text-secondary mb-1">Audio Output (Speaker)</label>
+                        <select id="speakerSelect" class="form-select form-select-sm rounded-pill"></select>
+                    </div>
+                </div>
+
+                <!-- Collapsible Device Troubleshooting Help Panel -->
+                <div class="mb-3">
+                    <button class="btn btn-link btn-sm text-decoration-none p-0 text-muted d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="collapse" data-bs-target="#deviceHelpCollapse" aria-expanded="false" aria-controls="deviceHelpCollapse">
+                        <i class="bi bi-question-circle"></i> Camera or Mic not working? Troubleshooting guide &darr;
+                    </button>
+                    <div class="collapse mt-2" id="deviceHelpCollapse">
+                        <div class="card card-body p-3 bg-light border small text-muted rounded-3">
+                            <ul class="mb-0 ps-3">
+                                <li><strong>Windows Privacy Settings:</strong> Open Windows Settings &rarr; Privacy &amp; security &rarr; Camera / Microphone, and ensure "Let desktop apps access your camera/microphone" is ON.</li>
+                                <li><strong>Device Manager:</strong> Check that your webcam and microphone drivers are enabled without error icons.</li>
+                                <li><strong>Chrome Site Settings:</strong> Click the tune/padlock icon in the URL address bar, and set Camera &amp; Microphone to <em>Allow</em>.</li>
+                                <li><strong>HTTPS Required:</strong> WebRTC media capture requires a secure HTTPS connection or localhost.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-tga-gold fw-bold rounded-pill py-2 shadow-sm fs-6" id="joinRoomBtn">
+                        <i class="bi bi-telephone-inbound-fill me-1"></i> Join Consultation Now
+                    </button>
+                </div>
+
+                <!-- Demo Mode 2-Device Testing Card -->
+                @if (Model.IsDemoMode)
                 {
-                    <a asp-controller="DoctorPortal" asp-action="WritePrescription" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill px-3 fw-bold btn-sm">
-                        <i class="bi bi-file-earmark-medical me-1"></i> End Call &amp; Write Prescription
-                    </a>
-                }
-                else
-                {
-                    <a asp-action="MyAppointments" class="btn btn-outline-light rounded-pill px-3 btn-sm" onclick="return confirm('Exit this consultation room?');">
-                        <i class="bi bi-box-arrow-left me-1"></i> Exit Consultation
-                    </a>
+                    <div class="card border border-warning border-opacity-50 bg-warning bg-opacity-10 rounded-3 p-3 mt-3 shadow-xs">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small fw-bold text-dark"><i class="bi bi-phone-fill me-1 text-warning"></i> Test with Two Devices (or Two Tabs)</span>
+                            <span class="badge bg-warning text-dark">Demo Mode</span>
+                        </div>
+                        <p class="small text-muted mb-2" style="font-size: 0.8rem;">
+                            To test live peer-to-peer audio &amp; video calling from a second device or private browsing window, launch the clinical desk directly:
+                        </p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="/account/continue-demo-doctor?returnUrl=/doctors/room/@Model.AppointmentId" target="_blank" class="btn btn-sm btn-teal text-white fw-bold rounded-pill px-3 py-1-5 shadow-xs" style="font-size: 0.8rem;">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> Continue as Demo Doctor in New Window &rarr;
+                            </a>
+                        </div>
+                    </div>
                 }
             </div>
         </div>
     </div>
 
-    <div class="row g-3">
-        <!-- Main Video Frame -->
-        <div class="col-lg-8 col-xl-9">
-            <div class="card border-0 shadow rounded-4 overflow-hidden bg-black position-relative call-room-video-card">
-                <!-- Simulated Doctor Screen -->
-                <div class="w-100 h-100 position-relative d-flex flex-column align-items-center justify-content-center text-center p-4" id="doctorVideoContainer" style="background: radial-gradient(circle at center, #1b3323 0%, #0d1a12 60%, #050a07 100%);">
-                    
-                    <!-- Top Video Bar Overlay -->
-                    <div class="position-absolute top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%); z-index: 10;">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-success rounded-pill px-2 py-1 small">
-                                <i class="bi bi-circle-fill text-light me-1" style="font-size: 8px;"></i> Connected
-                            </span>
-                            <span class="text-white-50 small font-monospace">HD 1080p • 30fps • 24ms WebRTC</span>
-                        </div>
-                        <div class="badge bg-black bg-opacity-50 border border-secondary text-white-50 px-2 py-1 small">
-                            <i class="bi bi-lock-fill text-warning me-1"></i> 256-bit Encrypted
-                        </div>
-                    </div>
-
-                    <!-- Doctor Avatar / Stream Presentation -->
-                    <div class="doctor-stream-box my-auto position-relative">
-                        <div class="position-relative d-inline-block">
-                            <!-- Animated Pulse Ring -->
-                            <div class="position-absolute top-50 start-50 translate-middle rounded-circle bg-success bg-opacity-25 pulse-ring" style="width: 220px; height: 220px; z-index: 1;"></div>
-                            
-                            <img src="@docImage" alt="Dr. @docName" 
-                                 class="rounded-circle shadow-lg border border-3 border-success position-relative"
-                                 style="width: 170px; height: 170px; object-fit: cover; z-index: 2; background-color: #244631;"
-                                 data-fallback="/images/doctor-avatar.svg" />
-
-                            <!-- Active Speaking Audio Wave Indicator -->
-                            <div class="position-absolute bottom-0 start-50 translate-middle-x bg-black bg-opacity-75 border border-success rounded-pill px-3 py-1 d-flex align-items-center gap-1" style="z-index: 3;">
-                                <span class="audio-bar"></span>
-                                <span class="audio-bar" style="animation-delay: 0.2s;"></span>
-                                <span class="audio-bar" style="animation-delay: 0.4s;"></span>
-                                <span class="audio-bar" style="animation-delay: 0.1s;"></span>
-                                <span class="text-success text-xs ms-1 fw-bold">Active Audio</span>
-                            </div>
-                        </div>
-
-                        <h4 class="text-white font-serif fw-bold mt-4 mb-1">Dr. @docName</h4>
-                        <div class="text-warning small mb-2">Ayurvedic Physician &amp; Wellness Specialist</div>
-                        <div class="badge bg-success bg-opacity-20 text-success border border-success px-3 py-1 rounded-pill">
-                            <i class="bi bi-camera-video me-1"></i> Live Stream Active
-                        </div>
-                    </div>
-
-                    <!-- Patient Picture-In-Picture Overlay (Bottom Right) -->
-                    <div class="position-absolute bottom-0 end-0 m-3 rounded-4 overflow-hidden shadow-lg border border-2 border-secondary bg-dark call-room-pip" 
-                         style="width: 180px; height: 130px; z-index: 20; background: #121815;">
-                        <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center p-2 text-center position-relative" id="patientPipBox">
-                            <div class="rounded-circle bg-secondary bg-opacity-25 p-2 mb-1" id="patientPipAvatar">
-                                <i class="bi bi-person-fill text-light fs-3"></i>
-                            </div>
-                            <span class="text-light small text-truncate w-100 px-1 fw-bold" style="font-size: 0.75rem;">@Model.PatientName</span>
-                            <span class="badge bg-black bg-opacity-50 text-white-50 mt-1" style="font-size: 0.65rem;" id="patientStatusBadge">Camera Ready</span>
-                        </div>
-                    </div>
-
-                    <!-- Bottom Floating Call Controls Bar -->
-                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 d-flex align-items-center gap-2 p-2 rounded-pill bg-black bg-opacity-75 border border-secondary shadow-lg call-room-controls" style="z-index: 30;">
-                        <!-- Mute Audio -->
-                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="toggleMicBtn" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;" title="Mute/Unmute Mic">
-                            <i class="bi bi-mic-fill" id="micIcon"></i>
-                        </button>
-
-                        <!-- Toggle Camera -->
-                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="toggleCamBtn" style="width: 44px; height: 44px;" title="Turn Video On/Off">
-                            <i class="bi bi-camera-video-fill" id="camIcon"></i>
-                        </button>
-
-                        <!-- Toggle Screen Share -->
-                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="toggleShareBtn" style="width: 44px; height: 44px;" title="Simulate Screen Share">
-                            <i class="bi bi-display" id="shareIcon"></i>
-                        </button>
-
-                        <!-- Toggle Chat -->
-                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="toggleChatBtn" style="width: 44px; height: 44px;" title="Toggle In-Call Chat">
-                            <i class="bi bi-chat-dots-fill"></i>
-                        </button>
-
-                        <!-- End Call (Red) -->
-                        @if (isDoctor)
-                        {
-                            <a asp-controller="DoctorPortal" asp-action="WritePrescription" asp-route-id="@Model.Id" class="btn btn-danger rounded-circle p-2 ms-2" style="width: 44px; height: 44px;" title="End Consultation">
-                                <i class="bi bi-telephone-x-fill"></i>
-                            </a>
-                        }
-                        else
-                        {
-                            <a asp-action="MyAppointments" class="btn btn-danger rounded-circle p-2 ms-2" style="width: 44px; height: 44px;" title="Leave Consultation" onclick="return confirm('Leave this consultation room?');">
-                                <i class="bi bi-telephone-x-fill"></i>
-                            </a>
-                        }
-                    </div>
-                </div>
+    <!-- ======================================================================
+         2. IN-CALL VIEW (Remote Video, Draggable PIP, Controls & Chat)
+         ====================================================================== -->
+    <div id="callSection" class="d-none">
+        <!-- 8-Second Doctor Wait Fallback Banner -->
+        <div id="doctorNotJoinedAlert" class="alert alert-warning border-0 rounded-4 shadow-sm d-none flex-wrap align-items-center justify-content-between p-2 px-3 mb-3">
+            <div class="small d-flex align-items-center gap-2">
+                <i class="bi bi-hourglass-split text-warning fs-5"></i>
+                <span><strong>Waiting for Doctor:</strong> Doctor has not joined yet. You can keep waiting or switch to our interactive simulated Ayurvedic consultation.</span>
+            </div>
+            <div class="d-flex gap-2 mt-2 mt-md-0">
+                <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3" id="keepWaitingBtn">Wait</button>
+                <button type="button" class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold" id="startDemoDocBtn">
+                    <i class="bi bi-robot me-1"></i> Start Demo Consultation
+                </button>
             </div>
         </div>
 
-        <!-- Consultation Dossier & Live Interactive Chat Drawer -->
-        <div class="col-lg-4 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 d-flex flex-column" style="max-height: 620px;">
-                <!-- Nav Tabs for Dossier and Chat -->
-                <ul class="nav nav-pills nav-fill mb-3 bg-light p-1 rounded-pill" id="roomTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active rounded-pill py-1 small fw-bold" id="chat-tab" data-bs-toggle="pill" data-bs-target="#chat-pane" type="button" role="tab">
-                            <i class="bi bi-chat-dots me-1"></i> Live Chat
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link rounded-pill py-1 small fw-bold" id="dossier-tab" data-bs-toggle="pill" data-bs-target="#dossier-pane" type="button" role="tab">
-                            <i class="bi bi-clipboard2-pulse me-1"></i> Patient Dossier
-                        </button>
-                    </li>
-                </ul>
+        <div class="row g-3">
+            <!-- Main Video Stage -->
+            <div class="col-lg-8 col-xl-9">
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden bg-black position-relative" id="videoStage" style="aspect-ratio: 16/9; min-height: 380px;">
+                    <!-- Remote Peer Video -->
+                    <video id="remoteVideo" autoplay playsinline class="w-100 h-100 object-fit-cover"></video>
 
-                <div class="tab-content flex-grow-1 d-flex flex-column overflow-hidden" id="roomTabContent">
-                    <!-- Interactive Chat Pane -->
-                    <div class="tab-pane fade show active flex-grow-1 d-flex flex-column" id="chat-pane" role="tabpanel">
-                        <div class="chat-messages flex-grow-1 overflow-auto p-2 border rounded-3 bg-light mb-2" id="chatMessages" style="max-height: 420px; min-height: 360px;">
-                            <div class="text-center my-2">
-                                <span class="badge bg-secondary bg-opacity-25 text-secondary" style="font-size: 0.7rem;">
-                                    Consultation Channel Initialized • Encrypted
-                                </span>
-                            </div>
-
-                            <!-- Doctor greeting message -->
-                            <div class="d-flex flex-column align-items-start mb-2">
-                                <span class="text-success small fw-bold mb-1">Dr. @docName</span>
-                                <div class="bg-white border rounded-3 p-2 small shadow-sm text-dark" style="max-width: 85%;">
-                                    Namaste @Model.PatientName! Welcome to your consultation. I have reviewed your dossier. Please share more details regarding your symptoms and diet.
-                                </div>
-                                <span class="text-muted text-xs mt-1" style="font-size: 0.65rem;">Just now</span>
-                            </div>
+                    <!-- Remote Waiting / Audio Presentation Placeholder -->
+                    <div id="remotePlaceholder" class="position-absolute inset-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center text-center p-4 text-white" 
+                         style="background: radial-gradient(circle at center, #1b3323 0%, #0d1a12 60%, #050a07 100%);">
+                        <div class="position-relative d-inline-block mb-3">
+                            <div class="position-absolute top-50 start-50 translate-middle rounded-circle bg-success bg-opacity-25 pulse-ring" style="width: 180px; height: 180px;"></div>
+                            <img src="/images/doctor-avatar.svg" alt="Doctor" class="rounded-circle shadow-lg border border-3 border-success position-relative" style="width: 130px; height: 130px; object-fit: cover; background: #244631;" id="remoteAvatarImg" />
                         </div>
+                        <h4 class="font-serif fw-bold text-white mb-1" id="remoteParticipantTitle">Waiting for @(isDoctor ? "Patient" : Model.FormattedDoctorName)...</h4>
+                        <p class="text-white-50 small mb-0" id="remoteSubtitle">Audio and video will establish peer-to-peer automatically upon joining.</p>
+                    </div>
 
-                        <!-- Chat input form -->
-                        <div class="input-group">
-                            <input type="text" id="chatInput" class="form-control form-control-sm rounded-start-pill" placeholder="Type a message to Dr. @docName..." autocomplete="off" />
-                            <button class="btn btn-success btn-sm rounded-end-pill px-3" type="button" id="sendChatBtn">
-                                <i class="bi bi-send-fill"></i>
-                            </button>
+                    <!-- Draggable Local Picture-In-Picture Video Tile -->
+                    <div id="localPipContainer" class="position-absolute rounded-3 overflow-hidden shadow-lg border border-2 border-secondary bg-dark"
+                         style="bottom: 75px; right: 15px; width: 160px; height: 110px; z-index: 25; cursor: grab; touch-action: none; background: #0c140f;">
+                        <video id="localVideo" autoplay playsinline muted class="w-100 h-100 object-fit-cover" style="transform: scaleX(-1);"></video>
+                        <div class="position-absolute bottom-0 start-0 end-0 bg-black bg-opacity-60 text-white px-2 py-0-5 d-flex justify-content-between align-items-center" style="font-size: 0.65rem;">
+                            <span class="text-truncate fw-bold">You (@userRole)</span>
+                            <i class="bi bi-arrows-move"></i>
                         </div>
                     </div>
 
-                    <!-- Patient Clinical Dossier Pane -->
-                    <div class="tab-pane fade overflow-auto" id="dossier-pane" role="tabpanel" style="max-height: 520px;">
-                        <h6 class="fw-bold text-success mb-2 font-serif border-bottom pb-2">
-                            <i class="bi bi-clipboard2-pulse me-1"></i> Patient Details
-                        </h6>
+                    <!-- In-Call Floating Control Bar -->
+                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-3 d-flex align-items-center gap-2 p-2 rounded-pill bg-black bg-opacity-75 border border-secondary shadow-lg" style="z-index: 30;" id="floatingControls">
+                        <!-- Mute/Unmute Mic -->
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="callToggleMicBtn" style="width: 44px; height: 44px;" title="Mute/Unmute Mic">
+                            <i class="bi bi-mic-fill" id="callMicIcon"></i>
+                        </button>
 
-                        <div class="small text-muted mb-3">
-                            <div class="mb-1"><strong>Patient:</strong> @Model.PatientName (@(Model.PatientAge?.ToString() ?? "N/A") yrs, @(Model.PatientGender ?? "N/A"))</div>
-                            <div class="mb-1"><strong>Contact:</strong> @Model.PatientContact</div>
-                            <div class="mb-1"><strong>Doctor:</strong> Dr. @docName</div>
-                        </div>
+                        <!-- Toggle Camera -->
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="callToggleCamBtn" style="width: 44px; height: 44px;" title="Turn Video On/Off">
+                            <i class="bi bi-camera-video-fill" id="callCamIcon"></i>
+                        </button>
 
-                        <div class="mb-3">
-                            <span class="small fw-bold text-dark d-block mb-1">Chief Health Concern:</span>
-                            <div class="p-2 bg-light rounded-3 small text-secondary">
-                                @(string.IsNullOrEmpty(Model.HealthConcern) ? "General consultation" : Model.HealthConcern)
+                        <!-- Switch Camera on Mobile Phones -->
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2 d-md-none" id="callSwitchCamBtn" style="width: 44px; height: 44px;" title="Switch Camera (Front/Rear)">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </button>
+
+                        <!-- Screen Share on Desktop Only -->
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2 d-none d-md-inline-flex align-items-center justify-content-center" id="callShareScreenBtn" style="width: 44px; height: 44px;" title="Share Screen">
+                            <i class="bi bi-display" id="callShareIcon"></i>
+                        </button>
+
+                        <!-- Fullscreen Toggle -->
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2" id="callFullscreenBtn" style="width: 44px; height: 44px;" title="Toggle Fullscreen">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </button>
+
+                        <!-- In-Call Chat Bottom Sheet Toggle -->
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2 position-relative" id="callToggleChatBtn" style="width: 44px; height: 44px;" title="Toggle Chat">
+                            <i class="bi bi-chat-dots-fill"></i>
+                            <span id="unreadBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
+                        </button>
+
+                        <!-- End Call (Red) -->
+                        <button type="button" class="btn btn-danger rounded-circle p-2 ms-2" id="callHangupBtn" style="width: 44px; height: 44px;" title="End Consultation">
+                            <i class="bi bi-telephone-x-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- In-Call Side Panel: RTCDataChannel Peer-to-Peer Chat & Dossier -->
+            <div id="callSideBackdrop" class="d-none"></div>
+            <div class="col-lg-4 col-xl-3" id="callSidePanelColumn">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 d-flex flex-column position-relative" id="callSideCard" style="min-height: 400px; max-height: 640px;">
+                    <button type="button" class="btn-close d-md-none position-absolute top-0 end-0 m-3" id="closeSidePanelBtn" aria-label="Close"></button>
+                    <ul class="nav nav-pills nav-fill mb-2 bg-light p-1 rounded-pill" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill py-1 small fw-bold" id="chatTabBtn" data-bs-toggle="pill" data-bs-target="#chatPane" type="button" role="tab">
+                                <i class="bi bi-chat-dots me-1"></i> Live Chat
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill py-1 small fw-bold" id="dossierTabBtn" data-bs-toggle="pill" data-bs-target="#dossierPane" type="button" role="tab">
+                                <i class="bi bi-clipboard2-pulse me-1"></i> Clinical Dossier
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content flex-grow-1 d-flex flex-column overflow-hidden">
+                        <!-- P2P Chat Pane -->
+                        <div class="tab-pane fade show active flex-grow-1 d-flex flex-column" id="chatPane" role="tabpanel">
+                            <div class="flex-grow-1 overflow-auto p-2 border rounded-3 bg-light mb-2" id="chatMessagesBox" style="min-height: 280px; max-height: 440px;">
+                                <div class="text-center my-2">
+                                    <span class="badge bg-secondary bg-opacity-25 text-secondary" style="font-size: 0.7rem;">
+                                        End-to-End RTCDataChannel Encrypted Chat
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="text" id="chatInputText" class="form-control form-control-sm rounded-start-pill" placeholder="Type a message..." autocomplete="off" />
+                                <button class="btn btn-success btn-sm rounded-end-pill px-3" type="button" id="sendChatMsgBtn">
+                                    <i class="bi bi-send-fill"></i>
+                                </button>
                             </div>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(Model.ReportUrl))
-                        {
-                            <div class="mb-3">
-                                <span class="small fw-bold text-dark d-block mb-1">Uploaded Medical Lab Report:</span>
-                                <a href="@Model.ReportUrl" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill w-100 text-truncate">
-                                    <i class="bi bi-file-earmark-pdf me-1 text-danger"></i> View Attached Report
-                                </a>
+                        <!-- Dossier Pane -->
+                        <div class="tab-pane fade overflow-auto" id="dossierPane" role="tabpanel">
+                            <h6 class="fw-bold text-success mb-2 font-serif border-bottom pb-2">
+                                <i class="bi bi-clipboard2-pulse me-1"></i> Appointment Information
+                            </h6>
+                            <div class="small text-muted mb-3">
+                                <div class="mb-1"><strong>Doctor:</strong> @Model.FormattedDoctorName</div>
+                                <div class="mb-1"><strong>Specialization:</strong> @Model.DoctorSpecialization</div>
+                                <div class="mb-1"><strong>Patient:</strong> @Model.PatientName</div>
+                                <div class="mb-1"><strong>Appointment #:</strong> @Model.AppointmentId</div>
                             </div>
-                        }
 
-                        @if (isDoctor)
-                        {
-                            <div class="mt-auto pt-3 border-top">
-                                <a asp-controller="DoctorPortal" asp-action="WritePrescription" asp-route-id="@Model.Id" class="btn btn-success w-100 rounded-pill py-2 fw-semibold">
-                                    <i class="bi bi-pencil-square me-1"></i> Digital Prescription Writer
-                                </a>
-                            </div>
-                        }
+                            @if (isDoctor)
+                            {
+                                <div class="mt-auto pt-3 border-top">
+                                    <a asp-controller="DoctorPortal" asp-action="WritePrescription" asp-route-id="@Model.AppointmentId" class="btn btn-success w-100 rounded-pill py-2 fw-semibold">
+                                        <i class="bi bi-pencil-square me-1"></i> Write Prescription
+                                    </a>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -247,18 +397,6 @@
 </div>
 
 <style>
-    .audio-bar {
-        display: inline-block;
-        width: 3px;
-        height: 12px;
-        background-color: #28a745;
-        border-radius: 2px;
-        animation: audioWave 1s ease-in-out infinite alternate;
-    }
-    @@keyframes audioWave {
-        0% { height: 4px; }
-        100% { height: 16px; }
-    }
     .pulse-ring {
         animation: pulseRing 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
     }
@@ -266,124 +404,908 @@
         0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
         100% { transform: translate(-50%, -50%) scale(1.25); opacity: 0; }
     }
+    #localPipContainer.dragging {
+        cursor: grabbing;
+        opacity: 0.85;
+    }
+    @@media (max-width: 767.98px) {
+        #localPipContainer {
+            width: 120px !important;
+            height: 90px !important;
+            bottom: 68px !important;
+            right: 8px !important;
+        }
+    }
 </style>
 
 @section Scripts {
+<script src="/lib/signalr/signalr.min.js"></script>
 <script>
-    // 1. Live Call Duration Counter
-    let seconds = 0;
-    const timerEl = document.getElementById("callDurationTimer");
-    if (timerEl) {
-        setInterval(() => {
-            seconds++;
-            const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-            const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-            const s = String(seconds % 60).padStart(2, '0');
-            timerEl.innerText = `${h}:${m}:${s}`;
+(() => {
+    // Configuration from Server Model
+    const appointmentId = "@Model.AppointmentId";
+    const userRole = "@Model.Role";
+    const userId = "@Model.UserId";
+    const stunUrls = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StunUrls));
+    const turnUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TurnUrl));
+    const turnUser = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TurnUser));
+    const turnCredential = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TurnCredential));
+    const isDemoMode = @(Model.IsDemoMode ? "true" : "false");
+
+    // UI Elements
+    const lobbySection = document.getElementById("lobbySection");
+    const callSection = document.getElementById("callSection");
+    const lobbyVideo = document.getElementById("lobbyVideo");
+    const lobbyPreviewPlaceholder = document.getElementById("lobbyPreviewPlaceholder");
+    const micLevelBar = document.getElementById("micLevelBar");
+    const requestMediaBtn = document.getElementById("requestMediaBtn");
+    const testSpeakerBtn = document.getElementById("testSpeakerBtn");
+    const cameraSelect = document.getElementById("cameraSelect");
+    const micSelect = document.getElementById("micSelect");
+    const speakerSelect = document.getElementById("speakerSelect");
+    const speakerSelectGroup = document.getElementById("speakerSelectGroup");
+    const deviceAlert = document.getElementById("deviceAlert");
+    const deviceAlertMsg = document.getElementById("deviceAlertMsg");
+    const deviceInfo = document.getElementById("deviceInfo");
+    const deviceInfoMsg = document.getElementById("deviceInfoMsg");
+    const retryDetectDevicesBtn = document.getElementById("retryDetectDevicesBtn");
+    const joinRoomBtn = document.getElementById("joinRoomBtn");
+
+    const remoteVideo = document.getElementById("remoteVideo");
+    const remotePlaceholder = document.getElementById("remotePlaceholder");
+    const localVideo = document.getElementById("localVideo");
+    const localPipContainer = document.getElementById("localPipContainer");
+    const floatingControls = document.getElementById("floatingControls");
+    const doctorNotJoinedAlert = document.getElementById("doctorNotJoinedAlert");
+    const keepWaitingBtn = document.getElementById("keepWaitingBtn");
+    const startDemoDocBtn = document.getElementById("startDemoDocBtn");
+
+    const callToggleMicBtn = document.getElementById("callToggleMicBtn");
+    const callMicIcon = document.getElementById("callMicIcon");
+    const callToggleCamBtn = document.getElementById("callToggleCamBtn");
+    const callCamIcon = document.getElementById("callCamIcon");
+    const callSwitchCamBtn = document.getElementById("callSwitchCamBtn");
+    const callShareScreenBtn = document.getElementById("callShareScreenBtn");
+    const callFullscreenBtn = document.getElementById("callFullscreenBtn");
+    const callHangupBtn = document.getElementById("callHangupBtn");
+    const leaveTopBtn = document.getElementById("leaveTopBtn");
+    const callDurationTimer = document.getElementById("callDurationTimer");
+    const qualityIcon = document.getElementById("qualityIcon");
+    const qualityText = document.getElementById("qualityText");
+
+    const chatMessagesBox = document.getElementById("chatMessagesBox");
+    const chatInputText = document.getElementById("chatInputText");
+    const sendChatMsgBtn = document.getElementById("sendChatMsgBtn");
+
+    // State
+    let localStream = null;
+    let isReceiveOnly = false;
+    let audioContext = null;
+    let micAnalyser = null;
+    let micAnimFrame = null;
+    let currentFacingMode = "user";
+    let isMicMuted = false;
+    let isCamOff = false;
+    let isScreenSharing = false;
+    let callTimerInterval = null;
+    let callSeconds = 0;
+    let statsInterval = null;
+    let eightSecTimeout = null;
+    let isDemoConsultation = false;
+
+    // WebRTC & SignalR
+    let hubConnection = null;
+    let peerConnection = null;
+    let dataChannel = null;
+    let makingOffer = false;
+    let ignoreOffer = false;
+    const polite = (userRole === "patient"); // Perfect negotiation: patient is polite peer
+
+    // Setup ICE Servers
+    const iceServers = [];
+    if (stunUrls && stunUrls.length > 0) {
+        stunUrls.forEach(url => {
+            if (url) iceServers.push({ urls: url.startsWith("stun:") ? url : `stun:${url}` });
+        });
+    } else {
+        iceServers.push({ urls: "stun:stun.l.google.com:19302" });
+    }
+    if (turnUrl) {
+        const turnConfig = { urls: turnUrl };
+        if (turnUser) turnConfig.username = turnUser;
+        if (turnCredential) turnConfig.credential = turnCredential;
+        iceServers.push(turnConfig);
+    }
+    const rtcConfig = { iceServers };
+
+    // -------------------------------------------------------------------------
+    // A. LOBBY & DEVICE INITIALIZATION (B8: ROBUST CASCADE)
+    // -------------------------------------------------------------------------
+    function showDeviceError(msg) {
+        if (deviceAlert && deviceAlertMsg) {
+            deviceAlertMsg.innerText = msg;
+            deviceAlert.classList.remove("d-none");
+        }
+    }
+    function clearDeviceError() {
+        if (deviceAlert) deviceAlert.classList.add("d-none");
+    }
+
+    function showDeviceWarning(msg) {
+        if (deviceInfo && deviceInfoMsg) {
+            deviceInfoMsg.innerText = msg;
+            deviceInfo.classList.remove("d-none");
+        }
+    }
+    function clearDeviceInfo() {
+        if (deviceInfo) deviceInfo.classList.add("d-none");
+    }
+
+    async function initLobbyDevices(preferredVideoId, preferredAudioId) {
+        clearDeviceError();
+        clearDeviceInfo();
+
+        // 1. Insecure context check
+        if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+            showDeviceError("Insecure Context: Video consultations require HTTPS or localhost for camera/microphone access.");
+            return;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showDeviceWarning("Media capture is not supported in this browser. Joining in receive-only mode.");
+            isReceiveOnly = true;
+            return;
+        }
+
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+
+        let stream = null;
+
+        // B8 Cascade: 1. Try video + audio -> 2. Audio only -> 3. Video only -> 4. Receive-only
+        try {
+            const constraints = {
+                audio: preferredAudioId ? { deviceId: { exact: preferredAudioId } } : true,
+                video: preferredVideoId ? { deviceId: { exact: preferredVideoId } } : { facingMode: currentFacingMode }
+            };
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            isReceiveOnly = false;
+        } catch (err1) {
+            console.warn("video+audio getUserMedia failed:", err1);
+            if (err1.name === "NotFoundError" || err1.name === "OverconstrainedError" || err1.name === "DevicesNotFoundError") {
+                // Step 2: Try audio only
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        audio: preferredAudioId ? { deviceId: { exact: preferredAudioId } } : true,
+                        video: false
+                    });
+                    showDeviceWarning("No camera found. Joining with microphone only.");
+                    isReceiveOnly = false;
+                } catch (err2) {
+                    console.warn("audio-only getUserMedia failed:", err2);
+                    if (err2.name === "NotFoundError" || err2.name === "OverconstrainedError" || err2.name === "DevicesNotFoundError") {
+                        // Step 3: Try video only
+                        try {
+                            stream = await navigator.mediaDevices.getUserMedia({
+                                video: preferredVideoId ? { deviceId: { exact: preferredVideoId } } : { facingMode: currentFacingMode },
+                                audio: false
+                            });
+                            showDeviceWarning("No microphone found. Joining with camera only.");
+                            isReceiveOnly = false;
+                        } catch (err3) {
+                            console.warn("video-only getUserMedia failed:", err3);
+                            isReceiveOnly = true;
+                            showDeviceWarning("No camera or microphone found on this device. You will join in receive-only mode (you can still see and hear the consultation).");
+                        }
+                    } else {
+                        handleMediaError(err2);
+                    }
+                }
+            } else {
+                handleMediaError(err1);
+            }
+        }
+
+        if (stream) {
+            localStream = stream;
+            lobbyVideo.srcObject = localStream;
+            localVideo.srcObject = localStream;
+            if (lobbyPreviewPlaceholder && stream.getVideoTracks().length > 0) {
+                lobbyPreviewPlaceholder.classList.add("d-none");
+            }
+            if (stream.getAudioTracks().length > 0) {
+                setupAudioMeter(localStream);
+            }
+        } else {
+            isReceiveOnly = true;
+        }
+
+        await populateDeviceSelectors();
+    }
+
+    function handleMediaError(err) {
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+            showDeviceError("Camera/Microphone permission was denied. Please allow permissions in your browser address bar.");
+        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+            showDeviceWarning("No camera or microphone found on this device. You will join in receive-only mode.");
+            isReceiveOnly = true;
+        } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+            showDeviceError("Camera or microphone is currently in use by another application or busy.");
+        } else if (err.name === "SecurityError") {
+            showDeviceError("Browser Permissions-Policy or security settings blocked camera/microphone access.");
+        } else {
+            showDeviceError(`Device access notice: ${err.message || err.name}`);
+        }
+    }
+
+    function setupAudioMeter(stream) {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            if (!audioContext || audioContext.state === "closed") {
+                audioContext = new AudioCtx();
+            }
+            if (audioContext.state === "suspended") {
+                audioContext.resume();
+            }
+
+            const audioTracks = stream.getAudioTracks();
+            if (audioTracks.length === 0) return;
+
+            const source = audioContext.createMediaStreamSource(stream);
+            micAnalyser = audioContext.createAnalyser();
+            micAnalyser.fftSize = 256;
+            source.connect(micAnalyser);
+
+            const buffer = new Uint8Array(micAnalyser.frequencyBinCount);
+            function updateLevel() {
+                if (!micAnalyser) return;
+                micAnalyser.getByteFrequencyData(buffer);
+                let sum = 0;
+                for (let i = 0; i < buffer.length; i++) sum += buffer[i];
+                const avg = sum / buffer.length;
+                const pct = Math.min(100, Math.round((avg / 128) * 100));
+                if (micLevelBar) micLevelBar.style.width = pct + "%";
+                micAnimFrame = requestAnimationFrame(updateLevel);
+            }
+            if (micAnimFrame) cancelAnimationFrame(micAnimFrame);
+            updateLevel();
+        } catch (e) {
+            console.warn("Audio meter setup error:", e);
+        }
+    }
+
+    async function populateDeviceSelectors() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            cameraSelect.innerHTML = "";
+            micSelect.innerHTML = "";
+            speakerSelect.innerHTML = "";
+
+            let camCount = 0;
+            let micCount = 0;
+            let spkCount = 0;
+
+            devices.forEach(d => {
+                const opt = document.createElement("option");
+                opt.value = d.deviceId;
+                if (d.kind === "videoinput") {
+                    opt.text = d.label || `Camera ${++camCount}`;
+                    cameraSelect.appendChild(opt);
+                } else if (d.kind === "audioinput") {
+                    opt.text = d.label || `Microphone ${++micCount}`;
+                    micSelect.appendChild(opt);
+                } else if (d.kind === "audiooutput") {
+                    opt.text = d.label || `Speaker ${++spkCount}`;
+                    speakerSelect.appendChild(opt);
+                }
+            });
+
+            if (cameraSelect.options.length === 0) {
+                const opt = document.createElement("option");
+                opt.text = "No Camera Detected";
+                opt.disabled = true;
+                opt.selected = true;
+                cameraSelect.appendChild(opt);
+            }
+
+            if (micSelect.options.length === 0) {
+                const opt = document.createElement("option");
+                opt.text = "No Microphone Detected";
+                opt.disabled = true;
+                opt.selected = true;
+                micSelect.appendChild(opt);
+            }
+
+            if (!("setSinkId" in HTMLMediaElement.prototype) && speakerSelectGroup) {
+                speakerSelectGroup.classList.add("d-none");
+            }
+        } catch (e) {
+            console.warn("enumerateDevices error:", e);
+        }
+    }
+
+    requestMediaBtn.addEventListener("click", () => initLobbyDevices());
+    if (retryDetectDevicesBtn) {
+        retryDetectDevicesBtn.addEventListener("click", () => initLobbyDevices());
+    }
+
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+        navigator.mediaDevices.addEventListener("devicechange", async () => {
+            await populateDeviceSelectors();
+        });
+    }
+
+    cameraSelect.addEventListener("change", () => initLobbyDevices(cameraSelect.value, micSelect.value));
+    micSelect.addEventListener("change", () => initLobbyDevices(cameraSelect.value, micSelect.value));
+    speakerSelect.addEventListener("change", async () => {
+        if (remoteVideo && typeof remoteVideo.setSinkId === "function") {
+            try { await remoteVideo.setSinkId(speakerSelect.value); } catch (e) { console.warn("setSinkId error:", e); }
+        }
+    });
+
+    testSpeakerBtn.addEventListener("click", () => {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
+        } catch (e) {
+            console.warn("Speaker test error:", e);
+        }
+    });
+
+    // Auto-request devices on page load if user already granted permissions
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        initLobbyDevices();
+    }
+
+    // -------------------------------------------------------------------------
+    // B. IN-CALL & WEBRTC SIGNALING
+    // -------------------------------------------------------------------------
+    joinRoomBtn.addEventListener("click", async () => {
+        lobbySection.classList.add("d-none");
+        callSection.classList.remove("d-none");
+        startCallTimer();
+        setupDraggablePip();
+        await startWebRtcSignaling();
+    });
+
+    async function startWebRtcSignaling() {
+        if (!window.signalR) {
+            console.error("SignalR library not loaded");
+            return;
+        }
+
+        hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/call")
+            .withAutomaticReconnect()
+            .build();
+
+        hubConnection.on("JoinedRoom", (room, peerPresent) => {
+            console.log(`[SignalR] Joined room ${room}. Peer present:`, peerPresent);
+            if (peerPresent) {
+                clearTimeout(eightSecTimeout);
+                doctorNotJoinedAlert.classList.add("d-none");
+            } else {
+                startEightSecTimeout();
+            }
+        });
+
+        hubConnection.on("PeerJoined", async (connId, role) => {
+            console.log(`[SignalR] Peer joined: ${connId} (${role})`);
+            clearTimeout(eightSecTimeout);
+            doctorNotJoinedAlert.classList.add("d-none");
+            initPeerConnection();
+        });
+
+        hubConnection.on("PeerLeft", (connId) => {
+            console.log(`[SignalR] Peer left: ${connId}`);
+            if (remoteVideo) remoteVideo.srcObject = null;
+            if (remotePlaceholder) remotePlaceholder.classList.remove("d-none");
+            updateQualityBadge("Peer Disconnected", "text-warning");
+            appendChatMessage("System", "The other participant has left the room.", false);
+        });
+
+        hubConnection.on("RoomFull", (room) => {
+            alert("This consultation room already has the maximum of 2 participants.");
+            window.location.href = "/doctors/myappointments";
+        });
+
+        hubConnection.on("ReceiveSignal", async (senderId, signalType, payload) => {
+            await handleRemoteSignal(signalType, JSON.parse(payload));
+        });
+
+        try {
+            await hubConnection.start();
+            console.log("[SignalR] Connected to /hubs/call");
+            initPeerConnection();
+            await hubConnection.invoke("JoinRoom", appointmentId, userRole, userId);
+        } catch (err) {
+            console.error("[SignalR] Connection error:", err);
+            // In demo mode or offline, fallback to simulated consultation
+            startEightSecTimeout();
+        }
+    }
+
+    function initPeerConnection() {
+        if (peerConnection) return;
+
+        peerConnection = new RTCPeerConnection(rtcConfig);
+
+        // Add local tracks to peer connection
+        if (localStream && localStream.getTracks().length > 0) {
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        }
+
+        // Add recvonly transceivers for missing media types so user can always see and hear remote peer
+        const senders = peerConnection.getSenders();
+        const hasAudio = senders.some(s => s.track && s.track.kind === "audio");
+        const hasVideo = senders.some(s => s.track && s.track.kind === "video");
+
+        if (!hasAudio) {
+            peerConnection.addTransceiver("audio", { direction: "recvonly" });
+        }
+        if (!hasVideo) {
+            peerConnection.addTransceiver("video", { direction: "recvonly" });
+        }
+
+        // Handle remote tracks
+        peerConnection.ontrack = (event) => {
+            console.log("[WebRTC] Received remote stream track:", event.track.kind);
+            if (remoteVideo.srcObject !== event.streams[0]) {
+                remoteVideo.srcObject = event.streams[0];
+                if (remotePlaceholder) remotePlaceholder.classList.add("d-none");
+            }
+        };
+
+        // ICE candidate generation
+        peerConnection.onicecandidate = ({ candidate }) => {
+            if (candidate && hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+                hubConnection.invoke("SendSignal", appointmentId, "ice-candidate", JSON.stringify(candidate));
+            }
+        };
+
+        // Perfect Negotiation Pattern
+        peerConnection.onnegotiationneeded = async () => {
+            try {
+                makingOffer = true;
+                await peerConnection.setLocalDescription();
+                if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+                    await hubConnection.invoke("SendSignal", appointmentId, "description", JSON.stringify(peerConnection.localDescription));
+                }
+            } catch (err) {
+                console.error("[WebRTC] Negotiation error:", err);
+            } finally {
+                makingOffer = false;
+            }
+        };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log("[WebRTC] ICE Connection State:", peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === "failed") {
+                console.warn("[WebRTC] ICE failed. Restarting ICE...");
+                peerConnection.restartIce();
+            } else if (peerConnection.iceConnectionState === "connected" || peerConnection.iceConnectionState === "completed") {
+                updateQualityBadge("Secure P2P HD", "text-success");
+                clearTimeout(eightSecTimeout);
+                doctorNotJoinedAlert.classList.add("d-none");
+            }
+        };
+
+        // Data Channel for In-Call Chat
+        if (userRole === "doctor") {
+            dataChannel = peerConnection.createDataChannel("consultation-chat");
+            setupDataChannelEvents(dataChannel);
+        } else {
+            peerConnection.ondatachannel = (event) => {
+                dataChannel = event.channel;
+                setupDataChannelEvents(dataChannel);
+            };
+        }
+
+        startStatsMonitoring();
+    }
+
+    function setupDataChannelEvents(channel) {
+        channel.onopen = () => console.log("[RTCDataChannel] Chat channel opened.");
+        channel.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                appendChatMessage(msg.sender, msg.text, false);
+            } catch {
+                appendChatMessage("Peer", event.data, false);
+            }
+        };
+    }
+
+    async function handleRemoteSignal(type, data) {
+        if (!peerConnection) initPeerConnection();
+
+        try {
+            if (type === "description") {
+                const offerCollision = (data.type === "offer") && (makingOffer || peerConnection.signalingState !== "stable");
+                ignoreOffer = !polite && offerCollision;
+                if (ignoreOffer) {
+                    console.warn("[WebRTC] Glare detected: impolite peer ignoring offer.");
+                    return;
+                }
+
+                await peerConnection.setRemoteDescription(data);
+                if (data.type === "offer") {
+                    await peerConnection.setLocalDescription();
+                    if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+                        await hubConnection.invoke("SendSignal", appointmentId, "description", JSON.stringify(peerConnection.localDescription));
+                    }
+                }
+            } else if (type === "ice-candidate") {
+                try {
+                    await peerConnection.addIceCandidate(data);
+                } catch (err) {
+                    if (!ignoreOffer) console.warn("[WebRTC] Error adding ICE candidate:", err);
+                }
+            }
+        } catch (err) {
+            console.error("[WebRTC] handleRemoteSignal error:", err);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // C. 8-SECOND TIMEOUT & SIMULATED DEMO CONSULTATION FALLBACK
+    // -------------------------------------------------------------------------
+    function startEightSecTimeout() {
+        clearTimeout(eightSecTimeout);
+        eightSecTimeout = setTimeout(() => {
+            if (!remoteVideo.srcObject) {
+                doctorNotJoinedAlert.classList.remove("d-none");
+            }
+        }, 8000);
+    }
+
+    keepWaitingBtn.addEventListener("click", () => {
+        doctorNotJoinedAlert.classList.add("d-none");
+    });
+
+    startDemoDocBtn.addEventListener("click", () => {
+        isDemoConsultation = true;
+        doctorNotJoinedAlert.classList.add("d-none");
+        if (remotePlaceholder) {
+            remotePlaceholder.classList.remove("d-none");
+            document.getElementById("remoteParticipantTitle").innerText = "Demo Doctor Active";
+            document.getElementById("remoteSubtitle").innerText = "Your audio/video stays on this device. Dr. Sharma's AI consultation assistant is ready.";
+        }
+        updateQualityBadge("Demo Active", "text-success");
+        appendChatMessage("Dr. Anand Sharma (Demo)", "Namaste! I have joined your simulated consultation. Please share your current symptoms, digestion status, or any questions.", false);
+    });
+
+    // -------------------------------------------------------------------------
+    // D. IN-CALL CONTROLS & MONITORING
+    // -------------------------------------------------------------------------
+    callToggleMicBtn.addEventListener("click", () => {
+        if (!localStream) return;
+        isMicMuted = !isMicMuted;
+        localStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+        if (isMicMuted) {
+            callToggleMicBtn.classList.replace("btn-outline-light", "btn-danger");
+            callMicIcon.className = "bi bi-mic-mute-fill";
+        } else {
+            callToggleMicBtn.classList.replace("btn-danger", "btn-outline-light");
+            callMicIcon.className = "bi bi-mic-fill";
+        }
+    });
+
+    callToggleCamBtn.addEventListener("click", () => {
+        if (!localStream) return;
+        isCamOff = !isCamOff;
+        localStream.getVideoTracks().forEach(t => t.enabled = !isCamOff);
+        if (isCamOff) {
+            callToggleCamBtn.classList.replace("btn-outline-light", "btn-danger");
+            callCamIcon.className = "bi bi-camera-video-off-fill";
+        } else {
+            callToggleCamBtn.classList.replace("btn-danger", "btn-outline-light");
+            callCamIcon.className = "bi bi-camera-video-fill";
+        }
+    });
+
+    callSwitchCamBtn.addEventListener("click", async () => {
+        currentFacingMode = (currentFacingMode === "user") ? "environment" : "user";
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: currentFacingMode },
+                audio: true
+            });
+            const oldVideoTrack = localStream.getVideoTracks()[0];
+            const newVideoTrack = newStream.getVideoTracks()[0];
+
+            if (peerConnection) {
+                const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
+                if (sender) sender.replaceTrack(newVideoTrack);
+            }
+
+            localStream.removeTrack(oldVideoTrack);
+            oldVideoTrack.stop();
+            localStream.addTrack(newVideoTrack);
+            localVideo.srcObject = localStream;
+            localVideo.style.transform = (currentFacingMode === "user") ? "scaleX(-1)" : "none";
+        } catch (e) {
+            console.warn("Switch camera error:", e);
+        }
+    });
+
+    callShareScreenBtn.addEventListener("click", async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return;
+        if (!isScreenSharing) {
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const screenTrack = screenStream.getVideoTracks()[0];
+                const sender = peerConnection ? peerConnection.getSenders().find(s => s.track && s.track.kind === "video") : null;
+                if (sender) sender.replaceTrack(screenTrack);
+
+                screenTrack.onended = () => {
+                    const localCamTrack = localStream.getVideoTracks()[0];
+                    if (sender && localCamTrack) sender.replaceTrack(localCamTrack);
+                    isScreenSharing = false;
+                    callShareScreenBtn.classList.replace("btn-success", "btn-outline-light");
+                };
+
+                isScreenSharing = true;
+                callShareScreenBtn.classList.replace("btn-outline-light", "btn-success");
+            } catch (e) {
+                console.warn("Screen share error:", e);
+            }
+        }
+    });
+
+    callFullscreenBtn.addEventListener("click", () => {
+        const stage = document.getElementById("videoStage");
+        if (!document.fullscreenElement) {
+            if (stage.requestFullscreen) stage.requestFullscreen();
+            else if (stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    });
+
+    const callToggleChatBtn = document.getElementById("callToggleChatBtn");
+    const callSidePanelColumn = document.getElementById("callSidePanelColumn");
+    const callSideBackdrop = document.getElementById("callSideBackdrop");
+    const closeSidePanelBtn = document.getElementById("closeSidePanelBtn");
+
+    function toggleChatPanel() {
+        if (!callSidePanelColumn) return;
+        if (window.innerWidth < 768) {
+            const isOpen = callSidePanelColumn.classList.toggle("sheet-open");
+            if (isOpen) {
+                callSideBackdrop?.classList.add("active");
+                callSideBackdrop?.classList.remove("d-none");
+            } else {
+                callSideBackdrop?.classList.remove("active");
+                callSideBackdrop?.classList.add("d-none");
+            }
+        } else {
+            callSidePanelColumn.classList.toggle("d-none");
+        }
+    }
+
+    if (callToggleChatBtn) {
+        callToggleChatBtn.addEventListener("click", toggleChatPanel);
+    }
+    if (closeSidePanelBtn) {
+        closeSidePanelBtn.addEventListener("click", () => {
+            callSidePanelColumn?.classList.remove("sheet-open");
+            callSideBackdrop?.classList.remove("active");
+            callSideBackdrop?.classList.add("d-none");
+        });
+    }
+    if (callSideBackdrop) {
+        callSideBackdrop.addEventListener("click", () => {
+            callSidePanelColumn?.classList.remove("sheet-open");
+            callSideBackdrop?.classList.remove("active");
+            callSideBackdrop?.classList.add("d-none");
+        });
+    }
+
+    function cleanUpAndLeave() {
+        clearTimeout(eightSecTimeout);
+        if (callTimerInterval) clearInterval(callTimerInterval);
+        if (statsInterval) clearInterval(statsInterval);
+        if (micAnimFrame) cancelAnimationFrame(micAnimFrame);
+
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+
+        if (hubConnection && hubConnection.state === signalR.HubConnectionState.Connected) {
+            hubConnection.invoke("LeaveRoom", appointmentId).catch(() => {});
+            hubConnection.stop();
+        }
+
+        if (audioContext && audioContext.state !== "closed") {
+            audioContext.close().catch(() => {});
+        }
+    }
+
+    callHangupBtn.addEventListener("click", () => {
+        if (confirm("Are you sure you want to exit this consultation?")) {
+            cleanUpAndLeave();
+            window.location.href = (userRole === "doctor") ? "/doctorportal/dashboard" : "/doctors/myappointments";
+        }
+    });
+
+    leaveTopBtn.addEventListener("click", () => {
+        if (confirm("Exit consultation room?")) {
+            cleanUpAndLeave();
+            window.location.href = (userRole === "doctor") ? "/doctorportal/dashboard" : "/doctors/myappointments";
+        }
+    });
+
+    window.addEventListener("beforeunload", cleanUpAndLeave);
+    window.addEventListener("pagehide", cleanUpAndLeave);
+
+    function startCallTimer() {
+        if (callTimerInterval) clearInterval(callTimerInterval);
+        callSeconds = 0;
+        callTimerInterval = setInterval(() => {
+            callSeconds++;
+            const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+            const s = String(callSeconds % 60).padStart(2, '0');
+            if (callDurationTimer) callDurationTimer.innerText = `${m}:${s}`;
         }, 1000);
     }
 
-    // 2. Mic and Camera Toggles
-    let micMuted = false;
-    let camMuted = false;
-    const micBtn = document.getElementById("toggleMicBtn");
-    const micIcon = document.getElementById("micIcon");
-    const camBtn = document.getElementById("toggleCamBtn");
-    const camIcon = document.getElementById("camIcon");
-
-    if (micBtn && micIcon) {
-        micBtn.addEventListener("click", () => {
-            micMuted = !micMuted;
-            if (micMuted) {
-                micBtn.classList.replace("btn-outline-light", "btn-danger");
-                micIcon.className = "bi bi-mic-mute-fill";
-            } else {
-                micBtn.classList.replace("btn-danger", "btn-outline-light");
-                micIcon.className = "bi bi-mic-fill";
-            }
-        });
+    function updateQualityBadge(text, colorClass) {
+        if (qualityText) qualityText.innerText = text;
+        if (qualityIcon) {
+            qualityIcon.className = `bi bi-reception-4 ${colorClass}`;
+        }
     }
 
-    if (camBtn && camIcon) {
-        camBtn.addEventListener("click", () => {
-            camMuted = !camMuted;
-            const badge = document.getElementById("patientStatusBadge");
-            if (camMuted) {
-                camBtn.classList.replace("btn-outline-light", "btn-danger");
-                camIcon.className = "bi bi-camera-video-off-fill";
-                if (badge) badge.innerText = "Camera Off";
-            } else {
-                camBtn.classList.replace("btn-danger", "btn-outline-light");
-                camIcon.className = "bi bi-camera-video-fill";
-                if (badge) badge.innerText = "Camera Ready";
-            }
-        });
+    function startStatsMonitoring() {
+        if (statsInterval) clearInterval(statsInterval);
+        statsInterval = setInterval(async () => {
+            if (!peerConnection || peerConnection.iceConnectionState !== "connected") return;
+            try {
+                const stats = await peerConnection.getStats();
+                let rtt = 0;
+                stats.forEach(report => {
+                    if (report.type === "candidate-pair" && report.state === "succeeded") {
+                        rtt = report.currentRoundTripTime ? Math.round(report.currentRoundTripTime * 1000) : 25;
+                    }
+                });
+                if (rtt > 0) {
+                    if (rtt < 120) updateQualityBadge(`HD (${rtt}ms)`, "text-success");
+                    else if (rtt < 280) updateQualityBadge(`Good (${rtt}ms)`, "text-info");
+                    else updateQualityBadge(`Fair (${rtt}ms)`, "text-warning");
+                }
+            } catch (e) {}
+        }, 3000);
     }
 
-    // 3. Simulated Interactive Chat
-    const chatInput = document.getElementById("chatInput");
-    const sendBtn = document.getElementById("sendChatBtn");
-    const chatMessages = document.getElementById("chatMessages");
-
-    const doctorResponses = [
-        "I understand completely. We should address the underlying Agni and pacify your Vata dosha.",
-        "That is helpful context. I will include a rejuvenating Rasayana in your prescription to support your vitality.",
-        "Make sure to drink lukewarm water throughout the day and avoid heavy meals after sunset.",
-        "Your tongue diagnosis and symptoms suggest mild Pitta aggravation. I'm tailoring your wellness plan accordingly."
-    ];
-    let responseIdx = 0;
-
-    function sendMessage() {
-        if (!chatInput) return;
-        const text = chatInput.value.trim();
-        if (!text) return;
-
-        // Append Patient Message
-        const patientBubble = document.createElement("div");
-        patientBubble.className = "d-flex flex-column align-items-end mb-2";
-        patientBubble.innerHTML = `
-            <span class="text-primary small fw-bold mb-1">You (@Model.PatientName)</span>
-            <div class="bg-success text-white rounded-3 p-2 small shadow-sm" style="max-width: 85%;">
+    // -------------------------------------------------------------------------
+    // E. CHAT OVER RTCDATACHANNEL
+    // -------------------------------------------------------------------------
+    function appendChatMessage(sender, text, isSelf) {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `d-flex flex-column ${isSelf ? "align-items-end" : "align-items-start"} mb-2`;
+        const senderBadge = isSelf ? "You" : sender;
+        const bgClass = isSelf ? "bg-success text-white" : "bg-white border text-dark";
+        msgDiv.innerHTML = `
+            <span class="small fw-bold text-muted mb-1" style="font-size: 0.72rem;">${escapeHtml(senderBadge)}</span>
+            <div class="${bgClass} rounded-3 p-2 small shadow-sm" style="max-width: 85%;">
                 ${escapeHtml(text)}
             </div>
-            <span class="text-muted text-xs mt-1" style="font-size: 0.65rem;">Just now</span>
+            <span class="text-muted mt-1" style="font-size: 0.65rem;">Just now</span>
         `;
-        chatMessages.appendChild(patientBubble);
-        chatInput.value = "";
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-
-        // Simulate Doctor Response after 1.2 seconds
-        setTimeout(() => {
-            const reply = doctorResponses[responseIdx % doctorResponses.length];
-            responseIdx++;
-            const docBubble = document.createElement("div");
-            docBubble.className = "d-flex flex-column align-items-start mb-2";
-            docBubble.innerHTML = `
-                <span class="text-success small fw-bold mb-1">Dr. @docName</span>
-                <div class="bg-white border rounded-3 p-2 small shadow-sm text-dark" style="max-width: 85%;">
-                    ${escapeHtml(reply)}
-                </div>
-                <span class="text-muted text-xs mt-1" style="font-size: 0.65rem;">Just now</span>
-            `;
-            chatMessages.appendChild(docBubble);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 1200);
+        chatMessagesBox.appendChild(msgDiv);
+        chatMessagesBox.scrollTop = chatMessagesBox.scrollHeight;
     }
 
-    if (sendBtn) sendBtn.addEventListener("click", sendMessage);
-    if (chatInput) {
-        chatInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
+    function sendChatMessage() {
+        const text = chatInputText.value.trim();
+        if (!text) return;
+
+        appendChatMessage("You", text, true);
+        chatInputText.value = "";
+
+        const payload = JSON.stringify({ sender: userRole === "doctor" ? "@Model.FormattedDoctorName" : "@Model.PatientName", text: text });
+        if (dataChannel && dataChannel.readyState === "open") {
+            dataChannel.send(payload);
+        } else if (isDemoConsultation) {
+            // Simulated Doctor AI reply in demo mode
+            setTimeout(() => {
+                const docReplies = [
+                    "I understand. We will focus on balancing your Vata dosha and gently strengthening your digestive Agni.",
+                    "Thank you for sharing. I recommend warm CCF tea (cumin-coriander-fennel) and avoiding cold raw foods in the evening.",
+                    "Your tongue diagnosis aligns with mild Pitta-Kapha accumulation. I am tailoring your Ayurvedic formulation accordingly."
+                ];
+                const reply = docReplies[Math.floor(Math.random() * docReplies.length)];
+                appendChatMessage("Dr. Anand Sharma (Demo)", reply, false);
+            }, 1200);
+        }
     }
+
+    sendChatMsgBtn.addEventListener("click", sendChatMessage);
+    chatInputText.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            sendChatMessage();
+        }
+    });
 
     function escapeHtml(str) {
         const div = document.createElement('div');
         div.appendChild(document.createTextNode(str));
         return div.innerHTML;
     }
+
+    // -------------------------------------------------------------------------
+    // F. DRAGGABLE PICTURE-IN-PICTURE (PIP) ON MOBILE & DESKTOP
+    // -------------------------------------------------------------------------
+    function setupDraggablePip() {
+        let isDragging = false;
+        let startX, startY, origX, origY;
+
+        function onPointerDown(e) {
+            isDragging = true;
+            localPipContainer.classList.add("dragging");
+            const rect = localPipContainer.getBoundingClientRect();
+            startX = e.clientX || (e.touches && e.touches[0].clientX);
+            startY = e.clientY || (e.touches && e.touches[0].clientY);
+            origX = rect.left;
+            origY = rect.top;
+        }
+
+        function onPointerMove(e) {
+            if (!isDragging) return;
+            const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+            const currentY = e.clientY || (e.touches && e.touches[0].clientY);
+            const deltaX = currentX - startX;
+            const deltaY = currentY - startY;
+
+            const stage = document.getElementById("videoStage");
+            const stageRect = stage.getBoundingClientRect();
+
+            let newLeft = origX + deltaX - stageRect.left;
+            let newTop = origY + deltaY - stageRect.top;
+
+            // Constrain inside stage
+            newLeft = Math.max(10, Math.min(newLeft, stageRect.width - localPipContainer.offsetWidth - 10));
+            newTop = Math.max(10, Math.min(newTop, stageRect.height - localPipContainer.offsetHeight - 70));
+
+            localPipContainer.style.left = `${newLeft}px`;
+            localPipContainer.style.top = `${newTop}px`;
+            localPipContainer.style.right = "auto";
+            localPipContainer.style.bottom = "auto";
+        }
+
+        function onPointerUp() {
+            isDragging = false;
+            localPipContainer.classList.remove("dragging");
+        }
+
+        localPipContainer.addEventListener("mousedown", onPointerDown);
+        window.addEventListener("mousemove", onPointerMove);
+        window.addEventListener("mouseup", onPointerUp);
+
+        localPipContainer.addEventListener("touchstart", onPointerDown, { passive: true });
+        window.addEventListener("touchmove", onPointerMove, { passive: true });
+        window.addEventListener("touchend", onPointerUp);
+    }
+})();
 </script>
 }

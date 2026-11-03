@@ -1,0 +1,102 @@
+@{
+    ViewData["Title"] = "Media Disclosures & Attributions";
+    ViewData["MetaDescription"] = "Ethical transparency disclosures regarding sample product imagery, fictional practitioner personas, and self-hosted assets across The Great Ayurveda.";
+}
+
+<div class="tga-credits-page py-5">
+    <div class="container">
+        <!-- Hero Header -->
+        <div class="text-center mb-5 pb-3">
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill fw-semibold mb-3">
+                <i class="bi bi-patch-check me-1"></i> Ethical Transparency &amp; Media Disclosures
+            </span>
+            <h1 class="display-5 fw-bold text-dark mb-3">Media Disclosures &amp; Attributions</h1>
+            <p class="lead text-muted mx-auto" style="max-width: 780px;">
+                Complete honesty and open provenance: Product illustrations and clinical practitioner portraits across The Great Ayurveda are generated sample assets created exclusively for this demonstration platform.
+            </p>
+        </div>
+
+        <!-- 3-Pillar Honesty Highlights -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100 border rounded-4 p-4 shadow-xs bg-white">
+                    <div class="rounded-3 bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-box-seam fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Sample Product Illustrations</h5>
+                    <p class="text-muted small mb-0">
+                        All 312 catalog formulation images are generated sample illustrations created to visualize authentic Ayurvedic botanicals, churnas, and classical formulations.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border rounded-4 p-4 shadow-xs bg-white">
+                    <div class="rounded-3 bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-person-bounding-box fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Fictional Practitioner Personas</h5>
+                    <p class="text-muted small mb-0">
+                        All 24 clinical Vaidya profiles and portraits represent entirely fictional sample doctor personas. No real healthcare professionals or registered clinicians are depicted.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border rounded-4 p-4 shadow-xs bg-white">
+                    <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-shield-check fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Zero External Stock Dependency</h5>
+                    <p class="text-muted small mb-0">
+                        No external photography from Pexels, Pixabay, or third-party stock agencies was used. All visual assets are self-hosted locally within the application webroot.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manifest Card -->
+        <div class="card border rounded-4 p-4 p-lg-5 mb-5 bg-white shadow-sm">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+                <div>
+                    <h3 class="fw-bold text-dark mb-1">Catalog Media Manifest</h3>
+                    <p class="text-muted small mb-0">Public disclosure registry from <code>/credits.json</code></p>
+                </div>
+                <div>
+                    <a href="/credits.json" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-3">
+                        <i class="bi bi-file-earmark-code me-1"></i> View Raw credits.json
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-4 text-center">
+                <div class="col-6 col-md-4">
+                    <div class="p-3 bg-light rounded-3">
+                        <div class="text-muted small text-uppercase fw-semibold mb-1">Sample Catalog Formulations</div>
+                        <div class="fs-3 fw-bold text-dark">312</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="p-3 bg-light rounded-3">
+                        <div class="text-muted small text-uppercase fw-semibold mb-1">Fictional Doctor Personas</div>
+                        <div class="fs-3 fw-bold text-dark">24</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="p-3 bg-light rounded-3">
+                        <div class="text-muted small text-uppercase fw-semibold mb-1">External Stock Imagery</div>
+                        <div class="fs-3 fw-bold text-success">0 (None Used)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Storefront Navigation -->
+        <div class="text-center">
+            <a asp-controller="Shop" asp-action="Index" class="btn btn-success rounded-pill px-4 py-2 me-2">
+                <i class="bi bi-bag-check me-1"></i> Explore Shastriya Store
+            </a>
+            <a asp-controller="Home" asp-action="AboutProject" class="btn btn-outline-secondary rounded-pill px-4 py-2">
+                <i class="bi bi-layers me-1"></i> About This Project
+            </a>
+        </div>
+    </div>
+</div>

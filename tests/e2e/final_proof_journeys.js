@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+const { getAdminPassword, getDemoAdminPassword } = require('./getTestPassword');
 
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5099';
 const ADMIN_URL = `${BASE_URL}/admin-portal`;
@@ -210,7 +211,7 @@ async function takeShot(page, name) {
             await demoAdminPage.waitForTimeout(500);
         } else {
             await demoAdminPage.fill('input[name="Email"]', 'demo-admin@ayurveda.local');
-            await demoAdminPage.fill('input[name="Password"]', 'DemoAdmin@2026!');
+            await demoAdminPage.fill('input[name="Password"]', getDemoAdminPassword());
         }
 
         await demoAdminPage.click('button[type="submit"]');
@@ -254,7 +255,7 @@ async function takeShot(page, name) {
         await adminPage.goto(`${ADMIN_URL}/auth/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
         await adminPage.fill('input[name="Email"]', 'admin@thegreatayurveda.com');
-        await adminPage.fill('input[name="Password"]', 'AdminSecure@2026!');
+        await adminPage.fill('input[name="Password"]', getAdminPassword());
         await adminPage.click('button[type="submit"]');
         await adminPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
         await adminPage.waitForTimeout(1500);

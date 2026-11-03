@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+const { getDemoAdminPassword } = require('./getTestPassword');
 
 const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:5050';
 const SCREENSHOT_DIR = path.join(__dirname, 'screenshots', 'responsive');
@@ -262,7 +263,7 @@ async function runDeviceAudit() {
                 await page.waitForTimeout(500);
             } else {
                 await page.fill('input[name="Email"]', 'demo-admin@ayurveda.local');
-                await page.fill('input[name="Password"]', 'DemoAdmin@2026!');
+                await page.fill('input[name="Password"]', getDemoAdminPassword());
             }
             await page.click('button[type="submit"]');
             await page.waitForTimeout(1200);

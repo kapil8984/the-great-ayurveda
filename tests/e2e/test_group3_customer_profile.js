@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { getCustomerPassword } = require('./getTestPassword');
 
 const WEB_URL = 'http://localhost:5000';
 const SCREENSHOT_DIR = path.resolve(__dirname, 'screenshots');
@@ -39,7 +40,7 @@ async function run() {
         console.log('\n--- 1. Login as Customer ---');
         await page.goto(`${WEB_URL}/Account/Login`, { waitUntil: 'networkidle', timeout: 30000 });
         await page.fill('input[name="Email"]', 'customer@ayurveda.com');
-        await page.fill('input[name="Password"]', 'Customer@123');
+        await page.fill('input[name="Password"]', getCustomerPassword());
         await page.click('#loginForm button[type="submit"]');
         await page.waitForTimeout(2500);
 
@@ -200,7 +201,7 @@ async function run() {
         await page.click('#tab-security-btn');
         await page.waitForTimeout(800);
 
-        await page.fill('#inputCurrentPassword', 'Customer@123');
+        await page.fill('#inputCurrentPassword', getCustomerPassword());
         await page.fill('#inputNewPassword', 'CustomerNew@2026');
         await page.fill('#inputConfirmPassword', 'CustomerNew@2026');
 
@@ -213,15 +214,15 @@ async function run() {
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'profile_password_changed.png') });
         console.log('📸 Captured profile_password_changed.png');
 
-        // Change password back to Customer@123 for regression test idempotency
+        // Change password back to original customer password for regression test idempotency
         await page.click('#tab-security-btn');
         await page.waitForTimeout(800);
         await page.fill('#inputCurrentPassword', 'CustomerNew@2026');
-        await page.fill('#inputNewPassword', 'Customer@123');
-        await page.fill('#inputConfirmPassword', 'Customer@123');
+        await page.fill('#inputNewPassword', getCustomerPassword());
+        await page.fill('#inputConfirmPassword', getCustomerPassword());
         await page.click('#btnUpdatePassword');
         await page.waitForTimeout(2500);
-        console.log('Restored original Customer@123 password');
+        console.log('Restored original customer password');
 
         // -------------------------------------------------------------
         // 5. SOFT DELETE ACCOUNT ("DELETE MY ACCOUNT" + LOGOUT)
@@ -229,7 +230,7 @@ async function run() {
         console.log('\n--- 5. Testing Soft Delete Account on a Temporary User ---');
         await context.clearCookies();
         const tempEmail = 'testdelete@thegreatayurveda.com';
-        const tempPass = 'Customer@123';
+        const tempPass = getCustomerPassword();
 
         await page.goto(`${WEB_URL}/Account/Login`, { waitUntil: 'networkidle', timeout: 30000 });
         await page.fill('input[name="Email"]', tempEmail);

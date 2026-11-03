@@ -1,20 +1,20 @@
 @model Ayurveda.Application.ViewModels.DoctorDetailsViewModel
 @{
-    ViewData["Title"] = $"Dr. {Model.DoctorName} — {Model.SpecializationName}";
+    ViewData["Title"] = $"{Model.FormattedDoctorName} — {Model.SpecializationName}";
     var reviews = ViewBag.Reviews as List<Ayurveda.Domain.Entities.DoctorReview> ?? new();
 }
 
-<div class="container py-4">
+<div class="container py-4 pb-5 pb-lg-4">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">Vaidyas</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Dr. @Model.DoctorName</li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.FormattedDoctorName</li>
         </ol>
     </nav>
 
     <!-- Medical Emergency Banner -->
     <div class="alert alert-warning border-0 rounded-4 shadow-sm d-flex align-items-center gap-3 p-3 mb-4">
-        <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
+        <i class="bi bi-exclamation-triangle-fill fs-4 text-warning flex-shrink-0"></i>
         <div class="small">
             <strong>Emergency Advisory:</strong> Online consultations are not intended for acute medical emergencies. If you are experiencing sudden acute chest discomfort, shortness of breath, or trauma, immediately dial national emergency services (<strong>112 / 102 / 108</strong>) or visit the nearest ER.
         </div>
@@ -23,19 +23,19 @@
     <div class="row g-4 mb-5">
         <!-- Col 1: Bio, Credentials & Sample Reviews -->
         <div class="col-lg-8">
-            <div class="card p-4 shadow-sm border-0 rounded-4 mb-4 bg-white">
-                <div class="d-flex flex-wrap align-items-center gap-4 mb-4">
-                    <div class="position-relative">
+            <div class="card p-3 p-md-4 shadow-sm border-0 rounded-4 mb-4 bg-white">
+                <div class="d-flex flex-wrap align-items-center gap-3 gap-md-4 mb-4">
+                    <div class="position-relative flex-shrink-0">
                         <img src="@(string.IsNullOrEmpty(Model.ProfileImage) ? "/images/doctor-avatar.svg" : Model.ProfileImage)" 
-                             alt="@Model.DoctorName" class="rounded-circle border" width="110" height="110" style="object-fit: cover; background: #EAF4EE;" />
+                             alt="@Model.FormattedDoctorName" class="rounded-circle border" width="100" height="100" style="object-fit: cover; background: #EAF4EE;" />
                         @if (Model.IsOnline)
                         {
                             <span class="position-absolute bottom-0 end-0 p-2 bg-success border border-2 border-white rounded-circle" title="Online for instant consultation"></span>
                         }
                     </div>
-                    <div>
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <h1 class="h3 fw-bold mb-0 text-dark font-serif">Dr. @Model.DoctorName</h1>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                            <h1 class="h3 fw-bold mb-0 text-dark font-serif">@Model.FormattedDoctorName</h1>
                             @if (Model.IsOnline)
                             {
                                 <span class="badge bg-success-subtle text-success border border-success-subtle text-xs px-2 py-1">
@@ -43,28 +43,28 @@
                                 </span>
                             }
                         </div>
-                        <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                             <span class="badge bg-success-subtle text-success fs-6">@Model.SpecializationName</span>
                             <span class="badge bg-light text-secondary border fw-normal">Sample doctor profile (fictional)</span>
                         </div>
-                        <div class="small text-muted d-flex flex-wrap gap-3">
-                            <span><i class="bi bi-info-circle text-muted me-1"></i> Sample doctor profile (fictional)</span>
+                        <div class="small text-muted d-flex flex-wrap gap-2 gap-md-3">
                             <span><i class="bi bi-patch-check text-muted me-1"></i> Reg: <strong>@(Model.RegistrationNumber ?? "Sample Demo Reg")</strong></span>
                             <span><i class="bi bi-bank text-secondary me-1"></i> @(Model.RegistrationCouncil ?? "Central Council of Indian Medicine (CCIM)")</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="row g-3 py-3 border-top border-bottom mb-4 text-center">
-                    <div class="col-4">
+                <!-- Responsive Stats: 3 cols from 480px, 1 col below; 14-16px qualification -->
+                <div class="doctor-stats-grid py-3 border-top border-bottom mb-4 text-center">
+                    <div class="p-2 bg-light rounded-3">
                         <div class="fs-5 fw-bold text-success">@Model.ExperienceYears+ Years</div>
                         <div class="small text-muted">Clinical Experience</div>
                     </div>
-                    <div class="col-4">
-                        <div class="fs-5 fw-bold text-dark">@(Model.Qualification ?? "BAMS, MD Ayurveda")</div>
-                        <div class="small text-muted">Degree / Qualification</div>
+                    <div class="p-2 bg-light rounded-3">
+                        <div class="fw-bold text-dark doctor-qualification-text">@(Model.Qualification ?? "BAMS, MD Ayurveda")</div>
+                        <div class="small text-muted">Degree / Education</div>
                     </div>
-                    <div class="col-4">
+                    <div class="p-2 bg-light rounded-3">
                         <div class="fs-5 fw-bold text-warning"><i class="bi bi-star-fill"></i> @Model.Rating.ToString("0.0")</div>
                         <div class="small text-muted">(@Model.ReviewCount Reviews)</div>
                     </div>
@@ -214,3 +214,39 @@
         </div>
     </div>
 </div>
+
+<!-- Mobile Sticky Booking Bar (B5: at most 56px, above bottom nav) -->
+<div id="doctorStickyBookingBar" class="d-lg-none position-fixed start-0 end-0 bg-white border-top shadow-lg px-3 py-2" style="bottom: calc(56px + env(safe-area-inset-bottom, 0px)); z-index: 1030; height: 54px; max-height: 56px;">
+    <div class="d-flex align-items-center justify-content-between h-100">
+        <div>
+            <div class="text-muted" style="font-size: 0.68rem; line-height: 1;">Consultation Fee</div>
+            <div class="fw-bold text-success fs-6" style="line-height: 1.2;">₹@Model.ConsultationFee.ToString("N0")</div>
+        </div>
+        <a asp-action="Book" asp-route-id="@Model.Id" class="btn btn-tga-gold text-dark btn-sm rounded-pill fw-bold px-4 py-1-5 shadow-xs d-flex align-items-center gap-1" style="height: 38px;">
+            <span>Book Consultation</span> <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<style>
+    .doctor-stats-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    @@media (min-width: 480px) {
+        .doctor-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    .doctor-qualification-text {
+        font-size: 15px !important;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+    @@media (max-width: 991.98px) {
+        body {
+            padding-bottom: 60px;
+        }
+    }
+</style>

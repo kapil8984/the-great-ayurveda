@@ -9,6 +9,12 @@
     <GarbageCollectionHeapHardLimit>209715200</GarbageCollectionHeapHardLimit>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Ayurveda.Domain\Ayurveda.Domain.csproj" />
     <ProjectReference Include="..\Ayurveda.Application\Ayurveda.Application.csproj" />

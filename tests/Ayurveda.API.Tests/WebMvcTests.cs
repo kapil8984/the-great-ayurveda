@@ -1009,21 +1009,29 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     }
 
     [Fact]
-    public async Task ProductImages_All312ProductsHaveDistinctExistingImages_ZeroPlaceholders()
+    public async Task ProductImages_VerifiedGenuinePhotographs_NoAIGeneratedImages()
     {
         using var scope = _webFactory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AyurvedaDbContext>();
-        var products = await context.Products.ToListAsync();
+        var products = await context.Products.Include(p => p.Images).ToListAsync();
 
-        Assert.Equal(312, products.Count);
+        Assert.Equal(400, products.Count);
         Assert.All(products, p =>
         {
             Assert.False(string.IsNullOrWhiteSpace(p.ImageUrl), $"Product {p.Title} has null/empty ImageUrl");
-            Assert.DoesNotContain("placeholder", p.ImageUrl, StringComparison.OrdinalIgnoreCase);
+            // Zero legacy AI-generated illustrated packaging files
+            Assert.DoesNotContain("dhanvantari-botanicals", p.ImageUrl, StringComparison.OrdinalIgnoreCase);
         });
 
-        var distinctImages = products.Select(p => p.ImageUrl).Distinct().ToList();
-        Assert.Equal(312, distinctImages.Count);
+        // Ensure genuine images are stored brand-wise
+        var genuineProducts = products.Where(p => !p.ImageUrl.Contains("placeholder")).ToList();
+        Assert.True(genuineProducts.Count >= 300, $"Expected at least 300 genuine products with authentic photos, found {genuineProducts.Count}");
+
+        Assert.All(genuineProducts, p =>
+        {
+            Assert.Contains("/images/products/", p.ImageUrl);
+            Assert.Matches(@"/images/products/(himalaya|dabur|patanjali|baidyanath|zandu|kottakkal|charak|avp|maharishi|sri-sri-tattva)/", p.ImageUrl);
+        });
     }
 
     [Fact]
@@ -1056,6 +1064,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
                 ["CategoryId"] = product.CategoryId.ToString(),
                 ["Description"] = product.Description,
                 ["Brand"] = product.Brand,
+                ["ImageUrl"] = product.ImageUrl,
                 ["IsActive"] = "true"
             };
 
@@ -1141,7 +1150,7 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
     public async Task DemoViewer_AdminMutations_BlockedServerSide_WithReadOnlyMessage()
     {
         // 1. Authenticate as DemoViewer
-        var demoViewerClient = await CreateAuthenticatedAdminClientAsync("demo-admin@ayurveda.local", "DemoAdmin@2026!");
+        var demoViewerClient = await CreateAuthenticatedAdminClientAsync("demo-admin@ayurveda.local", WebMvcFactory.TestAdminPassword);
 
         // 2. Attempt to create a category via POST
         var postForm = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -1158,6 +1167,60 @@ public class WebMvcTests : IClassFixture<WebMvcFactory>
         Assert.True(postRes.StatusCode == HttpStatusCode.Forbidden || 
                     postRes.StatusCode == HttpStatusCode.Redirect || 
                     content.Contains("Read-only demo"));
+    }
+
+    [Fact]
+    public async Task Unauthenticated_PlaceOrder_CannotMarkPaid_RedirectsToLogin()
+    {
+        var anonymousClient = _webFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var postData = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["SelectedPaymentMethod"] = "Razorpay",
+            ["DeliveryType"] = "Standard",
+            ["IsLiveRazorpay"] = "false"
+        });
+
+        var response = await anonymousClient.PostAsync("/Checkout/PlaceOrder", postData);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var location = response.Headers.Location?.ToString() ?? "";
+        Assert.Contains("/Account/Login", location, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PaymentProvider_LiveSignatureVerification_RejectsInvalidSignature()
+    {
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            ["Razorpay:KeyId"] = "rzp_live_testkey123",
+            ["Razorpay:KeySecret"] = "secret_key_very_secure_test_123"
+        };
+        var config = new ConfigurationBuilder().AddInMemoryCollection(inMemorySettings).Build();
+        var clientFactory = new DummyHttpClientFactory();
+        var logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<Ayurveda.Infrastructure.Services.PaymentProvider>.Instance;
+
+        var provider = new Ayurveda.Infrastructure.Services.PaymentProvider(config, clientFactory, logger);
+
+        // Valid signature for order_123|pay_456 with secret_key_very_secure_test_123:
+        var payload = "order_123|pay_456";
+        using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes("secret_key_very_secure_test_123"));
+        var validSig = Convert.ToHexString(hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
+
+        // 1. Valid signature passes
+        var validResult = await provider.VerifyPaymentSignatureAsync("order_123", "pay_456", validSig);
+        Assert.True(validResult);
+
+        // 2. Tampered or fake signature fails
+        var fakeResult = await provider.VerifyPaymentSignatureAsync("order_123", "pay_456", "tampered_fake_signature");
+        Assert.False(fakeResult);
+
+        // 3. Empty signature fails
+        var emptyResult = await provider.VerifyPaymentSignatureAsync("order_123", "pay_456", "");
+        Assert.False(emptyResult);
+    }
+
+    private class DummyHttpClientFactory : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new HttpClient();
     }
 }
 

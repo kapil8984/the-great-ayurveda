@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Ayurveda.Web\Ayurveda.Web.csproj" />
+    <ProjectReference Include="..\..\src\Ayurveda.Admin\Ayurveda.Admin.csproj" />
   </ItemGroup>
 
   <ItemGroup>

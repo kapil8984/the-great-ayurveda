@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Ayurveda.Application.Interfaces;
 using Ayurveda.Application.ViewModels;
 using Ayurveda.Domain.Entities;
 using Ayurveda.Domain.Enums;
@@ -14,15 +15,18 @@ public class CheckoutController : Controller
     private readonly AyurvedaDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly IPaymentProvider _paymentProvider;
 
     public CheckoutController(
         AyurvedaDbContext context,
         UserManager<ApplicationUser> userManager,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IPaymentProvider paymentProvider)
     {
         _context = context;
         _userManager = userManager;
         _configuration = configuration;
+        _paymentProvider = paymentProvider;
     }
 
     private async Task<ApplicationUser?> GetCurrentUserAsync()
@@ -125,6 +129,10 @@ public class CheckoutController : Controller
             CouponDiscount = couponDiscount
         };
 
+        var paymentInit = await _paymentProvider.InitiateOrderPaymentAsync(
+            $"CART-{cart.Id}-{DateTime.UtcNow.Ticks % 1000000}",
+            cartVm.GrandTotal);
+
         var model = new CheckoutViewModel
         {
             SavedAddresses = addresses,
@@ -132,11 +140,16 @@ public class CheckoutController : Controller
             Cart = cartVm,
             DeliveryType = "Standard",
             IdempotencyKey = Guid.NewGuid().ToString("N"),
-            RazorpayKeyId = _configuration["Payment:Razorpay:KeyId"] ?? "demo_key"
+            RazorpayKeyId = paymentInit.KeyId ?? _configuration["Payment:Razorpay:KeyId"] ?? "demo_key",
+            RazorpayOrderId = paymentInit.ProviderOrderId,
+            IsLiveRazorpay = paymentInit.IsLiveRazorpay
         };
 
         return View(model);
     }
+
+    [HttpGet]
+    public IActionResult PlaceOrder() => RedirectToAction(nameof(Index));
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -157,6 +170,20 @@ public class CheckoutController : Controller
         {
             TempData["ErrorMessage"] = "Payment simulation failure: Transaction was declined by the bank. Please retry or choose another payment method.";
             return RedirectToAction(nameof(Index));
+        }
+
+        if (model.IsLiveRazorpay && model.SelectedPaymentMethod == PaymentMethod.Razorpay)
+        {
+            var isSignatureValid = await _paymentProvider.VerifyPaymentSignatureAsync(
+                model.RazorpayOrderId ?? "",
+                model.RazorpayPaymentId ?? "",
+                model.RazorpaySignature ?? "");
+
+            if (!isSignatureValid)
+            {
+                TempData["ErrorMessage"] = "Razorpay payment authorization failed: Signature could not be verified. Please retry.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // Idempotency check: prevent duplicate submissions

@@ -9,13 +9,29 @@
         <div class="col-lg-10 col-xl-9">
             <div class="card shadow-xl border-0 rounded-4 overflow-hidden">
                 <div class="row g-0">
-                    <!-- Left: Luxury / Clinical Illustration Panel -->
-                    <div class="col-md-5 d-none d-md-flex flex-column justify-content-between p-5 text-white position-relative" 
+                    <!-- Left: Luxury / Clinical Illustration Panel with Mandala & Floating Leaves -->
+                    <div class="col-md-5 d-none d-md-flex flex-column justify-content-between p-5 text-white position-relative auth-split-illustration" 
                          style="@(isDoc 
                             ? "background: linear-gradient(135deg, #094038 0%, #0C6258 50%, #14B8A6 100%);" 
                             : "background: linear-gradient(135deg, #0E2B1B 0%, #143F27 50%, #1F5E3B 100%);")">
                         
-                        <div>
+                        <!-- Rotating Mandala SVG Background -->
+                        <svg class="auth-mandala-bg" viewBox="0 0 200 200" aria-hidden="true">
+                            <circle cx="100" cy="100" r="90" fill="none" stroke="#E3A72F" stroke-width="1.5" stroke-dasharray="4 6"/>
+                            <circle cx="100" cy="100" r="60" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="6 4"/>
+                            <circle cx="100" cy="100" r="30" fill="none" stroke="#E3A72F" stroke-width="1.2"/>
+                            <path d="M100 10 L100 190 M10 100 L190 100 M36 36 L164 164 M36 164 L164 36" stroke="#E3A72F" stroke-width="0.8"/>
+                        </svg>
+
+                        <!-- Floating Leaves (CSS transform only) -->
+                        <svg class="auth-floating-leaf-1" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#E3A72F" opacity="0.6"/>
+                        </svg>
+                        <svg class="auth-floating-leaf-2" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 2C8 6 6 12 12 22C18 12 16 6 12 2Z" fill="#FFFFFF" opacity="0.45"/>
+                        </svg>
+
+                        <div class="position-relative" style="z-index: 2;">
                             <div class="d-flex align-items-center gap-2 mb-4">
                                 <img src="/images/logo-dark.svg" alt="The Great Ayurveda" height="42" />
                             </div>
@@ -52,14 +68,14 @@
                             </div>
                         </div>
 
-                        <div class="border-top border-white border-opacity-20 pt-3 small text-white-50 d-flex align-items-center justify-content-between">
+                        <div class="border-top border-white border-opacity-20 pt-3 small text-white-50 d-flex align-items-center justify-content-between position-relative" style="z-index: 2;">
                             <span><i class="bi bi-shield-check text-warning me-1"></i> 256-Bit Encrypted</span>
                             <span>Vedic Standards</span>
                         </div>
                     </div>
 
                     <!-- Right: Form Card -->
-                    <div class="col-md-7 p-4 p-md-5 bg-white">
+                    <div class="col-md-7 p-4 p-md-5 bg-white auth-card">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <div>
                                 <h2 class="fw-bold font-serif text-dark mb-1">
@@ -72,7 +88,7 @@
 
                         @if (!ViewData.ModelState.IsValid)
                         {
-                            <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3" role="alert">
+                            <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3 shake-error" role="alert">
                                 <div asp-validation-summary="All"></div>
                             </div>
                         }
@@ -82,7 +98,7 @@
                             <input type="hidden" asp-for="ReturnUrl" />
                             <input type="hidden" asp-for="IsDoctorLogin" />
 
-                            <div class="mb-3">
+                            <div class="mb-3 auth-field-stagger-1">
                                 <label asp-for="Email" class="form-label small fw-semibold">Email Address *</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
@@ -91,16 +107,16 @@
                                 <span asp-validation-for="Email" class="text-danger small"></span>
                             </div>
 
-                            <div class="mb-2">
+                            <div class="mb-2 auth-field-stagger-2">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <label asp-for="Password" class="form-label small fw-semibold">Password *</label>
                                     <a asp-action="ForgotPassword" class="small text-decoration-none text-success">Forgot password?</a>
                                 </div>
-                                <div class="input-group">
+                                <div class="input-group password-toggle-wrapper">
                                     <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
                                     <input asp-for="Password" type="password" class="form-control border-start-0 border-end-0 ps-0" id="loginPasswordInput" placeholder="••••••••" required autocomplete="current-password" />
-                                    <button type="button" class="input-group-text bg-light border-start-0 text-muted" id="toggleLoginPasswordBtn" aria-label="Toggle password visibility">
-                                        <i class="bi bi-eye" id="toggleLoginPasswordIcon"></i>
+                                    <button type="button" id="toggleLoginPasswordBtn" class="password-toggle-btn input-group-text bg-light border-start-0 text-muted" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
                                 <span asp-validation-for="Password" class="text-danger small"></span>
@@ -111,22 +127,35 @@
                                 <i class="bi bi-capslock-fill me-1"></i> <strong>Caps Lock is ON</strong>
                             </div>
 
-                            <div class="mb-4 d-flex justify-content-between align-items-center">
+                            <div class="mb-4 d-flex justify-content-between align-items-center auth-field-stagger-3">
                                 <div class="form-check">
                                     <input asp-for="RememberMe" class="form-check-input" id="rememberMeCheck" />
                                     <label class="form-check-label small text-muted" for="rememberMeCheck">Keep me signed in for 14 days</label>
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn w-100 py-2 fw-bold rounded-pill mb-3 @(isDoc ? "btn-teal text-white shadow-sm" : "btn-tga-gold text-dark")">
+                            <button type="submit" class="btn w-100 py-2 fw-bold rounded-pill mb-3 auth-field-stagger-4 @(isDoc ? "btn-teal text-white shadow-sm" : "btn-tga-gold text-dark")">
                                 <i class="bi bi-box-arrow-in-right me-1"></i> @(isDoc ? "Sign In to Clinical Desk" : "Sign In to Account")
                             </button>
 
-                            @if (ViewBag.DemoOpenAccess == true && !isDoc)
+                            @if (ViewBag.DemoOpenAccess == true)
                             {
-                                <button type="submit" formnovalidate formaction="/account/continue-demo-guest" formmethod="post" class="btn btn-outline-success w-100 py-2 fw-bold rounded-pill mb-3">
-                                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Continue as Demo Guest
-                                </button>
+                                if (isDoc)
+                                {
+                                    <button type="submit" formnovalidate formaction="/account/continue-demo-doctor" formmethod="post" class="btn btn-teal text-white w-100 py-2 fw-bold rounded-pill mb-3 shadow-sm auth-field-stagger-5">
+                                        <i class="bi bi-person-badge-fill me-1"></i>
+                                        <span>Continue as Demo Doctor</span>
+                                        <span class="badge bg-warning text-dark rounded-pill ms-2 font-monospace" style="font-size: 0.65rem;">Instant Access</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="submit" formnovalidate formaction="/account/continue-demo-guest" formmethod="post" class="btn btn-demo-guest-highlight w-100 py-2 fw-bold rounded-pill mb-3 auth-field-stagger-5">
+                                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+                                        <span>Continue as Demo Guest</span>
+                                        <span class="badge bg-warning text-dark rounded-pill ms-2 font-monospace" style="font-size: 0.65rem;">Instant Access</span>
+                                    </button>
+                                }
                             }
 
                             <!-- Optional Google Sign-In (Shown only if configured) -->

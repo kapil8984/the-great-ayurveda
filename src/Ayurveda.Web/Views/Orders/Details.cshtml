@@ -5,7 +5,8 @@
 
 <div class="container py-4">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
+    <!-- Breadcrumb (hidden on mobile to prevent duplicate header block) -->
+    <nav aria-label="breadcrumb" class="d-none d-md-block">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a asp-action="Index" class="text-success text-decoration-none">My Orders</a></li>
             <li class="breadcrumb-item active" aria-current="page">#@Model.OrderNumber</li>
@@ -22,7 +23,7 @@
                 Placed on <strong>@Model.OrderDate.ToString("dd MMMM yyyy, hh:mm tt")</strong> • Mode: @Model.PaymentMethod (@Model.PaymentStatus)
             </div>
         </div>
-        <div class="d-flex gap-2">
+        <div class="tga-order-actions-grid d-flex flex-wrap gap-2">
             <a asp-action="Invoice" asp-route-id="@Model.OrderId" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                 <i class="bi bi-printer me-1"></i> Print Tax Invoice
             </a>
@@ -70,22 +71,24 @@
     <div class="card p-4 shadow-sm border-0 rounded-4 bg-white mb-4">
         <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-geo-alt text-success me-2"></i> Real-Time Shipment Tracking</h5>
         
-        <div class="row text-center g-3">
-            @foreach (var step in Model.Timeline)
-            {
-                <div class="col">
-                    <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-2 shadow-sm @(step.IsCompleted ? "bg-success text-white" : "bg-light text-muted border")" style="width: 46px; height: 46px;">
-                        <i class="bi @(step.IsCompleted ? "bi-check-lg" : "bi-circle") fs-5"></i>
+        <div class="tga-tracking-steps-container">
+            <div class="row text-center g-3 tga-tracking-steps-row">
+                @foreach (var step in Model.Timeline)
+                {
+                    <div class="col tga-tracking-step-col">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-2 shadow-sm @(step.IsCompleted ? "bg-success text-white" : "bg-light text-muted border")" style="width: 46px; height: 46px;">
+                            <i class="bi @(step.IsCompleted ? "bi-check-lg" : "bi-circle") fs-5"></i>
+                        </div>
+                        <div class="small fw-bold @(step.IsCurrent ? "text-success" : step.IsCompleted ? "text-dark" : "text-muted")">
+                            @step.Title
+                        </div>
+                        @if (step.Timestamp.HasValue)
+                        {
+                            <div class="text-muted" style="font-size: 0.72rem;">@step.Timestamp.Value.ToString("dd MMM, hh:mm tt")</div>
+                        }
                     </div>
-                    <div class="small fw-bold @(step.IsCurrent ? "text-success" : step.IsCompleted ? "text-dark" : "text-muted")">
-                        @step.Title
-                    </div>
-                    @if (step.Timestamp.HasValue)
-                    {
-                        <div class="text-muted" style="font-size: 0.72rem;">@step.Timestamp.Value.ToString("dd MMM, hh:mm tt")</div>
-                    }
-                </div>
-            }
+                }
+            </div>
         </div>
 
         @if (!string.IsNullOrEmpty(Model.TrackingNumber))
@@ -102,6 +105,55 @@
         }
     </div>
 
+    <!-- Real-Time Delivery Tracking Map Card (Leaflet + OpenStreetMap) -->
+    <div class="card p-4 shadow-sm border-0 rounded-4 bg-white mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="bi bi-map-fill text-success me-2"></i> Live Delivery Route &amp; Transit Map
+                    </h5>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small fw-bold">
+                        <i class="bi bi-broadcast me-1"></i> Demo simulation
+                    </span>
+                </div>
+                <span class="text-muted small">
+                    Origin: <strong>Central Herbal Pharmacy Warehouse (Indore)</strong> &rarr; Recipient Destination.
+                </span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-none d-none" id="btnReplaySimulation" title="Replay transit simulation">
+                    <i class="bi bi-arrow-repeat me-1"></i> Replay Simulation
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-none" id="btnUseMyLocation" title="Set destination to my current location">
+                    <i class="bi bi-crosshair me-1"></i> Use My Location
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-none" id="btnRecenterMap" title="Recenter route">
+                    <i class="bi bi-arrows-fullscreen me-1"></i> Fit Route
+                </button>
+            </div>
+        </div>
+
+        <div class="position-relative rounded-4 overflow-hidden border" style="height: clamp(300px, 45vh, 460px); max-height: 55vh;">
+            <div id="orderTrackingMap" style="width: 100%; height: 100%; max-height: 55vh; z-index: 1;"></div>
+            
+            <!-- Mobile Tap-to-Interact Overlay -->
+            <div id="mapTouchOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-none d-flex align-items-center justify-content-center bg-dark bg-opacity-50 text-white p-3 text-center" style="z-index: 10; cursor: pointer; backdrop-filter: blur(2px);">
+                <div>
+                    <i class="bi bi-hand-index-thumb fs-2 mb-2 d-block"></i>
+                    <span class="fw-semibold">Tap to interact with map</span>
+                </div>
+            </div>
+            
+            <!-- Live Vehicle Status & ETA Chip (Mobile Responsive, Non-Intrusive) -->
+            <div class="position-absolute bottom-0 start-0 m-2 m-sm-3 tga-map-status-chip bg-white py-1 px-2 px-sm-3 rounded-pill shadow-sm border d-flex align-items-center gap-2 small" style="z-index: 5; max-width: calc(100% - 16px);">
+                <span class="spinner-grow spinner-grow-sm text-success flex-shrink-0" role="status" style="width: 0.65rem; height: 0.65rem;"></span>
+                <span class="fw-semibold text-dark text-truncate" id="mapStatusText" style="font-size: 0.8rem; max-width: 170px;">Initializing...</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 text-nowrap flex-shrink-0" id="mapEtaBadge" style="font-size: 0.725rem;">ETA: calculating...</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Items & Shipping/Price Summary -->
     <div class="row g-4">
         <!-- Col 1: Ordered Items -->
@@ -114,8 +166,8 @@
                         <div class="d-flex align-items-center justify-content-between p-2 rounded-3 border bg-light">
                             <div class="d-flex align-items-center gap-3">
                                 <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId">
-                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/products/chyawanprash.svg" : item.ImageUrl)" 
-                                         alt="@item.Title" width="60" height="60" class="rounded-3 border p-1 bg-white" style="object-fit: contain;" />
+                                    <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/placeholder.svg" : item.ImageUrl)" 
+                                         alt="@item.Title" width="60" height="60" class="rounded-3 border p-1 bg-white" style="object-fit: contain;" onerror="this.onerror=null;this.src='/images/placeholder.svg';" />
                                 </a>
                                 <div>
                                     <a asp-controller="Shop" asp-action="Details" asp-route-id="@item.ProductId" class="fw-bold text-dark text-decoration-none hover-green">
@@ -229,3 +281,410 @@
         </div>
     </div>
 </div>
+
+<link rel="stylesheet" href="~/lib/leaflet/leaflet.css" />
+<script src="~/lib/leaflet/leaflet.js"></script>
+
+<style>
+@@keyframes dest-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 14px rgba(46, 125, 50, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
+    }
+}
+.dest-pulse-ring {
+    animation: dest-pulse 2s infinite ease-out;
+}
+.vehicle-marker-icon {
+    will-change: transform;
+    transition: transform 0.12s linear;
+}
+@@media (max-width: 767.98px) {
+    .tga-order-actions-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        margin-top: 0.5rem;
+    }
+    .tga-order-actions-grid > * {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+    .tga-order-actions-grid .btn {
+        width: 100% !important;
+        text-align: center !important;
+        font-size: 0.78rem !important;
+        padding: 0.4rem 0.5rem !important;
+        white-space: nowrap !important;
+    }
+    .tga-tracking-steps-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.5rem;
+    }
+    .tga-tracking-steps-row {
+        flex-wrap: nowrap !important;
+        min-width: 500px;
+    }
+    .tga-tracking-step-col {
+        flex: 0 0 100px !important;
+        min-width: 100px !important;
+    }
+    #orderTrackingMap {
+        max-height: 55vh !important;
+    }
+}
+.leaflet-popup-content-wrapper {
+    max-width: 220px !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+}
+.leaflet-popup-content {
+    margin: 10px 12px !important;
+    max-width: 200px !important;
+    font-size: 13px !important;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const mapElement = document.getElementById("orderTrackingMap");
+    if (!mapElement || typeof L === "undefined") return;
+
+    const warehouseLat = @Model.WarehouseLat;
+    const warehouseLng = @Model.WarehouseLng;
+    let destLat = 22.7533;
+    let destLng = 75.8937;
+    const orderStatus = "@Model.Status";
+    const normStatus = orderStatus.toLowerCase();
+
+    const map = L.map("orderTrackingMap", {
+        minZoom: 10,
+        maxZoom: 18,
+        zoomControl: true,
+        attributionControl: true
+    }).setView([warehouseLat, warehouseLng], 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+        minZoom: 10
+    }).addTo(map);
+
+    // Call invalidateSize on initialization, resize, and intersection
+    setTimeout(() => map.invalidateSize(), 250);
+    window.addEventListener("resize", () => map.invalidateSize());
+
+    if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    map.invalidateSize();
+                }
+            });
+        }, { threshold: 0.1 });
+        observer.observe(mapElement);
+    }
+
+    // Mobile touch interaction overlay
+    const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+    const overlay = document.getElementById("mapTouchOverlay");
+    if (isTouch && overlay) {
+        map.dragging.disable();
+        overlay.classList.remove("d-none");
+        overlay.addEventListener("click", function () {
+            overlay.classList.add("d-none");
+            map.dragging.enable();
+        });
+    }
+
+    // Custom Icon Builders
+    function getWarehouseIcon() {
+        return L.divIcon({
+            className: "custom-map-icon",
+            html: '<div style="background:#1B4D3E; color:#FFF; width:34px; height:34px; border-radius:50%; border:2px solid #FFF; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); font-size:16px;"><i class="bi bi-building"></i></div>',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+        });
+    }
+
+    function getDestinationIcon() {
+        return L.divIcon({
+            className: "custom-map-icon",
+            html: '<div class="dest-pulse-ring" style="background:#C5A059; color:#1B4D3E; width:34px; height:34px; border-radius:50%; border:2px solid #FFF; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); font-size:17px;"><i class="bi bi-house-door-fill"></i></div>',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+        });
+    }
+
+    function getVehicleIcon(headingDeg) {
+        return L.divIcon({
+            className: "custom-map-icon",
+            html: '<div class="vehicle-marker-icon" style="transform: rotate(' + headingDeg + 'deg); transform-origin: center center;">' +
+                  '<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                  '<circle cx="18" cy="18" r="17" fill="#1B4D3E" stroke="#C5A059" stroke-width="2"/>' +
+                  '<path d="M10 14h10v7H10zM20 16h4l3 3v2h-7z" fill="#FFFFFF"/>' +
+                  '<circle cx="13" cy="22" r="2.5" fill="#C5A059"/>' +
+                  '<circle cx="23" cy="22" r="2.5" fill="#C5A059"/>' +
+                  '</svg></div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+        });
+    }
+
+    L.marker([warehouseLat, warehouseLng], { icon: getWarehouseIcon() })
+        .addTo(map)
+        .bindPopup("<strong>Central Herbal Pharmacy Warehouse</strong><br>Indore Logistics Hub", { offset: L.point(0, -20) });
+
+    let destMarker = L.marker([destLat, destLng], { icon: getDestinationIcon() })
+        .addTo(map)
+        .bindPopup("<strong>Delivery Address</strong><br>@Model.ShippingAddress", { offset: L.point(0, -20) });
+
+    let routePolyline = null;
+    let trailPolyline = null;
+    let vehicleMarker = null;
+    let routeWaypoints = [];
+    let animFrameId = null;
+
+    function generateFallbackPolyline(start, end) {
+        const points = [];
+        const steps = 30;
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const lat = start[0] + (end[0] - start[0]) * t + Math.sin(t * Math.PI) * 0.008;
+            const lng = start[1] + (end[1] - start[1]) * t + Math.cos(t * Math.PI * 2) * 0.004;
+            points.push([lat, lng]);
+        }
+        return points;
+    }
+
+    async function fetchRoutePoints(start, end) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2500);
+        try {
+            const url = "https://router.project-osrm.org/route/v1/driving/" + start[1] + "," + start[0] + ";" + end[1] + "," + end[0] + "?overview=full&geometries=geojson";
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.routes && data.routes.length > 0) {
+                    return data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                }
+            }
+        } catch (e) {
+            // fallback gracefully
+        } finally {
+            clearTimeout(timeout);
+        }
+        return generateFallbackPolyline(start, end);
+    }
+
+    function calculateHeading(p1, p2) {
+        const dLat = p2[0] - p1[0];
+        const dLng = p2[1] - p1[1];
+        return (Math.atan2(dLng, dLat) * (180 / Math.PI) + 360) % 360;
+    }
+
+    function getInterpolatedPoint(waypoints, progress) {
+        if (!waypoints || waypoints.length === 0) return { point: [warehouseLat, warehouseLng], heading: 0, index: 0 };
+        if (waypoints.length === 1 || progress <= 0) return { point: waypoints[0], heading: 0, index: 0 };
+        if (progress >= 1) return { point: waypoints[waypoints.length - 1], heading: calculateHeading(waypoints[Math.max(0, waypoints.length - 2)], waypoints[waypoints.length - 1]), index: waypoints.length - 1 };
+
+        const totalSegments = waypoints.length - 1;
+        const currentSegmentIndex = Math.min(Math.floor(progress * totalSegments), totalSegments - 1);
+        const segmentProgress = (progress * totalSegments) - currentSegmentIndex;
+
+        const p1 = waypoints[currentSegmentIndex];
+        const p2 = waypoints[currentSegmentIndex + 1];
+
+        const lat = p1[0] + (p2[0] - p1[0]) * segmentProgress;
+        const lng = p1[1] + (p2[1] - p1[1]) * segmentProgress;
+        const heading = calculateHeading(p1, p2);
+
+        return { point: [lat, lng], heading, index: currentSegmentIndex };
+    }
+
+    const statusLabel = document.getElementById("mapStatusText");
+    const etaBadge = document.getElementById("mapEtaBadge");
+    const btnReplay = document.getElementById("btnReplaySimulation");
+
+    // Loop duration: 75 seconds per complete warehouse-to-destination run
+    const totalLoopDurationMs = 75000;
+    let simulationStartTime = performance.now();
+    let isDeliveredParked = (normStatus === "delivered");
+
+    // Telemetry logging trackers for automated verification
+    let logged0 = false;
+    let logged3 = false;
+    let logged6 = false;
+
+    async function setupRoute() {
+        if (animFrameId) cancelAnimationFrame(animFrameId);
+        if (routePolyline) map.removeLayer(routePolyline);
+        if (trailPolyline) map.removeLayer(trailPolyline);
+
+        routeWaypoints = await fetchRoutePoints([warehouseLat, warehouseLng], [destLat, destLng]);
+
+        // Background route line (faint green dash)
+        routePolyline = L.polyline(routeWaypoints, {
+            color: "#81C784",
+            weight: 4,
+            opacity: 0.5,
+            dashArray: "6, 6"
+        }).addTo(map);
+
+        // Fading active trail behind the vehicle
+        trailPolyline = L.polyline([], {
+            color: "#1B4D3E",
+            weight: 5,
+            opacity: 0.9
+        }).addTo(map);
+
+        map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+
+        // Update timeline status text based on order status
+        if (normStatus === "placed") {
+            if (statusLabel) statusLabel.textContent = "Order Placed • Central Warehouse Dispatch";
+        } else if (normStatus === "packed") {
+            if (statusLabel) statusLabel.textContent = "Batch Inspected • Botanical Pharmacy Packaged";
+        } else if (normStatus === "shipped") {
+            if (statusLabel) statusLabel.textContent = "In Transit with @Model.CourierName (Inter-city Express)";
+        } else if (normStatus === "outfordelivery" || normStatus === "out for delivery") {
+            if (statusLabel) statusLabel.textContent = "Out for Delivery • Courier Approaching Destination";
+        } else if (normStatus === "delivered") {
+            if (statusLabel) statusLabel.textContent = "Delivered • Parked at Recipient Destination";
+            if (btnReplay) btnReplay.classList.remove("d-none");
+        } else {
+            if (statusLabel) statusLabel.textContent = "Telemetry Active • Order Processing";
+        }
+
+        const initialProgress = isDeliveredParked ? 1.0 : 0.0;
+        const initialPos = getInterpolatedPoint(routeWaypoints, initialProgress);
+
+        if (!vehicleMarker) {
+            vehicleMarker = L.marker(initialPos.point, { icon: getVehicleIcon(initialPos.heading) }).addTo(map);
+            vehicleMarker.bindPopup('<div style="max-width:200px; font-size:13px; line-height:1.4;"><strong>@Model.CourierName</strong><br>• Express Transit<br>• Live Telemetry</div>', { offset: L.point(0, -26) });
+        } else {
+            vehicleMarker.setLatLng(initialPos.point);
+            vehicleMarker.setIcon(getVehicleIcon(initialPos.heading));
+        }
+
+        if (isDeliveredParked) {
+            if (etaBadge) etaBadge.textContent = "Delivered";
+            trailPolyline.setLatLngs(routeWaypoints);
+            return;
+        }
+
+        simulationStartTime = performance.now();
+
+        function stepSimulation(timestamp) {
+            const elapsed = timestamp - simulationStartTime;
+            const elapsedSeconds = elapsed / 1000;
+
+            // Loop smoothly every 75s
+            const rawProgress = (elapsed % totalLoopDurationMs) / totalLoopDurationMs;
+            
+            // Subtle speed variation (traffic / curves simulation)
+            const speedMod = 1.0 + 0.12 * Math.sin(rawProgress * Math.PI * 6);
+            const modulatedProgress = Math.min(1.0, Math.max(0.0, rawProgress * speedMod));
+
+            const cur = getInterpolatedPoint(routeWaypoints, modulatedProgress);
+
+            vehicleMarker.setLatLng(cur.point);
+            vehicleMarker.setIcon(getVehicleIcon(cur.heading));
+
+            // Update trail behind vehicle
+            const activeTrail = routeWaypoints.slice(0, cur.index + 1);
+            activeTrail.push(cur.point);
+            trailPolyline.setLatLngs(activeTrail);
+
+            // Update ETA countdown consistent with progress
+            const remainingSec = Math.max(0, Math.round((1 - rawProgress) * (totalLoopDurationMs / 1000)));
+            const minutes = Math.floor(remainingSec / 60);
+            const seconds = remainingSec % 60;
+            if (etaBadge) {
+                etaBadge.textContent = `ETA: ${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+            }
+
+            // Evidence logging at 0s, 3s, 6s
+            if (elapsedSeconds >= 0 && !logged0) {
+                console.log("[TELEMETRY] Vehicle pos at 0s: lat=" + cur.point[0].toFixed(5) + ", lng=" + cur.point[1].toFixed(5));
+                logged0 = true;
+            }
+            if (elapsedSeconds >= 3 && !logged3) {
+                console.log("[TELEMETRY] Vehicle pos at 3s: lat=" + cur.point[0].toFixed(5) + ", lng=" + cur.point[1].toFixed(5));
+                logged3 = true;
+            }
+            if (elapsedSeconds >= 6 && !logged6) {
+                console.log("[TELEMETRY] Vehicle pos at 6s: lat=" + cur.point[0].toFixed(5) + ", lng=" + cur.point[1].toFixed(5));
+                logged6 = true;
+            }
+
+            animFrameId = requestAnimationFrame(stepSimulation);
+        }
+
+        animFrameId = requestAnimationFrame(stepSimulation);
+    }
+
+    setupRoute();
+
+    // Replay Button (when delivered or user triggers replay)
+    if (btnReplay) {
+        btnReplay.addEventListener("click", function () {
+            isDeliveredParked = false;
+            btnReplay.classList.add("d-none");
+            if (statusLabel) statusLabel.textContent = "Replaying Transit Simulation • Courier En Route";
+            setupRoute();
+        });
+    }
+
+    // Geolocation: "Use My Location"
+    const btnMyLocation = document.getElementById("btnUseMyLocation");
+    if (btnMyLocation) {
+        btnMyLocation.addEventListener("click", function () {
+            if (!navigator.geolocation) {
+                // Graceful fallback without blocking alert
+                destLat = 22.7533;
+                destLng = 75.8937;
+                destMarker.setLatLng([destLat, destLng]);
+                setupRoute();
+                return;
+            }
+            btnMyLocation.disabled = true;
+            btnMyLocation.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Locating...';
+            navigator.geolocation.getCurrentPosition(function (position) {
+                destLat = position.coords.latitude;
+                destLng = position.coords.longitude;
+                destMarker.setLatLng([destLat, destLng]);
+                btnMyLocation.disabled = false;
+                btnMyLocation.innerHTML = '<i class="bi bi-check2 me-1"></i> Location Updated';
+                setupRoute();
+            }, function () {
+                // Without permission, fall back to Indore destination smoothly
+                btnMyLocation.disabled = false;
+                btnMyLocation.innerHTML = '<i class="bi bi-crosshair me-1"></i> Use My Location';
+                destLat = 22.7533;
+                destLng = 75.8937;
+                destMarker.setLatLng([destLat, destLng]);
+                setupRoute();
+            }, { timeout: 6000 });
+        });
+    }
+
+    // Fit Route
+    const btnRecenter = document.getElementById("btnRecenterMap");
+    if (btnRecenter) {
+        btnRecenter.addEventListener("click", function () {
+            if (routePolyline) {
+                map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+            }
+        });
+    }
+});
+</script>

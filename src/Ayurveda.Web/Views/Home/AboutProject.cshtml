@@ -1,0 +1,114 @@
+@{
+    ViewData["Title"] = "About This Project & Architecture Demonstration";
+    ViewData["MetaDescription"] = "An in-depth portfolio and architecture showcase demonstrating modern enterprise ASP.NET Core MVC, WebRTC consultations, responsive design, and clean architecture.";
+}
+
+<div class="tga-about-project-page py-5">
+    <div class="container">
+        <!-- Hero Header -->
+        <div class="text-center mb-5 pb-3">
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill fw-semibold mb-3">
+                <i class="bi bi-code-slash me-1"></i> Full-Stack Architecture Showcase
+            </span>
+            <h1 class="display-5 fw-bold text-dark mb-3">About The Great Ayurveda</h1>
+            <p class="lead text-muted mx-auto" style="max-width: 780px;">
+                An enterprise-grade, full-stack demonstration platform marrying classical holistic Ayurvedic tradition with modern, scalable software engineering in ASP.NET Core MVC.
+            </p>
+        </div>
+
+        <!-- Highlights 3-Column Grid -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100 border rounded-4 p-4 shadow-xs bg-white">
+                    <div class="rounded-3 bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-layers-half fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Clean Architecture</h5>
+                    <p class="text-muted small mb-0">
+                        Built with strict separation of concerns across Domain, Application, Infrastructure, and Web layers, utilizing EF Core with LocalDB / SQL Server.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border rounded-4 p-4 shadow-xs bg-white">
+                    <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-camera-video fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">WebRTC Video Consultations</h5>
+                    <p class="text-muted small mb-0">
+                        Real-time peer-to-peer telehealth consultations powered by ASP.NET Core SignalR hubs, ICE negotiation, and resilient fallback integrations.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border rounded-4 p-4 shadow-xs bg-white">
+                    <div class="rounded-3 bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-phone fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Responsive &amp; Accessible</h5>
+                    <p class="text-muted small mb-0">
+                        Mobile-first ergonomics with &ge;44px touch targets, zero horizontal scrolling, reduced-motion compliance, and PWA-ready navigation.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Architectural Sections -->
+        <div class="row g-5 align-items-center mb-5">
+            <div class="col-lg-6">
+                <h3 class="fw-bold mb-3 text-dark">Sample Catalogue &amp; Formulation Engine</h3>
+                <p class="text-muted mb-3">
+                    The platform features a rich herbal catalog of over 300 formulations with detailed botanical taxonomy, traditional indications, Sanskrit references, and Prakriti (Dosha) balancing tags.
+                </p>
+                <ul class="list-unstyled d-flex flex-column gap-2 text-muted small">
+                    <li><i class="bi bi-check2-circle text-success me-2"></i> Guest and authenticated cart session isolation.</li>
+                    <li><i class="bi bi-check2-circle text-success me-2"></i> Dynamic coupon discounting and minimum order thresholds.</li>
+                    <li><i class="bi bi-check2-circle text-success me-2"></i> Instant debounced search with keyword highlighting and Flipkart-style rotating placeholder.</li>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <div class="p-4 rounded-4 bg-light border">
+                    <h6 class="fw-bold text-uppercase text-secondary small mb-3">Demonstration Data Notice</h6>
+                    <p class="text-muted small mb-2">
+                        <strong>Product Catalogue:</strong> Product listings, formulations, and ingredients represent simulated authentic Ayurvedic formulations for demonstration and architectural evaluation.
+                    </p>
+                    <p class="text-muted small mb-2">
+                        <strong>Doctor Profiles:</strong> All medical practitioners and Vaidyas featured on this platform are sample fictional profiles crafted to validate scheduling, booking, credentials review, and telehealth workflows.
+                    </p>
+                    <p class="text-muted small mb-0">
+                        <strong>Payments &amp; Checkout:</strong> The payment processing gateway operates in sandboxed test mode with mock credentials. No actual financial transactions are processed.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Architecture Card -->
+        <div class="card rounded-4 border p-4 p-md-5 mb-5 shadow-xs bg-white">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-8">
+                    <h4 class="fw-bold mb-2">Technology Stack &amp; Design Decisions</h4>
+                    <p class="text-muted small mb-3">
+                        Designed with zero third-party framework dependencies (no heavy JS bundles), utilizing modern Vanilla JS micro-interactions, native ASP.NET Core Razor components, and local Bootstrap 5.3 utilities.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">.NET 9 / ASP.NET Core MVC</span>
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">Entity Framework Core 10</span>
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">ASP.NET Core Identity</span>
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">SignalR Realtime Hubs</span>
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">LocalDB / SQL Server</span>
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">WebRTC Video Consultations</span>
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2">Responsive Web Design</span>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a asp-controller="Shop" asp-action="Index" class="btn btn-success px-4 py-2 rounded-pill fw-semibold me-2 mb-2">
+                        <i class="bi bi-bag-check me-1"></i> Explore Shop
+                    </a>
+                    <a asp-controller="Doctors" asp-action="Index" class="btn btn-outline-dark px-4 py-2 rounded-pill fw-semibold mb-2">
+                        <i class="bi bi-person-video me-1"></i> Find Vaidya
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

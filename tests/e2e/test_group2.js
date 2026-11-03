@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { getDevAdminPassword } = require('./getTestPassword');
+const { getDevAdminPassword, getCustomerPassword } = require('./getTestPassword');
 
 const WEB_URL = 'http://localhost:5000';
 const ADMIN_URL = 'http://localhost:7200';
@@ -91,7 +91,7 @@ async function run() {
         console.log('\n--- 3. Testing Role Separation: Customer Blocked from Doctor Portal ---');
         await webPage.goto(`${WEB_URL}/Account/Login`, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await webPage.fill('#loginForm input[name="Email"]', 'customer@ayurveda.com');
-        await webPage.fill('#loginForm input[name="Password"]', 'Customer@123');
+        await webPage.fill('#loginForm input[name="Password"]', getCustomerPassword());
         await Promise.all([
             webPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(e => {}),
             webPage.click('#loginForm button[type="submit"]')
