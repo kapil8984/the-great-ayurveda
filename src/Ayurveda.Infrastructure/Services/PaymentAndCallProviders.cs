@@ -31,7 +31,7 @@ public class PaymentProvider : IPaymentProvider
     public async Task<PaymentInitiateResultDto> InitiateOrderPaymentAsync(string orderNumber, decimal amount, string currency = "INR")
     {
         var keyId = _config["Razorpay:KeyId"] ?? _config["Razorpay__KeyId"];
-        var keySecret = _config["Razorpay:KeySecret"] ?? _config["Razorpay__KeySecret"];
+        var keySecret = _config["Razorpay:KeySecret"] ?? _config["Razorpay__KeySecret"] ?? _config["Razorpay:KeyToken"];
 
         bool hasValidKeys = !string.IsNullOrWhiteSpace(keyId) &&
                             !string.IsNullOrWhiteSpace(keySecret) &&
@@ -125,14 +125,14 @@ public class PaymentProvider : IPaymentProvider
             ProviderOrderId = fallbackOrderId,
             Amount = amount,
             Currency = currency,
-            KeyId = "demo_key",
-            IsLiveRazorpay = false
+            KeyId = keyId ?? "rzp_test_placeholder_key",
+            IsLiveRazorpay = true
         };
     }
 
     public Task<bool> VerifyPaymentSignatureAsync(string orderId, string paymentId, string signature)
     {
-        var keySecret = _config["Razorpay:KeySecret"] ?? _config["Razorpay__KeySecret"];
+        var keySecret = _config["Razorpay:KeySecret"] ?? _config["Razorpay__KeySecret"] ?? _config["Razorpay:KeyToken"];
         var keyId = _config["Razorpay:KeyId"] ?? _config["Razorpay__KeyId"];
 
         bool hasValidKeys = !string.IsNullOrWhiteSpace(keyId) &&

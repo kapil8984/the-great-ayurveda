@@ -51,12 +51,14 @@
                     <th>Email Address</th>
                     <th>Administrative Role</th>
                     <th>Provisioned On</th>
-                    <th class="text-center">2FA Status</th>
+                    <th class="text-center">Account Status</th>
+                    <th class="text-end pe-4">Verification Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var staff in Model)
                 {
+                    bool isVerified = staff.User.IsActive && staff.User.EmailConfirmed;
                     <tr>
                         <td class="ps-4 fw-bold text-dark">
                             <i class="bi bi-person-badge text-success me-2"></i>@staff.User.FullName
@@ -69,14 +71,79 @@
                         </td>
                         <td class="small text-muted">@staff.User.CreatedAt.ToString("dd MMM yyyy")</td>
                         <td class="text-center">
-                            <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                <i class="bi bi-shield-check me-1"></i>Enforced
-                            </span>
+                            @if (isVerified)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-shield-check me-1"></i>Active / Verified
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                    <i class="bi bi-hourglass-split me-1"></i>Pending OTP
+                                </span>
+                            }
+                        </td>
+                        <td class="text-end pe-4">
+                            @if (isVerified)
+                            {
+                                <span class="badge bg-light text-muted border">Enforced</span>
+                            }
+                            else
+                            {
+                                <div class="d-inline-flex gap-1">
+                                    <button type="button" 
+                                            class="btn btn-outline-success btn-sm rounded-pill px-2 py-0" 
+                                            style="font-size: 0.75rem;" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#verifyStaffOtpModal" 
+                                            data-email="@staff.User.Email"
+                                            onclick="document.getElementById('verifyStaffEmailInput').value = this.getAttribute('data-email'); document.getElementById('staffEmailPlaceholder').textContent = this.getAttribute('data-email');">
+                                        <i class="bi bi-check2-circle me-1"></i>Verify OTP
+                                    </button>
+                                    <form asp-action="ResendStaffOtp" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="email" value="@staff.User.Email" />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-2 py-0" style="font-size: 0.75rem;" title="Resend 6-Digit Code">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Modal: Verify Staff OTP -->
+<div class="modal fade" id="verifyStaffOtpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="VerifyStaffOtp" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="email" id="verifyStaffEmailInput" />
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-check text-success me-2"></i>Verify Admin Registration OTP</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-muted small mb-3">
+                        Enter the 6-digit registration code sent to <strong id="staffEmailPlaceholder" class="text-dark"></strong> to activate this administrative account:
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">6-Digit Verification Code</label>
+                        <input type="text" name="otp" class="form-control text-center font-monospace fw-bold fs-4 border-2" maxlength="6" placeholder="000000" style="letter-spacing: 0.35em; max-width: 200px; margin: 0 auto;" required />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">Verify &amp; Activate</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

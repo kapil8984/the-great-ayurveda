@@ -287,8 +287,28 @@ public class AccountController : Controller
         var existing = await _userManager.FindByEmailAsync(normalizedEmail);
         if (existing != null)
         {
-            ModelState.AddModelError("Email", "An account with this email address already exists. Please sign in instead.");
-            return View(model);
+            if (existing.IsActive)
+            {
+                ModelState.AddModelError("Email", "An account with this email address already exists. Please sign in instead.");
+                return View(model);
+            }
+            else
+            {
+                // Account exists but is unverified/inactive. Update details, reset password, resend registration OTP.
+                existing.FullName = model.FullName.Trim();
+                existing.ContactNumber = model.ContactNumber.Trim();
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(existing);
+                await _userManager.ResetPasswordAsync(existing, resetToken, model.Password);
+                await _userManager.UpdateAsync(existing);
+
+                var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "Registration", clientIp, existing.FullName);
+                if (!sent)
+                {
+                    TempData["WarningMessage"] = message;
+                }
+                TempData["InfoMessage"] = "A 6-digit registration verification code has been dispatched to your email.";
+                return RedirectToAction("VerifyOtp", new { email = normalizedEmail });
+            }
         }
 
         var user = new ApplicationUser
@@ -298,7 +318,7 @@ public class AccountController : Controller
             FullName = model.FullName.Trim(),
             ContactNumber = model.ContactNumber.Trim(),
             EmailConfirmed = false,
-            IsActive = true,
+            IsActive = false, // Strictly INACTIVE until OTP verified!
             CreatedAt = DateTime.UtcNow
         };
 
@@ -307,8 +327,8 @@ public class AccountController : Controller
         {
             await _userManager.AddToRoleAsync(user, UserRole.Customer.ToString());
 
-            // Generate and send 6-digit OTP for email verification
-            var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "VerifyEmail", clientIp, user.FullName);
+            // Generate and send 6-digit OTP for email verification with purpose "Registration"
+            var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "Registration", clientIp, user.FullName);
             if (!sent)
             {
                 TempData["WarningMessage"] = message;
@@ -372,7 +392,7 @@ public class AccountController : Controller
 
         if (!allowOtpSkip)
         {
-            var (valid, errorMsg) = await _otpService.ValidateOtpAsync(normalizedEmail, "VerifyEmail", model.Otp);
+            var (valid, errorMsg) = await _otpService.ValidateOtpAsync(normalizedEmail, "Registration", model.Otp);
             if (!valid)
             {
                 ModelState.AddModelError("Otp", errorMsg ?? "Invalid verification code. Please check and try again.");
@@ -380,11 +400,13 @@ public class AccountController : Controller
             }
         }
 
+        // Activate the account upon successful verification
+        user.IsActive = true;
         user.EmailConfirmed = true;
         await _userManager.UpdateAsync(user);
 
         await _signInManager.SignInAsync(user, isPersistent: true);
-        TempData["SuccessMessage"] = "Email verified successfully! Welcome to The Great Ayurveda.";
+        TempData["SuccessMessage"] = "Email verified successfully! Your account is now active. Welcome to The Great Ayurveda.";
 
         if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             return Redirect(model.ReturnUrl);
@@ -415,7 +437,7 @@ public class AccountController : Controller
             return Json(new { success = true, message = "A verification code has been dispatched if the account exists." });
 
         var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "VerifyEmail", clientIp, user.FullName);
+        var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "Registration", clientIp, user.FullName);
 
         return Json(new { success = sent, message });
     }
@@ -488,6 +510,7 @@ public class AccountController : Controller
             FullName = model.FullName.Trim(),
             ContactNumber = model.ContactNumber.Trim(),
             EmailConfirmed = false,
+            IsActive = false, // Inactive until verified
             IsDemo = autoApprove,
             CreatedAt = DateTime.UtcNow
         };
@@ -552,8 +575,8 @@ public class AccountController : Controller
         var cache = HttpContext.RequestServices.GetService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
         cache?.Remove("Doctors_Default_List");
 
-        // Send OTP verification to doctor
-        await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "VerifyEmail", clientIp, user.FullName);
+        // Send OTP verification to doctor with purpose "Registration"
+        await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "Registration", clientIp, user.FullName);
         var destUrl = autoApprove ? Url.Action("Dashboard", "DoctorPortal") : Url.Action("PendingApproval", "DoctorPortal");
         return RedirectToAction("VerifyOtp", new { email = normalizedEmail, returnUrl = destUrl });
     }

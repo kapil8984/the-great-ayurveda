@@ -57,6 +57,7 @@ public class CheckoutViewModel
     public string? RazorpayPaymentId { get; set; }
     public string? RazorpaySignature { get; set; }
     public bool SimulateFailure { get; set; } = false;
+    public string CustomerEmail { get; set; } = string.Empty;
 }
 
 public class AddressViewModel

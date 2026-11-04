@@ -15,12 +15,18 @@ public class AdminUsersController : Controller
     private readonly AyurvedaDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditService _auditService;
+    private readonly IOtpService _otpService;
 
-    public AdminUsersController(AyurvedaDbContext context, UserManager<ApplicationUser> userManager, IAuditService auditService)
+    public AdminUsersController(
+        AyurvedaDbContext context,
+        UserManager<ApplicationUser> userManager,
+        IAuditService auditService,
+        IOtpService otpService)
     {
         _context = context;
         _userManager = userManager;
         _auditService = auditService;
+        _otpService = otpService;
     }
 
     public async Task<IActionResult> Index()
@@ -64,7 +70,8 @@ public class AdminUsersController : Controller
             UserName = email.Trim(),
             Email = email.Trim(),
             FullName = fullName.Trim(),
-            EmailConfirmed = true,
+            EmailConfirmed = false, // Strictly unconfirmed until OTP is verified
+            IsActive = false,        // Strictly inactive until OTP is verified
             CreatedAt = DateTime.UtcNow
         };
 
@@ -77,9 +84,79 @@ public class AdminUsersController : Controller
 
         await _userManager.AddToRoleAsync(newUser, role);
 
-        await _auditService.LogAsync("AdminStaffCreated", "AdminUser", newUser.Id.ToString(), $"Created administrative staff '{newUser.Email}' with role '{role}'", User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        var (sent, message, _) = await _otpService.GenerateAndSendOtpAsync(newUser.Email, "Registration", clientIp, newUser.FullName);
 
-        TempData["SuccessMessage"] = $"Administrative staff user {newUser.Email} ({role}) provisioned.";
+        await _auditService.LogAsync("AdminStaffCreated", "AdminUser", newUser.Id.ToString(), $"Provisioned administrative staff '{newUser.Email}' with role '{role}' (Pending OTP Verification)", User.Identity?.Name, clientIp);
+
+        TempData["SuccessMessage"] = $"Administrative staff user {newUser.Email} ({role}) provisioned. A 6-digit registration OTP has been dispatched to {newUser.Email}. The account will remain inactive until OTP verification is completed.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifyStaffOtp(string email, string otp)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
+        {
+            TempData["ErrorMessage"] = "Email and 6-digit verification code are required.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "Staff user account not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var (success, msg) = await _otpService.VerifyOtpAsync(normalizedEmail, "Registration", otp.Trim());
+        if (!success)
+        {
+            TempData["ErrorMessage"] = msg;
+            return RedirectToAction(nameof(Index));
+        }
+
+        user.IsActive = true;
+        user.EmailConfirmed = true;
+        await _userManager.UpdateAsync(user);
+
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        await _auditService.LogAsync("AdminStaffActivated", "AdminUser", user.Id.ToString(), $"Staff account '{user.Email}' activated via OTP verification.", User.Identity?.Name, clientIp);
+
+        TempData["SuccessMessage"] = $"Administrative staff user {user.Email} successfully verified and activated.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendStaffOtp(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            TempData["ErrorMessage"] = "Email address is required.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            TempData["ErrorMessage"] = "Staff user account not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        var (sent, msg, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "Registration", clientIp, user.FullName);
+        if (sent)
+        {
+            TempData["SuccessMessage"] = $"A fresh 6-digit registration code has been dispatched to {normalizedEmail}.";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = msg;
+        }
         return RedirectToAction(nameof(Index));
     }
 }

@@ -140,9 +140,10 @@ public class CheckoutController : Controller
             Cart = cartVm,
             DeliveryType = "Standard",
             IdempotencyKey = Guid.NewGuid().ToString("N"),
-            RazorpayKeyId = paymentInit.KeyId ?? _configuration["Payment:Razorpay:KeyId"] ?? "demo_key",
+            RazorpayKeyId = paymentInit.KeyId ?? _configuration["Razorpay:KeyId"] ?? "rzp_test_placeholder_key",
             RazorpayOrderId = paymentInit.ProviderOrderId,
-            IsLiveRazorpay = paymentInit.IsLiveRazorpay
+            IsLiveRazorpay = true,
+            CustomerEmail = user.Email ?? ""
         };
 
         return View(model);

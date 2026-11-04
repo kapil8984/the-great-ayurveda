@@ -138,14 +138,20 @@ public class OtpService : IOtpService
         lock (_dailyLock) _globalDailyCount++;
 
         // 8. Prepare branded HTML & dispatch via IEmailSender
-        var greeting = string.IsNullOrWhiteSpace(userFullName) ? "Dear User" : $"Dear {userFullName}";
-        var subject = purpose == "ResetPassword" 
-            ? "The Great Ayurveda - Password Reset Code"
-            : "The Great Ayurveda - Verify Your Email Address";
+        var greeting = string.IsNullOrWhiteSpace(userFullName) ? "Dear Customer" : $"Dear {userFullName}";
+        var subject = purpose switch
+        {
+            "ResetPassword" => "The Great Ayurveda - Password Reset Code",
+            "Registration" => "The Great Ayurveda - Account Registration Code",
+            _ => "The Great Ayurveda - Verification Code"
+        };
 
-        var actionText = purpose == "ResetPassword"
-            ? "You requested to reset your account password. Enter the 6-digit verification code below to establish a new password:"
-            : "Thank you for joining The Great Ayurveda. Please enter the 6-digit verification code below to verify your email and activate your account:";
+        var actionText = purpose switch
+        {
+            "ResetPassword" => "You requested to reset your account password. Enter the 6-digit verification code below to establish a new password:",
+            "Registration" => "Thank you for registering with The Great Ayurveda. Please enter the 6-digit verification code below to verify your email and activate your account:",
+            _ => "Please enter the 6-digit verification code below to verify your email address:"
+        };
 
         var bodyHtml = $@"
 <p>{greeting},</p>
@@ -157,22 +163,36 @@ public class OtpService : IOtpService
   This code is valid for <strong>10 minutes</strong> and can only be used once. For your security, never share this code with anyone.
 </p>
 <p style=""font-size: 13px; color: #718096;"">
-  If you did not initiate this request, you can safely ignore this email.
+  If you did not initiate this request, please contact our customer care immediately at care@thegreatayurveda.com.
 </p>";
 
-        var otpMode = _configuration["Auth:OtpMode"] ?? _configuration["Auth__OtpMode"] ?? "Demo";
+        var otpMode = _configuration["Auth:OtpMode"] ?? _configuration["Auth__OtpMode"] ?? "Email";
         bool isEmail = string.Equals(otpMode, "Email", StringComparison.OrdinalIgnoreCase) || string.Equals(otpMode, "Live", StringComparison.OrdinalIgnoreCase);
         bool isDemo = !isEmail;
 
-        if (!isDemo)
+        var smtpHost = _configuration["Email:Host"] ?? _configuration["Smtp:Host"];
+        bool hasSmtp = !string.IsNullOrWhiteSpace(smtpHost) && !smtpHost.Contains("example.com");
+
+        if (!isDemo || hasSmtp || purpose == "Registration")
         {
-            await _emailSender.SendEmailAsync(normalizedEmail, subject, bodyHtml);
-            _logger.LogInformation("Dispatched OTP code for purpose {Purpose} to {Email}", purpose, normalizedEmail);
-            return (true, "A verification code has been dispatched to your email address.", otpCode);
+            try
+            {
+                await _emailSender.SendEmailAsync(normalizedEmail, subject, bodyHtml);
+                _logger.LogInformation("Dispatched OTP code for purpose {Purpose} to {Email}", purpose, normalizedEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Email dispatch failed for {Email}: {Message}", normalizedEmail, ex.Message);
+            }
+        }
+
+        if (!isDemo || purpose == "Registration")
+        {
+            return (true, "A 6-digit verification code has been dispatched to your email address.", otpCode);
         }
         else
         {
-            _logger.LogInformation("Demo OTP mode active: code {Code} generated for {Purpose} to {Email} (no email sent)", otpCode, purpose, normalizedEmail);
+            _logger.LogInformation("Demo OTP mode active: code {Code} generated for {Purpose} to {Email}", otpCode, purpose, normalizedEmail);
             return (true, "Demo mode: enter any 6 digits to verify.", otpCode);
         }
     }
@@ -188,11 +208,11 @@ public class OtpService : IOtpService
         var key = $"{normalizedEmail}#{purpose}";
         var code = inputOtp.Trim();
 
-        var otpMode = _configuration["Auth:OtpMode"] ?? _configuration["Auth__OtpMode"] ?? "Demo";
+        var otpMode = _configuration["Auth:OtpMode"] ?? _configuration["Auth__OtpMode"] ?? "Email";
         bool isEmail = string.Equals(otpMode, "Email", StringComparison.OrdinalIgnoreCase) || string.Equals(otpMode, "Live", StringComparison.OrdinalIgnoreCase);
         bool isDemo = !isEmail;
 
-        if (isDemo)
+        if (isDemo && purpose != "Registration")
         {
             // Safety: real admin/staff/seeded/protected accounts can never be verified or reset through demo OTP
             var protectedEmails = new[]

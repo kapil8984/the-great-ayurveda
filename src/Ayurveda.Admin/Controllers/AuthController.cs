@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Ayurveda.Application.Interfaces;
 using Ayurveda.Application.ViewModels;
 using Ayurveda.Domain.Entities;
 
@@ -10,15 +11,21 @@ public class AuthController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole<int>> _roleManager;
+    private readonly IOtpService _otpService;
+    private readonly IAuditService _auditService;
 
     public AuthController(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole<int>> roleManager)
+        RoleManager<IdentityRole<int>> roleManager,
+        IOtpService otpService,
+        IAuditService auditService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _roleManager = roleManager;
+        _otpService = otpService;
+        _auditService = auditService;
     }
 
     [HttpGet]
@@ -42,7 +49,7 @@ public class AuthController : Controller
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
 
         // Generic error message to prevent enumeration
-        if (user == null || !user.IsActive)
+        if (user == null)
         {
             ModelState.AddModelError(string.Empty, "Invalid administrative credentials.");
             return View(model);
@@ -54,6 +61,20 @@ public class AuthController : Controller
         if (!roles.Any(r => adminRoles.Contains(r)))
         {
             ModelState.AddModelError(string.Empty, "Access restricted to authorized administrative personnel.");
+            return View(model);
+        }
+
+        // Check if admin account is pending OTP verification
+        if (!user.IsActive || !user.EmailConfirmed)
+        {
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (isPasswordValid)
+            {
+                TempData["WarningMessage"] = "Your administrative account is pending OTP verification. Please enter the 6-digit code sent to your corporate email.";
+                return RedirectToAction(nameof(VerifyOtp), new { email = normalizedEmail, returnUrl = model.ReturnUrl });
+            }
+
+            ModelState.AddModelError(string.Empty, "Invalid administrative credentials.");
             return View(model);
         }
 
@@ -114,5 +135,95 @@ public class AuthController : Controller
     {
         // Logout is strictly POST with anti-forgery token. Never allow GET logout links.
         return RedirectToAction(nameof(Login));
+    }
+
+    [HttpGet]
+    public IActionResult VerifyOtp(string? email, string? returnUrl = null)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return RedirectToAction(nameof(Login));
+
+        ViewBag.Email = email.Trim().ToLowerInvariant();
+        ViewBag.ReturnUrl = returnUrl;
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifyOtp(string email, string otp, string? returnUrl = null)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
+        {
+            ModelState.AddModelError(string.Empty, "Email and 6-digit verification code are required.");
+            ViewBag.Email = email;
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            ModelState.AddModelError(string.Empty, "Administrative account not found.");
+            ViewBag.Email = email;
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
+        var (success, message) = await _otpService.VerifyOtpAsync(normalizedEmail, "Registration", otp.Trim());
+        if (!success)
+        {
+            ModelState.AddModelError(string.Empty, message);
+            ViewBag.Email = email;
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
+        user.IsActive = true;
+        user.EmailConfirmed = true;
+        await _userManager.UpdateAsync(user);
+
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        await _auditService.LogAsync("AdminAccountActivated", "AdminUser", user.Id.ToString(), $"Admin user '{user.Email}' completed registration OTP verification and activated account.", user.Email, clientIp);
+
+        await _signInManager.SignInAsync(user, isPersistent: true);
+        TempData["SuccessMessage"] = "Administrative account verified and activated successfully.";
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
+        return RedirectToAction("Index", "Dashboard");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendOtp(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            TempData["ErrorMessage"] = "Email address is required.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            TempData["SuccessMessage"] = "A 6-digit verification code has been dispatched if the account exists.";
+            return RedirectToAction(nameof(VerifyOtp), new { email = normalizedEmail });
+        }
+
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        var (sent, msg, _) = await _otpService.GenerateAndSendOtpAsync(normalizedEmail, "Registration", clientIp, user.FullName);
+        if (sent)
+        {
+            TempData["SuccessMessage"] = $"A fresh 6-digit registration code has been dispatched to {normalizedEmail}.";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = msg;
+        }
+
+        return RedirectToAction(nameof(VerifyOtp), new { email = normalizedEmail });
     }
 }

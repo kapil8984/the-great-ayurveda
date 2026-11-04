@@ -12,8 +12,8 @@
             <p class="text-muted small mb-0">Express botanical checkout with classical pharmacy fulfillment.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill small fw-semibold">
-                <i class="bi bi-shield-check me-1"></i> Demo mode - no real payment
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small fw-semibold">
+                <i class="bi bi-shield-check me-1"></i> Razorpay Payment Gateway
             </span>
             <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
                 <i class="bi bi-shield-lock-fill me-1"></i> 256-Bit SSL Encrypted
@@ -267,18 +267,7 @@
                         </div>
                     </div>
 
-                    <!-- Normal Block: Simulate Payment Failure Toggle -->
-                    <div class="p-3 border rounded-3 bg-danger-subtle border-danger-subtle mb-3">
-                        <div class="form-check form-switch m-0">
-                            <input class="form-check-input" type="checkbox" role="switch" asp-for="SimulateFailure" id="simulateFailureToggle" />
-                            <label class="form-check-label small fw-bold text-danger" for="simulateFailureToggle">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Simulate Payment Failure
-                            </label>
-                            <div class="text-xs text-danger opacity-75 ps-4">
-                                Toggle ON to test the error recovery UI (declined card / bank timeout simulation with retry button).
-                            </div>
-                        </div>
-                    </div>
+                    <input type="hidden" asp-for="SimulateFailure" value="false" id="simulateFailureToggle" />
 
                     <!-- Payment Help & Troubleshooting Panel -->
                     <div class="card border rounded-3 p-3 bg-white">
@@ -358,7 +347,7 @@
                     </button>
 
                     <div class="medical-disclaimer-banner mt-3 text-center" style="font-size: 0.72rem;">
-                        <i class="bi bi-shield-check me-1 text-success"></i> 100% Secure Simulated Transaction • Demo Mode
+                        <i class="bi bi-shield-check me-1 text-success"></i> 100% Secure Encrypted Payment • Razorpay Gateway
                     </div>
                 </div>
             </div>
@@ -377,103 +366,14 @@
     </form>
 </div>
 
-<!-- =========================================================================
-     MODAL: Realistic Payment Processing & Result Simulator
-     ========================================================================= -->
-<div class="modal fade" id="paymentProcessModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
-            <!-- Modal Header with Demo Tag -->
-            <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center bg-light">
-                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 small">
-                    <i class="bi bi-shield-check me-1"></i> Demo Payment Gateway
-                </span>
-                <span class="text-muted small">Total: <strong>₹@Model.Cart.GrandTotal.ToString("N0")</strong></span>
-            </div>
-
-            <!-- Modal Body -->
-            <div class="modal-body p-4 text-center">
-                <!-- State 1: Processing Animation -->
-                <div id="modalStateProcessing">
-                    <div class="my-4">
-                        <div class="spinner-border text-success" role="status" style="width: 3.5rem; height: 3.5rem; border-width: 0.35em;">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <h5 class="fw-bold text-dark mb-1">Processing Payment...</h5>
-                    <p class="text-muted small mb-3" id="processingStatusText">Contacting simulated bank gateway & verifying credentials...</p>
-                    <div class="progress rounded-pill mb-2" style="height: 6px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" id="paymentProgressBar" style="width: 20%;"></div>
-                    </div>
-                    <div class="text-xs text-muted"><i class="bi bi-lock-fill text-success me-1"></i> 256-Bit SSL Encrypted Sandbox Channel</div>
-                </div>
-
-                <!-- State 2: Simulated Failure Screen -->
-                <div id="modalStateFailure" class="d-none">
-                    <div class="my-3 text-danger">
-                        <i class="bi bi-x-circle-fill display-3"></i>
-                    </div>
-                    <h5 class="fw-bold text-danger mb-1">Payment Declined / Failed</h5>
-                    <p class="text-muted small mb-3">
-                        Simulation Result: The issuing bank rejected the transaction or the session timed out.
-                    </p>
-                    <div class="alert alert-light border small text-start mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted">Error Code:</span>
-                            <span class="font-monospace text-danger fw-bold">ERR_DEMO_DECLINED_402</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">Gateway Status:</span>
-                            <span class="text-danger">Card / Bank Declined</span>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill flex-fill" data-bs-dismiss="modal">
-                            Cancel &amp; Review Cart
-                        </button>
-                        <button type="button" class="btn btn-danger rounded-pill flex-fill" id="btnRetryPayment">
-                            <i class="bi bi-arrow-repeat me-1"></i> Retry Payment
-                        </button>
-                    </div>
-                </div>
-
-                <!-- State 3: Payment Success Tick -->
-                <div id="modalStateSuccess" class="d-none">
-                    <div class="my-3 text-success">
-                        <i class="bi bi-check-circle-fill display-3"></i>
-                    </div>
-                    <h5 class="fw-bold text-success mb-1">Payment Successful!</h5>
-                    <p class="text-muted small mb-3">Your transaction has been authorized. Placing order...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-@if (Model.IsLiveRazorpay)
-{
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const methodCards = document.querySelectorAll(".payment-method-card");
     const detailViews = document.querySelectorAll(".payment-detail-view");
     const btnPay = document.getElementById("btnInitiatePayment");
-    const failureToggle = document.getElementById("simulateFailureToggle");
     const checkoutForm = document.getElementById("checkoutForm");
-    
-    const paymentModalEl = document.getElementById("paymentProcessModal");
-    const paymentModal = new bootstrap.Modal(paymentModalEl);
-    
-    const stateProcessing = document.getElementById("modalStateProcessing");
-    const stateFailure = document.getElementById("modalStateFailure");
-    const stateSuccess = document.getElementById("modalStateSuccess");
-    const progressBar = document.getElementById("paymentProgressBar");
-    const statusText = document.getElementById("processingStatusText");
-    const btnRetry = document.getElementById("btnRetryPayment");
-
-    const isLiveRazorpay = @(Model.IsLiveRazorpay ? "true" : "false");
 
     // Method selection handling
     methodCards.forEach(card => {
@@ -491,95 +391,75 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Pay button handler
-    btnPay.addEventListener("click", function () {
-        const selectedMethodRadio = document.querySelector("input[name='SelectedPaymentMethod']:checked");
-        const isCod = selectedMethodRadio && selectedMethodRadio.value === "CashOnDelivery";
+    function getSelectedPaymentMethod() {
+        const selectedRadio = document.querySelector("input[name='SelectedPaymentMethod']:checked");
+        return selectedRadio ? selectedRadio.value : "Razorpay";
+    }
 
-        if (isCod) {
-            checkoutForm.submit();
+    function launchRazorpayCheckout() {
+        if (typeof Razorpay === "undefined") {
+            alert("The secure Razorpay payment gateway is loading. Please check your network connection and try again.");
             return;
         }
 
-        // Live Razorpay Checkout flow
-        if (isLiveRazorpay && typeof Razorpay !== "undefined") {
-            if (failureToggle && failureToggle.checked) {
-                stateProcessing.classList.add("d-none");
-                stateFailure.classList.remove("d-none");
-                paymentModal.show();
-                return;
-            }
-
-            const rzpOptions = {
-                key: "@Model.RazorpayKeyId",
-                amount: Math.round(@Model.Cart.GrandTotal * 100),
-                currency: "INR",
-                name: "The Great Ayurveda",
-                description: "Retail Botanical Pharmacy Order",
-                order_id: "@Model.RazorpayOrderId",
-                handler: function (response) {
-                    const elPid = document.getElementById("rzpPaymentId");
-                    const elOid = document.getElementById("rzpOrderId");
-                    const elSig = document.getElementById("rzpSignature");
-                    if (elPid) elPid.value = response.razorpay_payment_id || "";
-                    if (elOid) elOid.value = response.razorpay_order_id || "";
-                    if (elSig) elSig.value = response.razorpay_signature || "";
-                    checkoutForm.submit();
-                },
-                modal: {
-                    ondismiss: function () {
-                        stateProcessing.classList.add("d-none");
-                        stateFailure.classList.remove("d-none");
-                        paymentModal.show();
-                    }
-                },
-                theme: {
-                    color: "#2E7D32"
+        const rzpOptions = {
+            key: "@Model.RazorpayKeyId",
+            amount: Math.round(@Model.Cart.GrandTotal * 100),
+            currency: "INR",
+            name: "The Great Ayurveda",
+            description: "Authentic Classical Formulations Order",
+            image: "/images/favicon.png",
+            prefill: {
+                name: "@(Model.SavedAddresses?.FirstOrDefault(a => a.IsDefault)?.RecipientName ?? Model.SavedAddresses?.FirstOrDefault()?.RecipientName ?? "")",
+                email: "@Model.CustomerEmail",
+                contact: "@(Model.SavedAddresses?.FirstOrDefault(a => a.IsDefault)?.Phone ?? Model.SavedAddresses?.FirstOrDefault()?.Phone ?? "")"
+            },
+            theme: {
+                color: "#1B4332"
+            },
+            handler: function (response) {
+                document.getElementById("rzpPaymentId").value = response.razorpay_payment_id || "";
+                document.getElementById("rzpOrderId").value = response.razorpay_order_id || "";
+                document.getElementById("rzpSignature").value = response.razorpay_signature || "";
+                checkoutForm.submit();
+            },
+            modal: {
+                ondismiss: function () {
+                    console.log("Customer closed the Razorpay payment modal.");
                 }
-            };
+            }
+        };
 
+        const rzpOrderId = "@Model.RazorpayOrderId";
+        if (rzpOrderId && !rzpOrderId.startsWith("order_demo_")) {
+            rzpOptions.order_id = rzpOrderId;
+        }
+
+        try {
             const rzp = new Razorpay(rzpOptions);
-            rzp.on('payment.failed', function () {
-                stateProcessing.classList.add("d-none");
-                stateFailure.classList.remove("d-none");
-                paymentModal.show();
+            rzp.on('payment.failed', function (response) {
+                const desc = response.error ? (response.error.description || response.error.reason) : "Payment declined";
+                alert("Payment Failed: " + desc + ". Please try another payment method or retry.");
             });
             rzp.open();
-            return;
+        } catch (err) {
+            console.error("Razorpay checkout modal error:", err);
+            alert("Unable to open Razorpay modal. Please check your configured Razorpay keys.");
         }
+    }
 
-        // Simulated Demo Payment Modal Flow
-        stateProcessing.classList.remove("d-none");
-        stateFailure.classList.add("d-none");
-        stateSuccess.classList.add("d-none");
-        progressBar.style.width = "20%";
-        statusText.textContent = "Connecting to simulated bank gateway & verifying credentials...";
-        paymentModal.show();
+    function executeFinalCheckout() {
+        const method = getSelectedPaymentMethod();
+        if (method === "CashOnDelivery") {
+            checkoutForm.submit();
+        } else {
+            launchRazorpayCheckout();
+        }
+    }
 
-        setTimeout(() => {
-            progressBar.style.width = "65%";
-            statusText.textContent = "Authenticating secure token with merchant network...";
-        }, 800);
-
-        setTimeout(() => {
-            progressBar.style.width = "95%";
-            if (failureToggle && failureToggle.checked) {
-                stateProcessing.classList.add("d-none");
-                stateFailure.classList.remove("d-none");
-            } else {
-                progressBar.style.width = "100%";
-                stateProcessing.classList.add("d-none");
-                stateSuccess.classList.remove("d-none");
-                setTimeout(() => {
-                    checkoutForm.submit();
-                }, 800);
-            }
-        }, 1600);
-    });
-
-    btnRetry.addEventListener("click", function () {
-        if (failureToggle) failureToggle.checked = false;
-        paymentModal.hide();
+    // Pay button handler
+    btnPay.addEventListener("click", function () {
+        executeFinalCheckout();
     });
 });
 </script>
